@@ -67,18 +67,7 @@ function renderCalendar(year, month) {
   const totalCells = Math.ceil((startDay + daysInMonth) / 7) * 7;
   // Day names
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  for (let i = 0; i < 7; i++) {
-    const cell = document.createElement('div');
-    cell.className = 'day-cell';
-    cell.innerHTML = `<span class="day-name">${dayNames[i]}</span>`;
-    cell.style.cursor = 'default';
-    cell.style.background = 'transparent';
-    cell.style.color = 'var(--header-text)';
-    cell.style.fontWeight = 'bold';
-    cell.style.boxShadow = 'none';
-    cell.style.border = 'none';
-    calendarEl.appendChild(cell);
-  }
+  // Removed day header rendering
   // Days
   for (let i = 0; i < totalCells; i++) {
     const dayNum = i - startDay + 1;
