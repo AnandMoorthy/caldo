@@ -18,6 +18,7 @@ const importInput = document.getElementById('import-json-input');
 let current = new Date();
 let selectedDate = null;
 let tasks = {};
+let lastConfettiDateKey = null;
 
 // --- Utility Functions ---
 function pad(n) { return n < 10 ? '0' + n : n; }
@@ -114,14 +115,21 @@ function renderModalTasks() {
   const dateKey = getDateKey(selectedDate);
   const dayTasks = tasks[dateKey] || [];
   taskListEl.innerHTML = '';
+  // let wasAllCompleted = dayTasks.length > 0 && dayTasks.every(t => t.completed);
   dayTasks.forEach(task => {
     const li = document.createElement('li');
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = !!task.completed;
     checkbox.addEventListener('change', () => {
+      const prevCompleted = dayTasks.every(t => t.completed);
       task.completed = checkbox.checked;
       saveAndRefresh();
+      // Only trigger confetti if this change made all tasks complete
+      if (!prevCompleted && dayTasks.length > 0 && dayTasks.every(t => t.completed)) {
+        lastConfettiDateKey = dateKey;
+        triggerConfetti();
+      }
     });
     const span = document.createElement('span');
     span.className = 'task-text' + (task.completed ? ' completed' : '');
@@ -139,7 +147,58 @@ function renderModalTasks() {
     li.appendChild(delBtn);
     taskListEl.appendChild(li);
   });
+  // Remove auto confetti on modal open
 }
+
+// Confetti animation
+function triggerConfetti() {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  canvas.style.display = 'block';
+  const ctx = canvas.getContext('2d');
+  const confettiCount = 120;
+  const confetti = [];
+  for (let i = 0; i < confettiCount; i++) {
+    confetti.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * -canvas.height,
+      r: Math.random() * 6 + 4,
+      d: Math.random() * confettiCount,
+      color: `hsl(${Math.random()*360},90%,60%)`,
+      tilt: Math.random() * 10 - 10
+    });
+  }
+  let angle = 0;
+  let tiltAngle = 0;
+  let frame = 0;
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    angle += 0.01;
+    tiltAngle += 0.1;
+    for (let i = 0; i < confettiCount; i++) {
+      let c = confetti[i];
+      c.y += (Math.cos(angle + c.d) + 3 + c.r/2) * 0.8;
+      c.x += Math.sin(angle);
+      c.tilt = Math.sin(tiltAngle - i/3) * 15;
+      ctx.beginPath();
+      ctx.lineWidth = c.r;
+      ctx.strokeStyle = c.color;
+      ctx.moveTo(c.x + c.tilt + c.r/3, c.y);
+      ctx.lineTo(c.x + c.tilt, c.y + c.tilt + 10);
+      ctx.stroke();
+    }
+    frame++;
+    if (frame < 90) {
+      requestAnimationFrame(draw);
+    } else {
+      canvas.style.display = 'none';
+    }
+  }
+  draw();
+}
+
 function addTask() {
   const text = taskInput.value.trim();
   if (!text) return;
