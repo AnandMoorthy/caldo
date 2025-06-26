@@ -12,6 +12,8 @@ const monthLabel = document.querySelector('.month-label');
 const prevBtn = document.querySelector('.nav.prev');
 const nextBtn = document.querySelector('.nav.next');
 const exportBtn = document.querySelector('.export-json');
+const importBtn = document.querySelector('.import-json');
+const importInput = document.getElementById('import-json-input');
 
 let current = new Date();
 let selectedDate = null;
@@ -219,6 +221,52 @@ function exportAllTodos() {
 
 if (exportBtn) {
   exportBtn.addEventListener('click', exportAllTodos);
+}
+
+// --- Import Functionality ---
+function showNotification(msg) {
+  const notif = document.getElementById('notification');
+  if (!notif) return;
+  notif.textContent = msg;
+  notif.style.display = 'block';
+  notif.style.opacity = '0.97';
+  notif.style.top = '1.2rem';
+  setTimeout(() => {
+    notif.style.opacity = '0';
+    notif.style.top = '0.5rem';
+    setTimeout(() => {
+      notif.style.display = 'none';
+    }, 400);
+  }, 2000);
+}
+
+if (importBtn && importInput) {
+  importBtn.addEventListener('click', () => importInput.click());
+  importInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      // Remove all existing todo-calendar-* keys
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('todo-calendar-')) {
+          localStorage.removeItem(key);
+        }
+      }
+      // Write new data
+      for (const key in data) {
+        if (key.startsWith('todo-calendar-')) {
+          localStorage.setItem(key, JSON.stringify(data[key]));
+        }
+      }
+      showNotification('Import successful!');
+      setTimeout(() => window.location.reload(), 2100);
+    } catch (err) {
+      alert('Failed to import JSON: ' + err.message);
+    }
+  });
 }
 
 // --- Init ---
