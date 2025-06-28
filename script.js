@@ -1,13 +1,10 @@
 // --- Constants & State ---
 const calendarEl = document.querySelector('.calendar');
-const headerEl = document.querySelector('header');
-const modal = document.querySelector('.modal');
-const modalContent = document.querySelector('.modal-content');
-const modalDateEl = document.querySelector('.modal-date');
+const topHeaderEl = document.querySelector('.top-header');
 const taskListEl = document.querySelector('.task-list');
 const taskInput = document.querySelector('.task-input');
 const addTaskBtn = document.querySelector('.add-task');
-const closeBtn = document.querySelector('.close');
+const selectedDateEl = document.querySelector('.selected-date');
 const monthLabel = document.querySelector('.month-label');
 const prevBtn = document.querySelector('.nav.prev');
 const nextBtn = document.querySelector('.nav.next');
@@ -16,7 +13,7 @@ const importBtn = document.querySelector('.import-json');
 const importInput = document.getElementById('import-json-input');
 
 let current = new Date();
-let selectedDate = null;
+let selectedDate = new Date(); // Default to today
 let tasks = {};
 let lastConfettiDateKey = null;
 
@@ -31,7 +28,8 @@ function getDateKey(date) {
 function getStatusColor(tasks) {
   if (!tasks || tasks.length === 0) return 'empty';
   if (tasks.every(t => t.completed)) return 'complete';
-  return 'incomplete';
+  if (tasks.some(t => t.completed)) return 'incomplete';
+  return 'no-tasks';
 }
 function getMonthName(month) {
   return new Date(2000, month, 1).toLocaleString('default', { month: 'long' });
@@ -68,7 +66,6 @@ function renderCalendar(year, month) {
   const totalCells = Math.ceil((startDay + daysInMonth) / 7) * 7;
   // Day names
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  // Removed day header rendering
   // Days
   for (let i = 0; i < totalCells; i++) {
     const dayNum = i - startDay + 1;
@@ -81,10 +78,14 @@ function renderCalendar(year, month) {
       const dayTasks = tasks[dateKey] || [];
       cell.setAttribute('data-status', getStatusColor(dayTasks));
       if (isToday(date)) cell.classList.add('today');
+      // Add selected class if this is the selected date
+      if (selectedDate && date.getTime() === selectedDate.getTime()) {
+        cell.classList.add('selected');
+      }
       cell.innerHTML = `<span class="day-name">${dayNames[date.getDay()===0?6:date.getDay()-1]}</span><span class="date-number">${dayNum}</span>`;
       cell.tabIndex = 0;
-      cell.addEventListener('click', () => openModal(date));
-      cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openModal(date); });
+      cell.addEventListener('click', () => selectDate(date));
+      cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectDate(date); });
     } else {
       cell.innerHTML = '';
       cell.style.background = 'transparent';
@@ -96,26 +97,28 @@ function renderCalendar(year, month) {
   }
 }
 
-// --- Modal Logic ---
-function openModal(date) {
+// --- Date Selection ---
+function selectDate(date) {
   selectedDate = date;
-  modal.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  renderModalTasks();
-  modalDateEl.textContent = `${getMonthName(date.getMonth())} ${date.getDate()}, ${date.getFullYear()}`;
-  taskInput.value = '';
-  setTimeout(() => taskInput.focus(), 100);
+  renderCalendar(current.getFullYear(), current.getMonth());
+  renderTasks();
+  updateSelectedDateDisplay();
 }
-function closeModal() {
-  modal.classList.add('hidden');
-  document.body.style.overflow = '';
-  selectedDate = null;
+
+function updateSelectedDateDisplay() {
+  if (selectedDate) {
+    selectedDateEl.textContent = `${getMonthName(selectedDate.getMonth())} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`;
+  }
 }
-function renderModalTasks() {
+
+// --- Task Rendering ---
+function renderTasks() {
+  if (!selectedDate) return;
+  
   const dateKey = getDateKey(selectedDate);
   const dayTasks = tasks[dateKey] || [];
   taskListEl.innerHTML = '';
-  // let wasAllCompleted = dayTasks.length > 0 && dayTasks.every(t => t.completed);
+  
   dayTasks.forEach(task => {
     const li = document.createElement('li');
     const checkbox = document.createElement('input');
@@ -147,7 +150,6 @@ function renderModalTasks() {
     li.appendChild(delBtn);
     taskListEl.appendChild(li);
   });
-  // Remove auto confetti on modal open
 }
 
 // Confetti animation
@@ -201,7 +203,7 @@ function triggerConfetti() {
 
 function addTask() {
   const text = taskInput.value.trim();
-  if (!text) return;
+  if (!text || !selectedDate) return;
   const dateKey = getDateKey(selectedDate);
   if (!tasks[dateKey]) tasks[dateKey] = [];
   tasks[dateKey].push({ id: Date.now().toString(), text, completed: false });
@@ -209,11 +211,12 @@ function addTask() {
   taskInput.value = '';
   setTimeout(() => taskInput.focus(), 100);
 }
+
 function saveAndRefresh() {
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
   saveTasks(year, month, tasks);
-  renderModalTasks();
+  renderTasks();
   renderCalendar(current.getFullYear(), current.getMonth());
 }
 
@@ -222,22 +225,29 @@ addTaskBtn.addEventListener('click', addTask);
 taskInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') addTask();
 });
-closeBtn.addEventListener('click', closeModal);
-modal.addEventListener('mousedown', e => {
-  if (e.target === modal) closeModal();
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
-});
+
 prevBtn.addEventListener('click', () => {
   current.setMonth(current.getMonth() - 1);
   tasks = loadTasks(current.getFullYear(), current.getMonth());
   renderCalendar(current.getFullYear(), current.getMonth());
+  // Keep the same selected date if it's still in the current month view
+  if (selectedDate.getMonth() !== current.getMonth() || selectedDate.getFullYear() !== current.getFullYear()) {
+    selectedDate = new Date(current.getFullYear(), current.getMonth(), 1);
+  }
+  renderTasks();
+  updateSelectedDateDisplay();
 });
+
 nextBtn.addEventListener('click', () => {
   current.setMonth(current.getMonth() + 1);
   tasks = loadTasks(current.getFullYear(), current.getMonth());
   renderCalendar(current.getFullYear(), current.getMonth());
+  // Keep the same selected date if it's still in the current month view
+  if (selectedDate.getMonth() !== current.getMonth() || selectedDate.getFullYear() !== current.getFullYear()) {
+    selectedDate = new Date(current.getFullYear(), current.getMonth(), 1);
+  }
+  renderTasks();
+  updateSelectedDateDisplay();
 });
 
 // --- Export Functionality ---
@@ -323,5 +333,7 @@ function init() {
   const month = current.getMonth();
   tasks = loadTasks(year, month);
   renderCalendar(year, month);
+  renderTasks();
+  updateSelectedDateDisplay();
 }
 init(); 
