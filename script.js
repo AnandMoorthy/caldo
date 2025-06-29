@@ -12,10 +12,21 @@ const exportBtn = document.querySelector('.export-json');
 const importBtn = document.querySelector('.import-json');
 const importInput = document.getElementById('import-json-input');
 
+// Auth elements
+const authSectionHeader = document.getElementById('auth-section-header');
+const userInfo = document.getElementById('user-info');
+const googleSigninBtnHeader = document.getElementById('google-signin-btn-header');
+const signoutBtn = document.getElementById('signout-btn');
+const userAvatar = document.getElementById('user-avatar');
+const userName = document.getElementById('user-name');
+const syncIndicator = document.getElementById('sync-indicator');
+const syncText = document.getElementById('sync-text');
+
 let current = new Date();
 let selectedDate = new Date(); // Default to today
 let tasks = {};
 let lastConfettiDateKey = null;
+let currentUser = null;
 
 // --- Utility Functions ---
 function pad(n) { return n < 10 ? '0' + n : n; }
@@ -41,7 +52,119 @@ function isToday(date) {
          date.getDate() === now.getDate();
 }
 
-// --- Storage ---
+// --- Firebase Storage Functions ---
+async function loadTasksFromFirebase(year, month) {
+  if (!currentUser) return {};
+  
+  try {
+    const key = getStorageKey(year, month);
+    const docRef = db.collection('users').doc(currentUser.uid).collection('todos').doc(key);
+    const doc = await docRef.get();
+    
+    if (doc.exists) {
+      return doc.data().tasks || {};
+    }
+    return {};
+  } catch (error) {
+    console.error('Error loading tasks from Firebase:', error);
+    showNotification('Error loading tasks');
+    return {};
+  }
+}
+
+async function saveTasksToFirebase(year, month, data) {
+  if (!currentUser) return;
+  
+  try {
+    const key = getStorageKey(year, month);
+    const docRef = db.collection('users').doc(currentUser.uid).collection('todos').doc(key);
+    await docRef.set({
+      tasks: data,
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error saving tasks to Firebase:', error);
+    showNotification('Error saving tasks');
+  }
+}
+
+// --- Data Migration Functions ---
+async function migrateLocalDataToFirebase() {
+  if (!currentUser) return;
+  
+  try {
+    showSyncStatus('syncing', '🔄 Syncing...');
+    showNotification('Syncing local data to cloud...');
+    
+    // Get all local storage keys
+    const localData = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('todo-calendar-')) {
+        try {
+          localData[key] = JSON.parse(localStorage.getItem(key) || '{}');
+        } catch {
+          localData[key] = {};
+        }
+      }
+    }
+    
+    // Check if user has any existing data in Firebase
+    const existingDataQuery = await db.collection('users').doc(currentUser.uid).collection('todos').get();
+    const hasExistingData = !existingDataQuery.empty;
+    
+    if (hasExistingData) {
+      // User has existing cloud data, merge with local data
+      const mergedData = { ...localData };
+      
+      existingDataQuery.forEach(doc => {
+        const cloudData = doc.data().tasks || {};
+        const localDataForKey = localData[doc.id] || {};
+        
+        // Merge local and cloud data, preferring cloud data for conflicts
+        mergedData[doc.id] = { ...localDataForKey, ...cloudData };
+      });
+      
+      // Upload merged data
+      await uploadDataToFirebase(mergedData);
+      showSyncStatus('synced', '☁️ Synced');
+      showNotification('Local and cloud data merged successfully!');
+    } else {
+      // User has no existing cloud data, upload all local data
+      if (Object.keys(localData).length > 0) {
+        await uploadDataToFirebase(localData);
+        showSyncStatus('synced', '☁️ Synced');
+        showNotification('Local data synced to cloud successfully!');
+      } else {
+        showSyncStatus('synced', '☁️ Synced');
+        showNotification('No local data to sync');
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error migrating data to Firebase:', error);
+    showSyncStatus('error', '❌ Sync Error');
+    showNotification('Error syncing data to cloud');
+  }
+}
+
+async function uploadDataToFirebase(data) {
+  const batch = db.batch();
+  
+  for (const key in data) {
+    if (key.startsWith('todo-calendar-') && Object.keys(data[key]).length > 0) {
+      const docRef = db.collection('users').doc(currentUser.uid).collection('todos').doc(key);
+      batch.set(docRef, {
+        tasks: data[key],
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+  }
+  
+  await batch.commit();
+}
+
+// --- Local Storage Fallback ---
 function loadTasks(year, month) {
   const key = getStorageKey(year, month);
   try {
@@ -50,9 +173,39 @@ function loadTasks(year, month) {
     return {};
   }
 }
+
 function saveTasks(year, month, data) {
   const key = getStorageKey(year, month);
   localStorage.setItem(key, JSON.stringify(data));
+}
+
+// --- Authentication Functions ---
+function showNotification(msg) {
+  const notif = document.getElementById('notification');
+  if (!notif) return;
+  notif.textContent = msg;
+  notif.style.display = 'block';
+  notif.style.opacity = '0.97';
+  notif.style.top = '1.2rem';
+  setTimeout(() => {
+    notif.style.opacity = '0';
+    notif.style.top = '0.5rem';
+    setTimeout(() => {
+      notif.style.display = 'none';
+    }, 400);
+  }, 2000);
+}
+
+function updateUserInfo(user) {
+  if (user) {
+    userAvatar.src = user.photoURL || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+    userName.textContent = user.displayName || user.email;
+    authSectionHeader.style.display = 'none';
+    userInfo.style.display = 'flex';
+  } else {
+    authSectionHeader.style.display = 'flex';
+    userInfo.style.display = 'none';
+  }
 }
 
 // --- Calendar Rendering ---
@@ -212,10 +365,18 @@ function addTask() {
   setTimeout(() => taskInput.focus(), 100);
 }
 
-function saveAndRefresh() {
+async function saveAndRefresh() {
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
-  saveTasks(year, month, tasks);
+  
+  if (currentUser) {
+    showSyncStatus('syncing', '🔄 Saving...');
+    await saveTasksToFirebase(year, month, tasks);
+    showSyncStatus('synced', '☁️ Synced');
+  } else {
+    saveTasks(year, month, tasks);
+  }
+  
   renderTasks();
   renderCalendar(current.getFullYear(), current.getMonth());
 }
@@ -226,9 +387,15 @@ taskInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') addTask();
 });
 
-prevBtn.addEventListener('click', () => {
+prevBtn.addEventListener('click', async () => {
   current.setMonth(current.getMonth() - 1);
-  tasks = loadTasks(current.getFullYear(), current.getMonth());
+  
+  if (currentUser) {
+    tasks = await loadTasksFromFirebase(current.getFullYear(), current.getMonth());
+  } else {
+    tasks = loadTasks(current.getFullYear(), current.getMonth());
+  }
+  
   renderCalendar(current.getFullYear(), current.getMonth());
   // Keep the same selected date if it's still in the current month view
   if (selectedDate.getMonth() !== current.getMonth() || selectedDate.getFullYear() !== current.getFullYear()) {
@@ -238,9 +405,15 @@ prevBtn.addEventListener('click', () => {
   updateSelectedDateDisplay();
 });
 
-nextBtn.addEventListener('click', () => {
+nextBtn.addEventListener('click', async () => {
   current.setMonth(current.getMonth() + 1);
-  tasks = loadTasks(current.getFullYear(), current.getMonth());
+  
+  if (currentUser) {
+    tasks = await loadTasksFromFirebase(current.getFullYear(), current.getMonth());
+  } else {
+    tasks = loadTasks(current.getFullYear(), current.getMonth());
+  }
+  
   renderCalendar(current.getFullYear(), current.getMonth());
   // Keep the same selected date if it's still in the current month view
   if (selectedDate.getMonth() !== current.getMonth() || selectedDate.getFullYear() !== current.getFullYear()) {
@@ -251,19 +424,35 @@ nextBtn.addEventListener('click', () => {
 });
 
 // --- Export Functionality ---
-function exportAllTodos() {
-  // Gather all todo-calendar-* keys
-  const allData = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('todo-calendar-')) {
-      try {
-        allData[key] = JSON.parse(localStorage.getItem(key) || '{}');
-      } catch {
-        allData[key] = {};
+async function exportAllTodos() {
+  let allData = {};
+  
+  if (currentUser) {
+    // Export from Firebase
+    try {
+      const querySnapshot = await db.collection('users').doc(currentUser.uid).collection('todos').get();
+      querySnapshot.forEach(doc => {
+        allData[doc.id] = doc.data().tasks || {};
+      });
+    } catch (error) {
+      console.error('Error exporting from Firebase:', error);
+      showNotification('Error exporting data');
+      return;
+    }
+  } else {
+    // Export from localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('todo-calendar-')) {
+        try {
+          allData[key] = JSON.parse(localStorage.getItem(key) || '{}');
+        } catch {
+          allData[key] = {};
+        }
       }
     }
   }
+  
   const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -282,22 +471,6 @@ if (exportBtn) {
 }
 
 // --- Import Functionality ---
-function showNotification(msg) {
-  const notif = document.getElementById('notification');
-  if (!notif) return;
-  notif.textContent = msg;
-  notif.style.display = 'block';
-  notif.style.opacity = '0.97';
-  notif.style.top = '1.2rem';
-  setTimeout(() => {
-    notif.style.opacity = '0';
-    notif.style.top = '0.5rem';
-    setTimeout(() => {
-      notif.style.display = 'none';
-    }, 400);
-  }, 2000);
-}
-
 if (importBtn && importInput) {
   importBtn.addEventListener('click', () => importInput.click());
   importInput.addEventListener('change', async (e) => {
@@ -306,19 +479,35 @@ if (importBtn && importInput) {
     try {
       const text = await file.text();
       const data = JSON.parse(text);
-      // Remove all existing todo-calendar-* keys
-      for (let i = localStorage.length - 1; i >= 0; i--) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('todo-calendar-')) {
-          localStorage.removeItem(key);
+      
+      if (currentUser) {
+        // Import to Firebase
+        const batch = db.batch();
+        for (const key in data) {
+          if (key.startsWith('todo-calendar-')) {
+            const docRef = db.collection('users').doc(currentUser.uid).collection('todos').doc(key);
+            batch.set(docRef, {
+              tasks: data[key],
+              lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        }
+        await batch.commit();
+      } else {
+        // Import to localStorage
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('todo-calendar-')) {
+            localStorage.removeItem(key);
+          }
+        }
+        for (const key in data) {
+          if (key.startsWith('todo-calendar-')) {
+            localStorage.setItem(key, JSON.stringify(data[key]));
+          }
         }
       }
-      // Write new data
-      for (const key in data) {
-        if (key.startsWith('todo-calendar-')) {
-          localStorage.setItem(key, JSON.stringify(data[key]));
-        }
-      }
+      
       showNotification('Import successful!');
       setTimeout(() => window.location.reload(), 2100);
     } catch (err) {
@@ -327,13 +516,95 @@ if (importBtn && importInput) {
   });
 }
 
+// --- Authentication Event Listeners ---
+googleSigninBtnHeader.addEventListener('click', async () => {
+  try {
+    showNotification('Signing in...');
+    await auth.signInWithPopup(googleProvider);
+  } catch (error) {
+    console.error('Sign-in error:', error);
+    showNotification('Sign-in failed: ' + error.message);
+  }
+});
+
+signoutBtn.addEventListener('click', async () => {
+  try {
+    await auth.signOut();
+    showNotification('Signed out successfully');
+  } catch (error) {
+    console.error('Sign-out error:', error);
+  }
+});
+
+// --- Firebase Auth State Observer ---
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+    updateUserInfo(user);
+    showNotification('Welcome back!');
+    
+    // Migrate local data to Firebase first
+    await migrateLocalDataToFirebase();
+    
+    // Load all cloud data and update localStorage
+    const allCloudData = {};
+    const querySnapshot = await db.collection('users').doc(currentUser.uid).collection('todos').get();
+    querySnapshot.forEach(doc => {
+      allCloudData[doc.id] = doc.data().tasks || {};
+    });
+    // Replace localStorage with cloud data
+    // Remove all existing todo-calendar-* keys
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('todo-calendar-')) {
+        localStorage.removeItem(key);
+      }
+    }
+    // Write new data
+    for (const key in allCloudData) {
+      if (key.startsWith('todo-calendar-')) {
+        localStorage.setItem(key, JSON.stringify(allCloudData[key]));
+      }
+    }
+    
+    // Load current month data from Firebase
+    const year = current.getFullYear();
+    const month = current.getMonth();
+    tasks = await loadTasksFromFirebase(year, month);
+    renderCalendar(year, month);
+    renderTasks();
+  } else {
+    currentUser = null;
+    updateUserInfo(null);
+    
+    // Load current month data from localStorage
+    const year = current.getFullYear();
+    const month = current.getMonth();
+    tasks = loadTasks(year, month);
+    renderCalendar(year, month);
+    renderTasks();
+  }
+});
+
 // --- Init ---
-function init() {
+async function init() {
   const year = current.getFullYear();
   const month = current.getMonth();
+  
+  // Always start with localStorage data
   tasks = loadTasks(year, month);
+  
   renderCalendar(year, month);
   renderTasks();
   updateSelectedDateDisplay();
 }
-init(); 
+
+// Initialize the app immediately
+init();
+
+function showSyncStatus(status, text) {
+  if (!syncIndicator || !syncText) return;
+  
+  syncIndicator.className = `sync-indicator ${status}`;
+  syncText.textContent = text;
+} 

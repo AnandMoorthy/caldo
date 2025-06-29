@@ -12,6 +12,10 @@
   --complete: #2E7D32;
   --incomplete: #FF8C00;
   --no-tasks: #C62828;
+  --google-blue: #4285F4;
+  --google-green: #34A853;
+  --google-yellow: #FBBC05;
+  --google-red: #EA4335;
 }
 
 body {
@@ -153,6 +157,8 @@ body {
   gap: 2rem;
   flex: 1;
   min-height: 0;
+  align-items: stretch;
+  height: 100%;
 }
 
 /* Calendar Section */
@@ -160,6 +166,8 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  height: 100%;
 }
 
 .calendar {
@@ -171,8 +179,9 @@ body {
   padding: 1rem;
   box-shadow: 0 2px 16px rgba(0,0,0,0.3);
   width: 100%;
-  height: fit-content;
+  height: 100%;
   box-sizing: border-box;
+  flex: 1 1 0;
 }
 
 /* Task Section */
@@ -185,6 +194,7 @@ body {
   padding: 1.5rem;
   box-shadow: 0 2px 16px rgba(0,0,0,0.3);
   min-height: 0;
+  height: 100%;
 }
 
 .task-header h2 {
@@ -199,15 +209,17 @@ body {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 .task-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1rem 0;
-  flex: 1;
-  overflow-y: auto;
+  flex: 1 1 0;
   min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+  margin: 0 0 1rem 0;
+  padding: 0;
+  list-style: none;
 }
 
 .task-list li {
@@ -567,4 +579,120 @@ body {
   opacity: 0.97;
   pointer-events: none;
   transition: opacity 0.3s, top 0.3s;
+}
+
+/* Authentication Styles */
+.auth-section-header {
+  display: flex;
+  align-items: center;
+}
+
+.google-signin-btn-header {
+  background: var(--button-bg);
+  color: var(--header-text);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border: 1px solid var(--grid-border);
+}
+
+.google-signin-btn-header:hover {
+  background: var(--button-hover);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
+}
+
+.google-signin-btn-header:active {
+  transform: translateY(0);
+}
+
+.google-signin-btn-header svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* User Info Styles */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-right: 1rem;
+}
+
+.user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid var(--grid-border);
+}
+
+.user-name {
+  color: var(--header-text);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.signout-btn {
+  background: var(--button-bg);
+  color: var(--header-text);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.signout-btn:hover {
+  background: var(--button-hover);
+}
+
+/* Sync Indicator */
+.sync-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--cell-text);
+  opacity: 0.7;
+}
+
+.sync-indicator.syncing {
+  color: var(--incomplete);
+  animation: pulse 1.5s infinite;
+}
+
+.sync-indicator.synced {
+  color: var(--complete);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Hide auth section when user is signed in */
+.auth-section.hidden {
+  display: none;
+}
+
+/* Show main app when user is signed in */
+.main-app.visible {
+  display: flex !important;
+  flex-direction: column;
+}
+
+@media (min-width: 700px) {
+  .calendar, .task-list {
+    max-height: 500px;
+  }
 } 
