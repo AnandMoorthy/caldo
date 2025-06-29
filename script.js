@@ -52,6 +52,32 @@ function isToday(date) {
          date.getDate() === now.getDate();
 }
 
+// --- Utility: Merge two month data objects (cloud wins for conflicts, including notes) ---
+function mergeMonthData(local, cloud) {
+  // Both are objects: { 'YYYY-MM-DD': { tasks: [...], note: '...' } }
+  const merged = { ...local };
+  for (const dateKey in cloud) {
+    if (merged[dateKey]) {
+      merged[dateKey] = {
+        tasks: cloud[dateKey].tasks || merged[dateKey].tasks || [],
+        note: cloud[dateKey].note !== undefined ? cloud[dateKey].note : (merged[dateKey].note || '')
+      };
+    } else {
+      merged[dateKey] = cloud[dateKey];
+    }
+  }
+  return merged;
+}
+
+// --- Utility: Merge all months data ---
+function mergeAllMonths(localAll, cloudAll) {
+  const merged = { ...localAll };
+  for (const key in cloudAll) {
+    merged[key] = mergeMonthData(localAll[key] || {}, cloudAll[key] || {});
+  }
+  return merged;
+}
+
 // --- Firebase Storage Functions ---
 async function loadTasksFromFirebase(year, month) {
   if (!currentUser) return {};
@@ -228,8 +254,14 @@ function renderCalendar(year, month) {
     cell.className = 'day-cell';
     if (isInMonth) {
       const dateKey = getDateKey(date);
-      const dayTasks = tasks[dateKey] || [];
-      cell.setAttribute('data-status', getStatusColor(dayTasks));
+      let dayData = tasks[dateKey];
+      if (!dayData) dayData = { tasks: [], note: '' };
+      // If old format, upgrade
+      if (Array.isArray(dayData)) {
+        dayData = { tasks: dayData, note: '' };
+        tasks[dateKey] = dayData;
+      }
+      cell.setAttribute('data-status', getStatusColor(dayData.tasks));
       if (isToday(date)) cell.classList.add('today');
       // Add selected class if this is the selected date
       if (selectedDate && date.getTime() === selectedDate.getTime()) {
@@ -267,11 +299,16 @@ function updateSelectedDateDisplay() {
 // --- Task Rendering ---
 function renderTasks() {
   if (!selectedDate) return;
-  
   const dateKey = getDateKey(selectedDate);
-  const dayTasks = tasks[dateKey] || [];
+  let dayData = tasks[dateKey];
+  if (!dayData) dayData = { tasks: [], note: '' };
+  // If old format, upgrade
+  if (Array.isArray(dayData)) {
+    dayData = { tasks: dayData, note: '' };
+    tasks[dateKey] = dayData;
+  }
+  const dayTasks = dayData.tasks || [];
   taskListEl.innerHTML = '';
-  
   dayTasks.forEach(task => {
     const li = document.createElement('li');
     const checkbox = document.createElement('input');
@@ -281,7 +318,6 @@ function renderTasks() {
       const prevCompleted = dayTasks.every(t => t.completed);
       task.completed = checkbox.checked;
       saveAndRefresh();
-      // Only trigger confetti if this change made all tasks complete
       if (!prevCompleted && dayTasks.length > 0 && dayTasks.every(t => t.completed)) {
         lastConfettiDateKey = dateKey;
         triggerConfetti();
@@ -295,7 +331,7 @@ function renderTasks() {
     delBtn.title = 'Delete task';
     delBtn.innerHTML = '&times;';
     delBtn.addEventListener('click', () => {
-      tasks[dateKey] = dayTasks.filter(t => t.id !== task.id);
+      dayData.tasks = dayTasks.filter(t => t.id !== task.id);
       saveAndRefresh();
     });
     li.appendChild(checkbox);
@@ -303,6 +339,7 @@ function renderTasks() {
     li.appendChild(delBtn);
     taskListEl.appendChild(li);
   });
+  renderNote();
 }
 
 // Confetti animation
@@ -354,31 +391,47 @@ function triggerConfetti() {
   draw();
 }
 
+// --- Add/Remove/Edit Task: UI instant, sync in background ---
 function addTask() {
   const text = taskInput.value.trim();
   if (!text || !selectedDate) return;
   const dateKey = getDateKey(selectedDate);
-  if (!tasks[dateKey]) tasks[dateKey] = [];
-  tasks[dateKey].push({ id: Date.now().toString(), text, completed: false });
-  saveAndRefresh();
+  if (!tasks[dateKey]) tasks[dateKey] = { tasks: [], note: '' };
+  // If old format, upgrade
+  if (Array.isArray(tasks[dateKey])) {
+    tasks[dateKey] = { tasks: tasks[dateKey], note: '' };
+  }
+  tasks[dateKey].tasks.push({ id: Date.now().toString(), text, completed: false });
+  saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
+  renderTasks();
+  renderCalendar(current.getFullYear(), current.getMonth());
+  if (currentUser) {
+    saveTasksToFirebase(selectedDate.getFullYear(), selectedDate.getMonth(), tasks).then(() => {
+      showSyncStatus('synced', '☁️ Synced');
+    }).catch(() => {
+      showSyncStatus('error', '❌ Sync Error');
+    });
+    showSyncStatus('syncing', '🔄 Saving...');
+  }
   taskInput.value = '';
   setTimeout(() => taskInput.focus(), 100);
 }
 
+// Update saveAndRefresh to be instant for UI/local, background for cloud
 async function saveAndRefresh() {
   const year = selectedDate.getFullYear();
   const month = selectedDate.getMonth();
-  
-  if (currentUser) {
-    showSyncStatus('syncing', '🔄 Saving...');
-    await saveTasksToFirebase(year, month, tasks);
-    showSyncStatus('synced', '☁️ Synced');
-  } else {
-    saveTasks(year, month, tasks);
-  }
-  
+  saveTasks(year, month, tasks);
   renderTasks();
   renderCalendar(current.getFullYear(), current.getMonth());
+  if (currentUser) {
+    saveTasksToFirebase(year, month, tasks).then(() => {
+      showSyncStatus('synced', '☁️ Synced');
+    }).catch(() => {
+      showSyncStatus('error', '❌ Sync Error');
+    });
+    showSyncStatus('syncing', '🔄 Saving...');
+  }
 }
 
 // --- Event Listeners ---
@@ -542,47 +595,69 @@ auth.onAuthStateChanged(async (user) => {
     currentUser = user;
     updateUserInfo(user);
     showNotification('Welcome back!');
-    
-    // Migrate local data to Firebase first
-    await migrateLocalDataToFirebase();
-    
-    // Load all cloud data and update localStorage
-    const allCloudData = {};
+
+    // Load all local data
+    const localData = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('todo-calendar-')) {
+        try {
+          localData[key] = JSON.parse(localStorage.getItem(key) || '{}');
+        } catch {
+          localData[key] = {};
+        }
+      }
+    }
+    // Load all cloud data
+    const cloudData = {};
     const querySnapshot = await db.collection('users').doc(currentUser.uid).collection('todos').get();
     querySnapshot.forEach(doc => {
-      allCloudData[doc.id] = doc.data().tasks || {};
+      cloudData[doc.id] = doc.data().tasks || {};
     });
-    // Replace localStorage with cloud data
-    // Remove all existing todo-calendar-* keys
+    // Merge local and cloud data (cloud wins for conflicts)
+    const mergedData = mergeAllMonths(localData, cloudData);
+    // Save merged data to both localStorage and cloud
+    // 1. Update localStorage
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const key = localStorage.key(i);
       if (key && key.startsWith('todo-calendar-')) {
         localStorage.removeItem(key);
       }
     }
-    // Write new data
-    for (const key in allCloudData) {
+    for (const key in mergedData) {
       if (key.startsWith('todo-calendar-')) {
-        localStorage.setItem(key, JSON.stringify(allCloudData[key]));
+        localStorage.setItem(key, JSON.stringify(mergedData[key]));
       }
     }
-    
-    // Load current month data from Firebase
+    // 2. Update cloud (batch)
+    const batch = db.batch();
+    for (const key in mergedData) {
+      if (key.startsWith('todo-calendar-')) {
+        const docRef = db.collection('users').doc(currentUser.uid).collection('todos').doc(key);
+        batch.set(docRef, {
+          tasks: mergedData[key],
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+    }
+    await batch.commit();
+    // Use merged data in the app
     const year = current.getFullYear();
     const month = current.getMonth();
-    tasks = await loadTasksFromFirebase(year, month);
+    tasks = mergedData[getStorageKey(year, month)] || {};
     renderCalendar(year, month);
     renderTasks();
+    updateSelectedDateDisplay();
   } else {
     currentUser = null;
     updateUserInfo(null);
-    
-    // Load current month data from localStorage
+    // Use localStorage (already up-to-date)
     const year = current.getFullYear();
     const month = current.getMonth();
     tasks = loadTasks(year, month);
     renderCalendar(year, month);
     renderTasks();
+    updateSelectedDateDisplay();
   }
 });
 
@@ -607,4 +682,45 @@ function showSyncStatus(status, text) {
   
   syncIndicator.className = `sync-indicator ${status}`;
   syncText.textContent = text;
-} 
+}
+
+// --- Note UI and Logic ---
+const noteTextarea = document.getElementById('day-note');
+const saveNoteBtn = document.getElementById('save-note-btn');
+
+function renderNote() {
+  if (!selectedDate) return;
+  const dateKey = getDateKey(selectedDate);
+  const dayData = tasks[dateKey] || { tasks: [], note: '' };
+  noteTextarea.value = dayData.note || '';
+}
+
+function saveNote() {
+  if (!selectedDate) return;
+  const dateKey = getDateKey(selectedDate);
+  if (!tasks[dateKey]) tasks[dateKey] = { tasks: [], note: '' };
+  // If old format, upgrade
+  if (Array.isArray(tasks[dateKey])) {
+    tasks[dateKey] = { tasks: tasks[dateKey], note: '' };
+  }
+  tasks[dateKey].note = noteTextarea.value;
+  // Save to localStorage instantly
+  saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
+  // Cloud sync in background
+  if (currentUser) {
+    saveTasksToFirebase(selectedDate.getFullYear(), selectedDate.getMonth(), tasks).then(() => {
+      showSyncStatus('synced', '☁️ Synced');
+    }).catch(() => {
+      showSyncStatus('error', '❌ Sync Error');
+    });
+    showSyncStatus('syncing', '🔄 Saving...');
+  }
+  showNotification('Note saved!');
+}
+
+saveNoteBtn.addEventListener('click', saveNote);
+noteTextarea.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    saveNote();
+  }
+}); 
