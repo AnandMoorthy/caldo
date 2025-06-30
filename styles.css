@@ -130,11 +130,11 @@ body.light-theme .calendar {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
+  font-size: 1rem;
   position: relative;
 }
 .user-avatar i.fa-user {
-  font-size: 1.2rem;
+  font-size: 1rem;
   color: #fff;
   display: inline-block;
 }
