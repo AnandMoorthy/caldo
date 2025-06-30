@@ -351,6 +351,7 @@ body.light-theme .calendar {
   background: var(--modal-input-bg);
   border-radius: 0.5rem;
   transition: background 0.2s;
+  cursor: grab;
 }
 
 .task-list li:last-child {
@@ -371,9 +372,9 @@ body.light-theme .calendar {
 .task-list .delete-task {
   background: none;
   border: none;
-  color: #ff6b6b;
+  color: #888;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1rem;
   padding: 0.2rem;
   border-radius: 50%;
   width: 1.5rem;
@@ -385,7 +386,8 @@ body.light-theme .calendar {
 }
 
 .task-list .delete-task:hover {
-  background: rgba(255, 107, 107, 0.2);
+  background: #e0e0e0;
+  color: #333;
 }
 
 .task-input-row {
@@ -950,4 +952,46 @@ body.light-theme .calendar {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* Edit Task Buttons */
+.edit-task, .save-edit-task, .cancel-edit-task {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-left: 0.3rem;
+  border-radius: 50%;
+  width: 1.7rem;
+  height: 1.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.edit-task:hover, .save-edit-task:hover, .cancel-edit-task:hover {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.edit-task-input {
+  flex: 1;
+  margin-left: 0.8rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 1rem;
+  border: 1px solid var(--grid-border);
+  border-radius: 0.4rem;
+  outline: none;
+}
+
+/* Drag and Drop Styles */
+.task-list li.dragging {
+  opacity: 0.5;
+  background: #d1eaff;
+  cursor: grabbing;
+}
+.task-list li.drag-over {
+  border: 2px dashed #4285F4;
+  background: #e3f2fd;
 } 

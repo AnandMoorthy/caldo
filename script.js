@@ -350,8 +350,17 @@ function renderTasks() {
   }
   const dayTasks = dayData.tasks || [];
   taskListEl.innerHTML = '';
-  dayTasks.forEach(task => {
+
+  dayTasks.forEach((task, idx) => {
     const li = document.createElement('li');
+    li.setAttribute('draggable', 'true');
+    li.dataset.index = idx;
+    // Drag events
+    li.addEventListener('dragstart', handleDragStart);
+    li.addEventListener('dragover', handleDragOver);
+    li.addEventListener('drop', handleDrop);
+    li.addEventListener('dragend', handleDragEnd);
+
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = !!task.completed;
@@ -364,19 +373,70 @@ function renderTasks() {
         triggerConfetti();
       }
     });
+
+    // --- Edit logic ---
     const span = document.createElement('span');
     span.className = 'task-text' + (task.completed ? ' completed' : '');
     span.textContent = task.text;
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-task';
+    editBtn.title = 'Edit task';
+    editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+    editBtn.addEventListener('click', () => {
+      // Replace span with input
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = task.text;
+      input.className = 'edit-task-input';
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') saveEdit();
+        if (e.key === 'Escape') cancelEdit();
+      });
+      // Save button
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'save-edit-task';
+      saveBtn.title = 'Save';
+      saveBtn.innerHTML = '<i class="fa fa-check"></i>';
+      saveBtn.addEventListener('click', saveEdit);
+      // Cancel button
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'cancel-edit-task';
+      cancelBtn.title = 'Cancel';
+      cancelBtn.innerHTML = '<i class="fa fa-times"></i>';
+      cancelBtn.addEventListener('click', cancelEdit);
+      // Replace content
+      li.innerHTML = '';
+      li.appendChild(checkbox);
+      li.appendChild(input);
+      li.appendChild(saveBtn);
+      li.appendChild(cancelBtn);
+      input.focus();
+      function saveEdit() {
+        const newText = input.value.trim();
+        if (newText) {
+          task.text = newText;
+          saveAndRefresh();
+        } else {
+          showNotification('Task cannot be empty');
+        }
+      }
+      function cancelEdit() {
+        renderTasks();
+      }
+    });
+
     const delBtn = document.createElement('button');
     delBtn.className = 'delete-task';
     delBtn.title = 'Delete task';
-    delBtn.innerHTML = '&times;';
+    delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
     delBtn.addEventListener('click', () => {
       dayData.tasks = dayTasks.filter(t => t.id !== task.id);
       saveAndRefresh();
     });
     li.appendChild(checkbox);
     li.appendChild(span);
+    li.appendChild(editBtn);
     li.appendChild(delBtn);
     taskListEl.appendChild(li);
   });
@@ -812,4 +872,36 @@ if (savedTheme === 'light') {
   setTheme('light');
 } else {
   setTheme('dark');
+}
+
+// --- Drag and Drop Handlers for Task Reordering ---
+let dragSrcIdx = null;
+function handleDragStart(e) {
+  dragSrcIdx = Number(this.dataset.index);
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function handleDragOver(e) {
+  e.preventDefault();
+  this.classList.add('drag-over');
+}
+function handleDrop(e) {
+  e.stopPropagation();
+  this.classList.remove('drag-over');
+  const targetIdx = Number(this.dataset.index);
+  if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) {
+    const dateKey = getDateKey(selectedDate);
+    let dayData = tasks[dateKey];
+    if (!dayData) return;
+    const movedTask = dayData.tasks.splice(dragSrcIdx, 1)[0];
+    dayData.tasks.splice(targetIdx, 0, movedTask);
+    saveAndRefresh();
+  }
+  dragSrcIdx = null;
+}
+function handleDragEnd(e) {
+  this.classList.remove('dragging');
+  const items = taskListEl.querySelectorAll('li');
+  items.forEach(item => item.classList.remove('drag-over'));
+  dragSrcIdx = null;
 } 
