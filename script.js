@@ -121,7 +121,6 @@ async function migrateLocalDataToFirebase() {
   if (!currentUser) return;
   
   try {
-    showSyncStatus('syncing', '🔄 Syncing...');
     showNotification('Syncing local data to cloud...');
     
     // Get all local storage keys
@@ -155,23 +154,19 @@ async function migrateLocalDataToFirebase() {
       
       // Upload merged data
       await uploadDataToFirebase(mergedData);
-      showSyncStatus('synced', '☁️ Synced');
       showNotification('Local and cloud data merged successfully!');
     } else {
       // User has no existing cloud data, upload all local data
       if (Object.keys(localData).length > 0) {
         await uploadDataToFirebase(localData);
-        showSyncStatus('synced', '☁️ Synced');
         showNotification('Local data synced to cloud successfully!');
       } else {
-        showSyncStatus('synced', '☁️ Synced');
         showNotification('No local data to sync');
       }
     }
     
   } catch (error) {
     console.error('Error migrating data to Firebase:', error);
-    showSyncStatus('error', '❌ Sync Error');
     showNotification('Error syncing data to cloud');
   }
 }
@@ -337,6 +332,11 @@ function updateSelectedDateDisplay() {
   }
 }
 
+// --- Note UI and Logic ---
+const noteTextarea = document.getElementById('day-note');
+const saveNoteBtn = document.getElementById('save-note-btn');
+
+
 // --- Task Rendering ---
 function renderTasks() {
   if (!selectedDate) return;
@@ -451,12 +451,7 @@ function addTask() {
   renderTasks();
   renderCalendar(current.getFullYear(), current.getMonth());
   if (currentUser) {
-    saveTasksToFirebase(selectedDate.getFullYear(), selectedDate.getMonth(), tasks).then(() => {
-      showSyncStatus('synced', '☁️ Synced');
-    }).catch(() => {
-      showSyncStatus('error', '❌ Sync Error');
-    });
-    showSyncStatus('syncing', '🔄 Saving...');
+    saveTasksToFirebase(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
   }
   taskInput.value = '';
   setTimeout(() => taskInput.focus(), 100);
@@ -470,12 +465,7 @@ async function saveAndRefresh() {
   renderTasks();
   renderCalendar(current.getFullYear(), current.getMonth());
   if (currentUser) {
-    saveTasksToFirebase(year, month, tasks).then(() => {
-      showSyncStatus('synced', '☁️ Synced');
-    }).catch(() => {
-      showSyncStatus('error', '❌ Sync Error');
-    });
-    showSyncStatus('syncing', '🔄 Saving...');
+    saveTasksToFirebase(year, month, tasks);
   }
 }
 
@@ -673,17 +663,6 @@ async function init() {
 // Initialize the app immediately
 init();
 
-function showSyncStatus(status, text) {
-  if (!syncIndicator || !syncText) return;
-  
-  syncIndicator.className = `sync-indicator ${status}`;
-  syncText.textContent = text;
-}
-
-// --- Note UI and Logic ---
-const noteTextarea = document.getElementById('day-note');
-const saveNoteBtn = document.getElementById('save-note-btn');
-
 function renderNote() {
   if (!selectedDate) return;
   const dateKey = getDateKey(selectedDate);
@@ -704,12 +683,7 @@ function saveNote() {
   saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
   // Cloud sync in background
   if (currentUser) {
-    saveTasksToFirebase(selectedDate.getFullYear(), selectedDate.getMonth(), tasks).then(() => {
-      showSyncStatus('synced', '☁️ Synced');
-    }).catch(() => {
-      showSyncStatus('error', '❌ Sync Error');
-    });
-    showSyncStatus('syncing', '🔄 Saving...');
+    saveTasksToFirebase(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
   }
   showNotification('Note saved!');
 }
