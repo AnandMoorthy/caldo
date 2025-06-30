@@ -15,12 +15,14 @@ const importInput = document.getElementById('import-json-input');
 // Auth elements
 const authSectionHeader = document.getElementById('auth-section-header');
 const userInfo = document.getElementById('user-info');
-const googleSigninBtnHeader = document.getElementById('google-signin-btn-header');
 const signoutBtn = document.getElementById('signout-btn');
 const userAvatar = document.getElementById('user-avatar');
-const userName = document.getElementById('user-name');
-const syncIndicator = document.getElementById('sync-indicator');
-const syncText = document.getElementById('sync-text');
+
+// User dropdown elements
+const userDropdown = document.getElementById('user-dropdown');
+const googleSigninBtn = document.getElementById('google-signin-btn');
+const settingsBtn = document.getElementById('settings-btn');
+const settingsDropdown = document.getElementById('settings-dropdown');
 
 let current = new Date();
 let selectedDate = new Date(); // Default to today
@@ -222,15 +224,54 @@ function showNotification(msg) {
   }, 2000);
 }
 
+// function updateUserInfo(user) {
+//   const userAvatarIcon = document.getElementById('user-avatar-icon');
+//   if (user) {
+//     let initials = '?';
+//     if (user.displayName) {
+//       const parts = user.displayName.split(' ');
+//       initials = parts.map(p => p[0]).join('').toUpperCase();
+//     } else if (user.email) {
+//       initials = user.email[0].toUpperCase();
+//     }
+//     userAvatar.textContent = initials;
+//     userAvatar.title = user.displayName || user.email || '';
+//     if (userAvatarIcon) userAvatarIcon.style.display = 'none';
+//     googleSigninBtn.style.display = 'none';
+//     signoutBtn.style.display = '';
+//   } else {
+//     userAvatar.textContent = '';
+//     userAvatar.title = 'Not signed in';
+//     if (userAvatarIcon) userAvatarIcon.style.display = '';
+//     googleSigninBtn.style.display = '';
+//     signoutBtn.style.display = 'none';
+//   }
+// }
+
 function updateUserInfo(user) {
+  const userAvatarInitials = document.getElementById('user-avatar-initials');
+  const userAvatarIcon = document.getElementById('user-avatar-icon');
+  let initials = '?';
   if (user) {
-    userAvatar.src = user.photoURL || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23ccc"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
-    userName.textContent = user.displayName || user.email;
-    authSectionHeader.style.display = 'none';
-    userInfo.style.display = 'flex';
+    if (user.displayName) {
+      const parts = user.displayName.split(' ');
+      initials = parts.map(p => p[0]).join('').toUpperCase();
+    } else if (user.email) {
+      initials = user.email[0].toUpperCase();
+    }
+    userAvatarInitials.textContent = initials;
+    userAvatarInitials.style.display = '';
+    userAvatarIcon.style.display = 'none';
+    userAvatar.title = user.displayName || user.email || '';
+    googleSigninBtn.style.display = 'none';
+    signoutBtn.style.display = '';
   } else {
-    authSectionHeader.style.display = 'flex';
-    userInfo.style.display = 'none';
+    userAvatarInitials.textContent = '';
+    userAvatarInitials.style.display = 'none';
+    userAvatarIcon.style.display = '';
+    userAvatar.title = 'Not signed in';
+    googleSigninBtn.style.display = '';
+    signoutBtn.style.display = 'none';
   }
 }
 
@@ -394,7 +435,10 @@ function triggerConfetti() {
 // --- Add/Remove/Edit Task: UI instant, sync in background ---
 function addTask() {
   const text = taskInput.value.trim();
-  if (!text || !selectedDate) return;
+  if (!text || !selectedDate) {
+    setTimeout(() => taskInput.focus(), 100);
+    return;
+  }
   const dateKey = getDateKey(selectedDate);
   if (!tasks[dateKey]) tasks[dateKey] = { tasks: [], note: '' };
   // If old format, upgrade
@@ -477,116 +521,65 @@ nextBtn.addEventListener('click', async () => {
   updateSelectedDateDisplay();
 });
 
-// --- Export Functionality ---
-async function exportAllTodos() {
-  let allData = {};
-  
-  if (currentUser) {
-    // Export from Firebase
-    try {
-      const querySnapshot = await db.collection('users').doc(currentUser.uid).collection('todos').get();
-      querySnapshot.forEach(doc => {
-        // Export the full day object (tasks and note)
-        allData[doc.id] = doc.data().tasks || {};
-      });
-    } catch (error) {
-      console.error('Error exporting from Firebase:', error);
-      showNotification('Error exporting data');
-      return;
-    }
-  } else {
-    // Export from localStorage
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('todo-calendar-')) {
-        try {
-          // Export the full day object (tasks and note)
-          allData[key] = JSON.parse(localStorage.getItem(key) || '{}');
-        } catch {
-          allData[key] = {};
-        }
-      }
-    }
-  }
-  
-  const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'todo-calendar-export.json';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, 100);
-}
+// --- User Dropdown Elements ---
+const dropdownBtns = document.querySelectorAll('.dropdown-btn');
+const dropdowns = document.querySelectorAll('.dropdown');
 
-if (exportBtn) {
-  exportBtn.addEventListener('click', exportAllTodos);
-}
-
-// --- Import Functionality ---
-if (importBtn && importInput) {
-  importBtn.addEventListener('click', () => importInput.click());
-  importInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      
-      if (currentUser) {
-        // Import to Firebase (full day object: tasks and note)
-        const batch = db.batch();
-        for (const key in data) {
-          if (key.startsWith('todo-calendar-')) {
-            const docRef = db.collection('users').doc(currentUser.uid).collection('todos').doc(key);
-            batch.set(docRef, {
-              tasks: data[key],
-              lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-            });
-          }
-        }
-        await batch.commit();
-      } else {
-        // Import to localStorage (full day object: tasks and note)
-        for (let i = localStorage.length - 1; i >= 0; i--) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith('todo-calendar-')) {
-            localStorage.removeItem(key);
-          }
-        }
-        for (const key in data) {
-          if (key.startsWith('todo-calendar-')) {
-            localStorage.setItem(key, JSON.stringify(data[key]));
-          }
-        }
-      }
-      
-      showNotification('Import successful!');
-      setTimeout(() => window.location.reload(), 2100);
-    } catch (err) {
-      alert('Failed to import JSON: ' + err.message);
-    }
+function closeAllDropdowns() {
+  dropdowns.forEach(d => {
+    d.setAttribute('aria-expanded', 'false');
+    d.style.display = 'none';
   });
 }
+function openDropdown(dropdown) {
+  closeAllDropdowns();
+  dropdown.setAttribute('aria-expanded', 'true');
+  dropdown.style.display = 'flex';
+  document.addEventListener('mousedown', handleDropdownOutsideClick);
+  window.addEventListener('keydown', handleDropdownEscape);
+}
+function handleDropdownOutsideClick(e) {
+  if (![...dropdowns].some(d => d.contains(e.target)) &&
+      ![...dropdownBtns].some(b => b.contains(e.target))) {
+    closeAllDropdowns();
+    document.removeEventListener('mousedown', handleDropdownOutsideClick);
+    window.removeEventListener('keydown', handleDropdownEscape);
+  }
+}
+function handleDropdownEscape(e) {
+  if (e.key === 'Escape') {
+    closeAllDropdowns();
+    document.removeEventListener('mousedown', handleDropdownOutsideClick);
+    window.removeEventListener('keydown', handleDropdownEscape);
+  }
+}
+dropdownBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const anchor = btn.closest('.dropdown-anchor');
+    const dropdown = anchor.querySelector('.dropdown');
+    if (dropdown.style.display === 'flex') {
+      closeAllDropdowns();
+    } else {
+      openDropdown(dropdown);
+    }
+  });
+});
 
-// --- Authentication Event Listeners ---
-googleSigninBtnHeader.addEventListener('click', async () => {
+googleSigninBtn.addEventListener('click', async () => {
   try {
     showNotification('Signing in...');
     await auth.signInWithPopup(googleProvider);
+    closeAllDropdowns();
   } catch (error) {
     console.error('Sign-in error:', error);
     showNotification('Sign-in failed: ' + error.message);
   }
 });
-
 signoutBtn.addEventListener('click', async () => {
   try {
     await auth.signOut();
     showNotification('Signed out successfully');
+    closeAllDropdowns();
   } catch (error) {
     console.error('Sign-out error:', error);
   }
@@ -726,4 +719,123 @@ noteTextarea.addEventListener('keydown', e => {
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
     saveNote();
   }
-}); 
+});
+
+// --- Settings Dropdown Elements ---
+const settingsExportBtn = document.getElementById('settings-export-btn');
+const settingsImportBtn = document.getElementById('settings-import-btn');
+const settingsImportInput = document.getElementById('settings-import-input');
+
+// --- Export Functionality (Settings) ---
+settingsExportBtn.addEventListener('click', () => {
+  exportAllTodos();
+  closeAllDropdowns();
+});
+
+// --- Import Functionality (Settings) ---
+settingsImportBtn.addEventListener('click', () => settingsImportInput.click());
+settingsImportInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (currentUser) {
+      // Import to Firebase (full day object: tasks and note)
+      const batch = db.batch();
+      for (const key in data) {
+        if (key.startsWith('todo-calendar-')) {
+          const docRef = db.collection('users').doc(currentUser.uid).collection('todos').doc(key);
+          batch.set(docRef, {
+            tasks: data[key],
+            lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+      }
+      await batch.commit();
+    } else {
+      // Import to localStorage (full day object: tasks and note)
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('todo-calendar-')) {
+          localStorage.removeItem(key);
+        }
+      }
+      for (const key in data) {
+        if (key.startsWith('todo-calendar-')) {
+          localStorage.setItem(key, JSON.stringify(data[key]));
+        }
+      }
+    }
+    showNotification('Import successful!');
+    setTimeout(() => window.location.reload(), 2100);
+  } catch (err) {
+    alert('Failed to import JSON: ' + err.message);
+  }
+  closeAllDropdowns();
+});
+
+// --- Export All Todos Function (restored) ---
+async function exportAllTodos() {
+  let allData = {};
+  if (currentUser) {
+    // Export from Firebase
+    try {
+      const querySnapshot = await db.collection('users').doc(currentUser.uid).collection('todos').get();
+      querySnapshot.forEach(doc => {
+        allData[doc.id] = doc.data().tasks || {};
+      });
+    } catch (error) {
+      console.error('Error exporting from Firebase:', error);
+      showNotification('Error exporting data');
+      return;
+    }
+  } else {
+    // Export from localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('todo-calendar-')) {
+        try {
+          allData[key] = JSON.parse(localStorage.getItem(key) || '{}');
+        } catch {
+          allData[key] = {};
+        }
+      }
+    }
+  }
+  const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'todo-calendar-export.json';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+}
+
+// --- Theme Toggle Logic ---
+const themeToggleBtn = document.getElementById('settings-theme-toggle');
+function setTheme(theme) {
+  if (theme === 'light') {
+    document.body.classList.add('light-theme');
+    themeToggleBtn.textContent = 'Dark Theme';
+  } else {
+    document.body.classList.remove('light-theme');
+    themeToggleBtn.textContent = 'Light Theme';
+  }
+  localStorage.setItem('theme', theme);
+}
+themeToggleBtn.addEventListener('click', () => {
+  const isLight = document.body.classList.contains('light-theme');
+  setTheme(isLight ? 'dark' : 'light');
+});
+// On load, apply saved theme
+const savedTheme = localStorage.getItem('theme');
+if (savedTheme === 'light') {
+  setTheme('light');
+} else {
+  setTheme('dark');
+} 

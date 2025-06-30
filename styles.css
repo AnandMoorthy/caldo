@@ -34,6 +34,26 @@ body {
   padding-top: env(safe-area-inset-top);
 }
 
+body.light-theme {
+  --bg: #F6F6F7;
+  --header-text: #23272f;
+  --grid-border: #E0E0E0;
+  --cell-default: #FFFFFF;
+  --cell-text: #444;
+  --modal-bg: #F9F9FA;
+  --modal-input-bg: #F1F1F3;
+  --modal-input-text: #23272f;
+  --button-bg: #E6E6EA;
+  --button-hover: #D1D1D6;
+  --complete: #4CAF50;
+  --incomplete: #FFB74D;
+  --no-tasks: #E57373;
+}
+
+body.light-theme .calendar {
+  background: var(--modal-bg);
+}
+
 .app {
   max-width: 1200px;
   margin: 0;
@@ -45,7 +65,7 @@ body {
   display: flex;
   flex-direction: column;
   /* Prevent content from overflowing on mobile */
-  overflow: hidden;
+  /* overflow: hidden; */ /* Removed to allow dropdowns to overflow */
 }
 
 /* Top Header */
@@ -67,6 +87,107 @@ body {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropdown-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dropdown-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  min-width: 2.2rem;
+  min-height: 2.2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  /* font-weight: 600; */
+  background: #4285F4;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, opacity 0.2s;
+  outline: none;
+  position: relative;
+  z-index: 20;
+}
+.user-avatar {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  position: relative;
+}
+.user-avatar i.fa-user {
+  font-size: 1.2rem;
+  color: #fff;
+  display: inline-block;
+}
+.settings-btn {
+  background: none;
+  color: var(--header-text);
+  opacity: 0.85;
+}
+.settings-btn:hover, .settings-btn:focus {
+  background: var(--button-hover);
+  color: #fff;
+  opacity: 1;
+}
+
+.dropdown {
+  position: absolute;
+  top: 120%;
+  /* left: 0; */
+  background: var(--modal-bg);
+  color: var(--header-text);
+  border-radius: 0.7rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  padding: 0.7rem 1.1rem;
+  min-width: 170px;
+  display: none;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 999;
+  border: 1px solid var(--grid-border);
+}
+.dropdown[aria-expanded="true"] {
+  display: flex;
+}
+
+.google-signin-btn {
+  background: var(--button-bg);
+  color: var(--header-text);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background 0.2s, color 0.2s, border 0.2s;
+  box-shadow: none;
+  border: none;
+}
+.google-signin-btn:hover {
+  background: var(--button-hover);
+  color: #fff;
 }
 
 .month-label {
@@ -317,7 +438,7 @@ body {
   justify-content: flex-start;
   padding: 0.5rem 0.2rem;
   cursor: pointer;
-  border: 2px solid transparent;
+  border: 1px solid lightgray;
   transition: background 0.2s, border 0.2s;
   position: relative;
   min-width: 0;
@@ -628,13 +749,6 @@ body {
   margin-right: 1rem;
 }
 
-.user-avatar {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  border: 2px solid var(--grid-border);
-}
-
 .user-name {
   color: var(--header-text);
   font-size: 0.9rem;
@@ -748,4 +862,92 @@ body {
 
 .save-note-btn:hover {
   background: var(--button-hover);
+}
+
+/* Settings Modal Styles */
+.settings-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s;
+}
+
+.settings-modal-content {
+  background: var(--modal-bg);
+  color: var(--modal-input-text);
+  border-radius: 1rem;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.35);
+  padding: 2rem 2.5rem 1.5rem 2.5rem;
+  min-width: 320px;
+  max-width: 95vw;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.settings-modal h2 {
+  margin: 0 0 1.2rem 0;
+  font-size: 1.4rem;
+  color: var(--header-text);
+  font-weight: 600;
+}
+
+.settings-close {
+  position: absolute;
+  top: 1.2rem;
+  right: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--header-text);
+  font-size: 2rem;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+.settings-close:hover {
+  opacity: 1;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.settings-export, .settings-import, .settings-theme-toggle {
+  background: var(--button-bg);
+  color: var(--header-text);
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  width: 100%;
+  text-align: left;
+}
+.settings-export:hover, .settings-import:hover, .settings-theme-toggle:hover {
+  background: var(--button-hover);
+  color: #fff;
+}
+
+.settings-icon {
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 } 
