@@ -270,6 +270,52 @@ function updateUserInfo(user) {
   }
 }
 
+// --- Drag and Drop Handlers for Task Reordering ---
+let dragSrcIdx = null;
+let dragTask = null;
+let dragTaskDateKey = null;
+
+function handleDragStart(e) {
+  dragSrcIdx = Number(this.dataset.index);
+  const dateKey = getDateKey(selectedDate);
+  let dayData = tasks[dateKey];
+  if (!dayData) return;
+  dragTask = { ...dayData.tasks[dragSrcIdx] };
+  dragTaskDateKey = dateKey;
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  // For Firefox compatibility
+  e.dataTransfer.setData('text/plain', dragTask.id);
+}
+function handleDragOver(e) {
+  e.preventDefault();
+  this.classList.add('drag-over');
+}
+function handleDrop(e) {
+  e.stopPropagation();
+  this.classList.remove('drag-over');
+  const targetIdx = Number(this.dataset.index);
+  if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) {
+    const dateKey = getDateKey(selectedDate);
+    let dayData = tasks[dateKey];
+    if (!dayData) return;
+    const movedTask = dayData.tasks.splice(dragSrcIdx, 1)[0];
+    dayData.tasks.splice(targetIdx, 0, movedTask);
+    saveAndRefresh();
+  }
+  dragSrcIdx = null;
+  dragTask = null;
+  dragTaskDateKey = null;
+}
+function handleDragEnd(e) {
+  this.classList.remove('dragging');
+  const items = taskListEl.querySelectorAll('li');
+  items.forEach(item => item.classList.remove('drag-over'));
+  dragSrcIdx = null;
+  dragTask = null;
+  dragTaskDateKey = null;
+}
+
 // --- Calendar Rendering ---
 function renderCalendar(year, month) {
   monthLabel.textContent = `${getMonthName(month)} ${year}`;
@@ -307,6 +353,50 @@ function renderCalendar(year, month) {
       cell.tabIndex = 0;
       cell.addEventListener('click', () => selectDate(date));
       cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') selectDate(date); });
+      // --- Make day cell a drop target for tasks ---
+      cell.addEventListener('dragover', function(e) {
+        if (dragTask && dragTaskDateKey) {
+          e.preventDefault();
+          cell.classList.add('drag-over');
+        }
+      });
+      cell.addEventListener('dragleave', function(e) {
+        cell.classList.remove('drag-over');
+      });
+      cell.addEventListener('drop', function(e) {
+        cell.classList.remove('drag-over');
+        if (dragTask && dragTaskDateKey) {
+          // Only move if dropped on a different day
+          if (dragTaskDateKey !== dateKey) {
+            // Remove from source
+            let srcDayData = tasks[dragTaskDateKey];
+            if (srcDayData && srcDayData.tasks) {
+              srcDayData.tasks = srcDayData.tasks.filter(t => t.id !== dragTask.id);
+            }
+            // Add to target
+            if (!tasks[dateKey]) tasks[dateKey] = { tasks: [], note: '' };
+            if (Array.isArray(tasks[dateKey])) {
+              tasks[dateKey] = { tasks: tasks[dateKey], note: '' };
+            }
+            tasks[dateKey].tasks.unshift(dragTask);
+            // Save and refresh both days
+            saveTasks(firstDay.getFullYear(), firstDay.getMonth(), tasks);
+            if (currentUser) {
+              saveTasksToFirebase(firstDay.getFullYear(), firstDay.getMonth(), tasks);
+            }
+            // Always update calendar to reflect new day status colors
+            const prevSelectedDate = selectedDate;
+            renderCalendar(current.getFullYear(), current.getMonth());
+            // Restore selectedDate and re-render tasks
+            selectedDate = prevSelectedDate;
+            renderTasks();
+            showNotification('Task moved!');
+          }
+        }
+        dragSrcIdx = null;
+        dragTask = null;
+        dragTaskDateKey = null;
+      });
     } else {
       cell.innerHTML = '';
       cell.style.background = 'transparent';
@@ -537,38 +627,58 @@ taskInput.addEventListener('keydown', e => {
 
 prevBtn.addEventListener('click', async () => {
   current.setMonth(current.getMonth() - 1);
-  
-  if (currentUser) {
-    tasks = await loadTasksFromFirebase(current.getFullYear(), current.getMonth());
-  } else {
-    tasks = loadTasks(current.getFullYear(), current.getMonth());
-  }
-  
+  // Show UI immediately with local data
+  tasks = loadTasks(current.getFullYear(), current.getMonth());
   renderCalendar(current.getFullYear(), current.getMonth());
-  // Keep the same selected date if it's still in the current month view
+  // If selectedDate is not in the current month view
   if (selectedDate.getMonth() !== current.getMonth() || selectedDate.getFullYear() !== current.getFullYear()) {
-    selectedDate = new Date(current.getFullYear(), current.getMonth(), 1);
+    // If returning to the real current month, select today
+    const now = new Date();
+    if (now.getMonth() === current.getMonth() && now.getFullYear() === current.getFullYear()) {
+      selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else {
+      selectedDate = new Date(current.getFullYear(), current.getMonth(), 1);
+    }
   }
   renderTasks();
   updateSelectedDateDisplay();
+  // Fetch cloud data in background if signed in
+  if (currentUser) {
+    const cloudTasks = await loadTasksFromFirebase(current.getFullYear(), current.getMonth());
+    if (JSON.stringify(cloudTasks) !== JSON.stringify(tasks)) {
+      tasks = cloudTasks;
+      renderCalendar(current.getFullYear(), current.getMonth());
+      renderTasks();
+    }
+  }
 });
 
 nextBtn.addEventListener('click', async () => {
   current.setMonth(current.getMonth() + 1);
-  
-  if (currentUser) {
-    tasks = await loadTasksFromFirebase(current.getFullYear(), current.getMonth());
-  } else {
-    tasks = loadTasks(current.getFullYear(), current.getMonth());
-  }
-  
+  // Show UI immediately with local data
+  tasks = loadTasks(current.getFullYear(), current.getMonth());
   renderCalendar(current.getFullYear(), current.getMonth());
-  // Keep the same selected date if it's still in the current month view
+  // If selectedDate is not in the current month view
   if (selectedDate.getMonth() !== current.getMonth() || selectedDate.getFullYear() !== current.getFullYear()) {
-    selectedDate = new Date(current.getFullYear(), current.getMonth(), 1);
+    // If returning to the real current month, select today
+    const now = new Date();
+    if (now.getMonth() === current.getMonth() && now.getFullYear() === current.getFullYear()) {
+      selectedDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else {
+      selectedDate = new Date(current.getFullYear(), current.getMonth(), 1);
+    }
   }
   renderTasks();
   updateSelectedDateDisplay();
+  // Fetch cloud data in background if signed in
+  if (currentUser) {
+    const cloudTasks = await loadTasksFromFirebase(current.getFullYear(), current.getMonth());
+    if (JSON.stringify(cloudTasks) !== JSON.stringify(tasks)) {
+      tasks = cloudTasks;
+      renderCalendar(current.getFullYear(), current.getMonth());
+      renderTasks();
+    }
+  }
 });
 
 // --- User Dropdown Elements ---
@@ -872,36 +982,4 @@ if (savedTheme === 'light') {
   setTheme('light');
 } else {
   setTheme('dark');
-}
-
-// --- Drag and Drop Handlers for Task Reordering ---
-let dragSrcIdx = null;
-function handleDragStart(e) {
-  dragSrcIdx = Number(this.dataset.index);
-  this.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
-function handleDragOver(e) {
-  e.preventDefault();
-  this.classList.add('drag-over');
-}
-function handleDrop(e) {
-  e.stopPropagation();
-  this.classList.remove('drag-over');
-  const targetIdx = Number(this.dataset.index);
-  if (dragSrcIdx !== null && dragSrcIdx !== targetIdx) {
-    const dateKey = getDateKey(selectedDate);
-    let dayData = tasks[dateKey];
-    if (!dayData) return;
-    const movedTask = dayData.tasks.splice(dragSrcIdx, 1)[0];
-    dayData.tasks.splice(targetIdx, 0, movedTask);
-    saveAndRefresh();
-  }
-  dragSrcIdx = null;
-}
-function handleDragEnd(e) {
-  this.classList.remove('dragging');
-  const items = taskListEl.querySelectorAll('li');
-  items.forEach(item => item.classList.remove('drag-over'));
-  dragSrcIdx = null;
 } 
