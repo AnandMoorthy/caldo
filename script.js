@@ -401,7 +401,8 @@ function addTask() {
   if (Array.isArray(tasks[dateKey])) {
     tasks[dateKey] = { tasks: tasks[dateKey], note: '' };
   }
-  tasks[dateKey].tasks.push({ id: Date.now().toString(), text, completed: false });
+  // Add new task to the top
+  tasks[dateKey].tasks.unshift({ id: Date.now().toString(), text, completed: false });
   saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
   renderTasks();
   renderCalendar(current.getFullYear(), current.getMonth());
@@ -485,6 +486,7 @@ async function exportAllTodos() {
     try {
       const querySnapshot = await db.collection('users').doc(currentUser.uid).collection('todos').get();
       querySnapshot.forEach(doc => {
+        // Export the full day object (tasks and note)
         allData[doc.id] = doc.data().tasks || {};
       });
     } catch (error) {
@@ -498,6 +500,7 @@ async function exportAllTodos() {
       const key = localStorage.key(i);
       if (key && key.startsWith('todo-calendar-')) {
         try {
+          // Export the full day object (tasks and note)
           allData[key] = JSON.parse(localStorage.getItem(key) || '{}');
         } catch {
           allData[key] = {};
@@ -534,7 +537,7 @@ if (importBtn && importInput) {
       const data = JSON.parse(text);
       
       if (currentUser) {
-        // Import to Firebase
+        // Import to Firebase (full day object: tasks and note)
         const batch = db.batch();
         for (const key in data) {
           if (key.startsWith('todo-calendar-')) {
@@ -547,7 +550,7 @@ if (importBtn && importInput) {
         }
         await batch.commit();
       } else {
-        // Import to localStorage
+        // Import to localStorage (full day object: tasks and note)
         for (let i = localStorage.length - 1; i >= 0; i--) {
           const key = localStorage.key(i);
           if (key && key.startsWith('todo-calendar-')) {
