@@ -478,10 +478,22 @@ function renderTasks() {
     checkbox.addEventListener('change', () => {
       const prevCompleted = dayTasks.every(t => t.completed);
       task.completed = checkbox.checked;
-      saveAndRefresh();
-      if (!prevCompleted && dayTasks.length > 0 && dayTasks.every(t => t.completed)) {
-        lastConfettiDateKey = dateKey;
-        triggerConfetti();
+      // Ensure tasks object is updated
+      tasks[dateKey].tasks = [...dayTasks];
+      // Only allow streak logic for today
+      const now = new Date();
+      const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
+      if (isTodayDate) {
+        saveAndRefresh();
+        if (!prevCompleted && dayTasks.length > 0 && dayTasks.every(t => t.completed)) {
+          lastConfettiDateKey = dateKey;
+          triggerConfetti();
+        }
+      } else {
+        // Just update tasks and UI for non-today
+        saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
+        renderTasks();
+        renderCalendar(current.getFullYear(), current.getMonth());
       }
     });
 
@@ -527,7 +539,16 @@ function renderTasks() {
         const newText = input.value.trim();
         if (newText) {
           task.text = newText;
-          saveAndRefresh();
+          // Only allow streak logic for today
+          const now = new Date();
+          const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
+          if (isTodayDate) {
+            saveAndRefresh();
+          } else {
+            saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
+            renderTasks();
+            renderCalendar(current.getFullYear(), current.getMonth());
+          }
         } else {
           showNotification('Task cannot be empty');
         }
@@ -543,7 +564,18 @@ function renderTasks() {
     delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
     delBtn.addEventListener('click', () => {
       dayData.tasks = dayTasks.filter(t => t.id !== task.id);
-      saveAndRefresh();
+      // Ensure tasks object is updated
+      tasks[dateKey].tasks = [...dayData.tasks];
+      // Only allow streak logic for today
+      const now = new Date();
+      const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
+      if (isTodayDate) {
+        saveAndRefresh();
+      } else {
+        saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
+        renderTasks();
+        renderCalendar(current.getFullYear(), current.getMonth());
+      }
     });
     li.appendChild(checkbox);
     li.appendChild(span);
@@ -623,6 +655,27 @@ function addTask() {
   renderCalendar(current.getFullYear(), current.getMonth());
   if (currentUser) {
     saveTasksToFirebase(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
+    // --- Streak revert logic for adding a new task today ---
+    const now = new Date();
+    if (
+      selectedDate.getFullYear() === now.getFullYear() &&
+      selectedDate.getMonth() === now.getMonth() &&
+      selectedDate.getDate() === now.getDate()
+    ) {
+      const todayKey = getDateKey(now);
+      let dayData = tasks[todayKey];
+      if (!dayData) dayData = { tasks: [], note: '' };
+      const wasStreakForToday = lastStreakDate === todayKey;
+      const allCompleted = dayData.tasks.length > 0 && dayData.tasks.every(t => t.completed);
+      // If streak was set for today and now not all tasks are completed (which will be true after adding a new task), revert
+      if (wasStreakForToday && !allCompleted) {
+        streak = Math.max(0, streak - 1);
+        lastStreakDate = null;
+        saveStreakToFirebase(streak, lastStreakDate);
+        updateStreakDisplay();
+        showNotification('Streak reverted, Complete the task to get streak back!');
+      }
+    }
   }
   taskInput.value = '';
   setTimeout(() => taskInput.focus(), 100);
@@ -639,8 +692,29 @@ async function saveAndRefresh() {
     saveTasksToFirebase(year, month, tasks);
     // Only check streak if selectedDate is today
     const now = new Date();
-    if (selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate()) {
-      await checkAndUpdateStreakOnTaskComplete();
+    if (
+      selectedDate.getFullYear() === now.getFullYear() &&
+      selectedDate.getMonth() === now.getMonth() &&
+      selectedDate.getDate() === now.getDate()
+    ) {
+      const todayKey = getDateKey(now);
+      let dayData = tasks[todayKey];
+      if (!dayData) dayData = { tasks: [], note: '' };
+      const wasStreakForToday = lastStreakDate === todayKey;
+      const allCompleted = dayData.tasks.length > 0 && dayData.tasks.every(t => t.completed);
+      // If all tasks are completed, try to increase streak
+      if (allCompleted) {
+        await checkAndUpdateStreakOnTaskComplete();
+      } else if (wasStreakForToday) {
+        // If streak was set for today but now not all tasks are completed, revert
+        // (i.e., user unchecked or deleted a task after completing all)
+        // Decrease streak by 1 and clear lastStreakDate
+        streak = Math.max(0, streak - 1);
+        lastStreakDate = null;
+        await saveStreakToFirebase(streak, lastStreakDate);
+        updateStreakDisplay();
+        showNotification('Streak reverted');
+      }
     }
   }
 }
