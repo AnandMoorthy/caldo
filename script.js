@@ -29,7 +29,8 @@ let lastConfettiDateKey = null;
 let currentUser = null;
 let streak = 0;
 let lastStreakDate = null;
-let restrictPastEdit = false; // Feature flag for restricting past edits
+let retroLock = false; // Feature flag for restricting past edits
+let importExportEnabled = false; // Feature flag for Import/Export
 
 // --- Utility Functions ---
 function pad(n) { return n < 10 ? '0' + n : n; }
@@ -470,7 +471,7 @@ function renderTasks() {
     const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
     const isFutureDate = selectedDate > now;
     const isPastDate = selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const restrictActions = restrictPastEdit && isPastDate;
+    const restrictActions = retroLock && isPastDate;
     li.setAttribute('draggable', restrictActions ? 'false' : 'true');
     li.dataset.index = idx;
     // Drag events
@@ -921,17 +922,31 @@ auth.onAuthStateChanged(async (user) => {
     updateSelectedDateDisplay();
     await checkAndUpdateStreakOnLoad();
 
-    // Fetch restrictPastEdit from Firestore meta
+    // Fetch retroLock from Firestore meta
     try {
-      const metaDoc = await db.collection('users').doc(currentUser.uid).collection('meta').doc('restrictPastEdit').get();
+      const metaDoc = await db.collection('users').doc(currentUser.uid).collection('meta').doc('retroLock').get();
       if (metaDoc.exists) {
-        restrictPastEdit = !!metaDoc.data().enabled;
+        retroLock = !!metaDoc.data().enabled;
+        console.log('retroLock', retroLock)
       } else {
-        restrictPastEdit = false;
+        retroLock = false;
       }
     } catch (e) {
-      restrictPastEdit = false;
+      retroLock = false;
     }
+    // Fetch importExportEnabled from Firestore meta
+    try {
+      const metaDoc = await db.collection('users').doc(currentUser.uid).collection('meta').doc('importExportEnabled').get();
+      if (metaDoc.exists) {
+        importExportEnabled = !!metaDoc.data().enabled;
+        console.log('importExportEnabled', importExportEnabled)
+      } else {
+        importExportEnabled = false;
+      }
+    } catch (e) {
+      importExportEnabled = false;
+    }
+    updateImportExportButtons();
   } else {
     currentUser = null;
     updateUserInfo(null);
@@ -1002,15 +1017,30 @@ const settingsImportBtn = document.getElementById('settings-import-btn');
 const settingsImportInput = document.getElementById('settings-import-input');
 const themeToggleBtn = document.getElementById('settings-theme-toggle');
 
+function updateImportExportButtons() {
+  if (importExportEnabled) {
+    settingsExportBtn.style.display = '';
+    settingsImportBtn.style.display = '';
+  } else {
+    settingsExportBtn.style.display = 'none';
+    settingsImportBtn.style.display = 'none';
+  }
+}
+
 // --- Export Functionality (Settings) ---
 settingsExportBtn.addEventListener('click', () => {
+  if (!importExportEnabled) return;
   exportAllTodos();
   closeAllDropdowns();
 });
 
 // --- Import Functionality (Settings) ---
-settingsImportBtn.addEventListener('click', () => settingsImportInput.click());
+settingsImportBtn.addEventListener('click', () => {
+  if (!importExportEnabled) return;
+  settingsImportInput.click();
+});
 settingsImportInput.addEventListener('change', async (e) => {
+  if (!importExportEnabled) return;
   const file = e.target.files[0];
   if (!file) return;
   try {
@@ -1196,63 +1226,19 @@ window.addEventListener('load', () => {
 // --- Initial streak display ---
 updateStreakDisplay();
 
-// --- Add function to update restrictPastEdit in Firestore and locally
-async function setRestrictPastEdit(enabled) {
-  restrictPastEdit = enabled;
+// --- Add function to update retroLock in Firestore and locally
+async function setretroLock(enabled) {
+  retroLock = enabled;
   if (currentUser) {
-    await db.collection('users').doc(currentUser.uid).collection('meta').doc('restrictPastEdit').set({ enabled });
+    await db.collection('users').doc(currentUser.uid).collection('meta').doc('retroLock').set({ enabled });
   }
 }
 
-// --- Add a settings toggle button in the dropdown (modern toggle switch style) ---
-function renderRestrictPastEditToggle() {
-  let container = document.getElementById('restrict-past-edit-toggle-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'restrict-past-edit-toggle-container';
-    container.style.display = 'flex';
-    container.style.alignItems = 'center';
-    container.style.gap = '0.7em';
-    container.style.margin = '0.7em 0 0.2em 0';
-  } else {
-    container.innerHTML = '';
+// --- Add function to update importExportEnabled in Firestore and locally
+async function setImportExportEnabled(enabled) {
+  importExportEnabled = enabled;
+  updateImportExportButtons();
+  if (currentUser) {
+    await db.collection('users').doc(currentUser.uid).collection('meta').doc('importExportEnabled').set({ enabled });
   }
-  // Toggle switch
-  const toggle = document.createElement('label');
-  toggle.className = 'toggle-switch';
-  const input = document.createElement('input');
-  input.type = 'checkbox';
-  input.checked = restrictPastEdit;
-  input.setAttribute('aria-label', 'Retro Lock');
-  const slider = document.createElement('span');
-  slider.className = 'toggle-slider';
-  toggle.appendChild(input);
-  toggle.appendChild(slider);
-  // Label
-  const label = document.createElement('span');
-  label.className = 'toggle-switch-label';
-  label.textContent = 'Retro Lock';
-  // Handler
-  input.addEventListener('change', async () => {
-    await setRestrictPastEdit(input.checked);
-    showNotification('Retro Lock ' + (restrictPastEdit ? 'enabled' : 'disabled'));
-    renderTasks();
-    renderRestrictPastEditToggle();
-  });
-  container.appendChild(toggle);
-  container.appendChild(label);
-  // Insert after theme toggle
-  const themeToggleBtnEl = document.getElementById('settings-theme-toggle');
-  if (themeToggleBtnEl && themeToggleBtnEl.parentNode) {
-    if (!document.getElementById('restrict-past-edit-toggle-container')) {
-      themeToggleBtnEl.parentNode.insertBefore(container, themeToggleBtnEl.nextSibling);
-    }
-  }
-}
-// Call this after login and after toggling
-renderRestrictPastEditToggle();
-
-// On login, update button text
-if (restrictPastEditBtn) {
-  restrictPastEditBtn.textContent = 'Retro Lock: ' + (restrictPastEdit ? 'On' : 'Off');
 } 
