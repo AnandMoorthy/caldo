@@ -946,10 +946,10 @@ auth.onAuthStateChanged(async (user) => {
         retroLock = !!metaDoc.data().enabled;
         console.log('retroLock', retroLock)
       } else {
-        retroLock = false;
+        retroLock = true;
       }
     } catch (e) {
-      retroLock = false;
+      retroLock = true;
     }
     // Fetch importExportEnabled from Firestore meta
     try {
@@ -1258,4 +1258,34 @@ async function setImportExportEnabled(enabled) {
   if (currentUser) {
     await db.collection('users').doc(currentUser.uid).collection('meta').doc('importExportEnabled').set({ enabled });
   }
-} 
+}
+
+// --- Add event listener to app logo for month refresh ---
+document.addEventListener('DOMContentLoaded', () => {
+  const appLogo = document.querySelector('.app-logo');
+  if (appLogo) {
+    appLogo.style.cursor = 'pointer';
+    appLogo.title = 'Refresh month data';
+    appLogo.addEventListener('click', async () => {
+      showNotification('Refreshing...');
+      const year = current.getFullYear();
+      const month = current.getMonth();
+      if (currentUser) {
+        // Reload from Firebase
+        tasks = await loadTasksFromFirebase(year, month);
+        // Also reload streak
+        const streakData = await loadStreakFromFirebase();
+        streak = streakData.streak;
+        lastStreakDate = streakData.lastStreakDate;
+        updateStreakDisplay();
+      } else {
+        // Reload from localStorage
+        tasks = loadTasks(year, month);
+      }
+      renderCalendar(year, month);
+      renderTasks();
+      updateSelectedDateDisplay();
+      showNotification('Month data refreshed!');
+    });
+  }
+}); 

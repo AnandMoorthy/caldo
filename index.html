@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Caldo - Minimalist Todo Calendar</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="styles.css">
   <!-- FontAwesome for user icon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
@@ -21,6 +22,7 @@
       <!-- Top Header with Import/Export and User Info -->
       <div class="top-header">
         <div class="header-left">
+          <i class="fa-solid fa-list-check app-logo" title="Todo Calendar" style="font-size:2rem;color:var(--header-text);margin-right:0.7rem;"></i>
           <button class="nav prev" title="Previous Month">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5a1 1 0 0 1 .7 1.7L5.9 10H18a1 1 0 1 1 0 2H5.9l3.3 3.3a1 1 0 1 1-1.4 1.4l-5-5a1 1 0 0 1 0-1.4l5-5A1 1 0 0 1 8.5 5z" fill="currentColor"/></svg>
           </button>
@@ -47,6 +49,7 @@
                 <button class="settings-export" id="settings-export-btn">Export Data</button>
                 <input type="file" id="settings-import-input" accept="application/json" style="display:none" />
                 <button class="settings-import" id="settings-import-btn">Import Data</button>
+                
               </div>
             </div>
           </div>

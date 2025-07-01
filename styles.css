@@ -1148,4 +1148,12 @@ body.light-theme .fire-spark {
     transform: translateY(-0.6em) scale(0.5);
     filter: blur(1.5px) brightness(0.7);
   }
+}
+
+.app-logo {
+  font-size: 2rem;
+  color: var(--header-text);
+  margin-right: 0.7rem;
+  vertical-align: middle;
+  display: inline-block;
 } 
