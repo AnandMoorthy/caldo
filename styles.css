@@ -1008,7 +1008,7 @@ body.light-theme .calendar {
   display: flex;
   align-items: center;
   margin-left: 1rem;
-  font-size: 1rem;
+  font-size: 1.2rem;
   color: orange;
   font-weight: 600;
   user-select: none;
@@ -1017,13 +1017,27 @@ body.light-theme .calendar {
 }
 .streak-display .fa-fire {
   color: orange;
-  font-size: 1.3em;
+  font-size: 1.2em;
   filter: drop-shadow(0 0 2px #ff9800);
 }
 .streak-display #streak-count {
   color: var(--header-text);
-  font-size: 1.1em;
+  font-size: 1.2em;
   margin-left: 0.1em;
+}
+
+.streak-display .fa-fire.burning {
+  animation: fire-flicker 1.8s infinite alternate;
+  filter: drop-shadow(0 0 6px #ff9800) drop-shadow(0 0 12px #ff9800);
+}
+
+@keyframes fire-flicker {
+  0% { transform: scale(1) rotate(-2deg); filter: drop-shadow(0 0 6px #ff9800) drop-shadow(0 0 12px #ff9800); }
+  20% { transform: scale(1.08) rotate(2deg); filter: drop-shadow(0 0 10px #ffb300) drop-shadow(0 0 18px #ff9800); }
+  40% { transform: scale(0.96) rotate(-1deg); filter: drop-shadow(0 0 8px #ff9800) drop-shadow(0 0 16px #ffb300); }
+  60% { transform: scale(1.05) rotate(1deg); filter: drop-shadow(0 0 12px #ff9800) drop-shadow(0 0 20px #ffb300); }
+  80% { transform: scale(1.02) rotate(-2deg); filter: drop-shadow(0 0 10px #ff9800) drop-shadow(0 0 18px #ffb300); }
+  100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 6px #ff9800) drop-shadow(0 0 12px #ff9800); }
 }
 
 /* Toggle Switch Styles for Settings */
@@ -1087,4 +1101,51 @@ body.light-theme .toggle-switch input:checked + .toggle-slider {
 }
 body.light-theme .toggle-switch input:checked + .toggle-slider:before {
   background: var(--google-green);
+}
+
+.fire-spark {
+  position: relative;
+  display: inline-block;
+  width: 0.35em;
+  height: 0.35em;
+  background: radial-gradient(circle, #fffbe7 60%, #ffe066 100%, transparent 100%);
+  border-radius: 50%;
+  left: 0.45em;
+  top: -0.7em;
+  pointer-events: none;
+  opacity: 0.85;
+  animation: spark-flicker 1.5s infinite ease-in-out;
+  z-index: 2;
+}
+
+body.light-theme .fire-spark {
+  background: radial-gradient(circle, #444 60%, #222 100%, transparent 100%);
+}
+
+@keyframes spark-flicker {
+  0% {
+    opacity: 0.7;
+    transform: translateY(0) scale(1);
+    filter: blur(0.5px);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-0.18em) scale(1.1);
+    filter: blur(0.5px) brightness(1.2);
+  }
+  60% {
+    opacity: 0.8;
+    transform: translateY(-0.32em) scale(0.9);
+    filter: blur(1px) brightness(1.1);
+  }
+  80% {
+    opacity: 0.5;
+    transform: translateY(-0.45em) scale(0.7);
+    filter: blur(1.2px) brightness(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-0.6em) scale(0.5);
+    filter: blur(1.5px) brightness(0.7);
+  }
 } 

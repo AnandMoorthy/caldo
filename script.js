@@ -151,12 +151,29 @@ async function saveStreakToFirebase(streakVal, lastDate) {
 function updateStreakDisplay() {
   const streakDisplayEl = document.getElementById('streak-display');
   const streakCountEl = document.getElementById('streak-count');
+  const fireIcon = streakDisplayEl ? streakDisplayEl.querySelector('.fa-fire') : null;
+  let spark = streakDisplayEl ? streakDisplayEl.querySelector('.fire-spark') : null;
   if (!streakDisplayEl) return;
   if (currentUser) {
     streakDisplayEl.style.display = 'flex';
     if (streakCountEl) {
       streakCountEl.textContent = streak;
       streakCountEl.title = `Current streak: ${streak} day${streak === 1 ? '' : 's'}`;
+    }
+    if (fireIcon) {
+      if (streak > 0) {
+        fireIcon.classList.add('burning');
+        // Add spark if not present
+        if (!spark) {
+          spark = document.createElement('span');
+          spark.className = 'fire-spark';
+          fireIcon.parentNode.insertBefore(spark, fireIcon);
+        }
+      } else {
+        fireIcon.classList.remove('burning');
+        // Remove spark if present
+        if (spark) spark.remove();
+      }
     }
   } else {
     streakDisplayEl.style.display = 'none';
