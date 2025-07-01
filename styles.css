@@ -169,7 +169,7 @@ body.light-theme .calendar {
   display: flex;
 }
 
-.google-signin-btn {
+/* .google-signin-btn {
   background: var(--button-bg);
   color: var(--header-text);
   border: none;
@@ -184,7 +184,7 @@ body.light-theme .calendar {
   transition: background 0.2s, color 0.2s, border 0.2s;
   box-shadow: none;
   border: none;
-}
+} */
 .google-signin-btn:hover {
   background: var(--button-hover);
   color: #fff;
@@ -931,17 +931,17 @@ body.light-theme .calendar {
   margin-top: 0.5rem;
 }
 
-.settings-export, .settings-import, .settings-theme-toggle {
+.settings-export, .settings-import, .settings-theme-toggle, .google-signin-btn {
   background: var(--button-bg);
   color: var(--header-text);
   border: none;
   border-radius: 0.5rem;
-  padding: 0.8rem 1.5rem;
+  padding: 0.5rem 1.5rem;
   font-size: 0.8rem;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
   width: 100%;
-  text-align: left;
+  /* text-align: left; */
 }
 .settings-export:hover, .settings-import:hover, .settings-theme-toggle:hover {
   background: var(--button-hover);
@@ -1002,4 +1002,26 @@ body.light-theme .calendar {
 .task-list li.drag-over {
   border: 2px dashed #4285F4;
   background: #e3f2fd;
+}
+
+.streak-display {
+  display: flex;
+  align-items: center;
+  margin-left: 1rem;
+  font-size: 1rem;
+  color: orange;
+  font-weight: 600;
+  user-select: none;
+  /* gap: 0.3em; */
+  padding-right: 0.8rem;
+}
+.streak-display .fa-fire {
+  color: orange;
+  font-size: 1.3em;
+  filter: drop-shadow(0 0 2px #ff9800);
+}
+.streak-display #streak-count {
+  color: var(--header-text);
+  font-size: 1.1em;
+  margin-left: 0.1em;
 } 

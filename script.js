@@ -21,14 +21,14 @@ const userAvatar = document.getElementById('user-avatar');
 // User dropdown elements
 const userDropdown = document.getElementById('user-dropdown');
 const googleSigninBtn = document.getElementById('google-signin-btn');
-const settingsBtn = document.getElementById('settings-btn');
-const settingsDropdown = document.getElementById('settings-dropdown');
 
 let current = new Date();
 let selectedDate = new Date(); // Default to today
 let tasks = {};
 let lastConfettiDateKey = null;
 let currentUser = null;
+let streak = 0;
+let lastStreakDate = null;
 
 // --- Utility Functions ---
 function pad(n) { return n < 10 ? '0' + n : n; }
@@ -113,6 +113,51 @@ async function saveTasksToFirebase(year, month, data) {
   } catch (error) {
     console.error('Error saving tasks to Firebase:', error);
     showNotification('Error saving tasks');
+  }
+}
+
+// --- Streak Firebase Functions ---
+async function loadStreakFromFirebase() {
+  if (!currentUser) return { streak: 0, lastStreakDate: null };
+  try {
+    const docRef = db.collection('users').doc(currentUser.uid).collection('meta').doc('streak');
+    const doc = await docRef.get();
+    if (doc.exists) {
+      const data = doc.data();
+      return { streak: data.streak || 0, lastStreakDate: data.lastStreakDate || null };
+    }
+    return { streak: 0, lastStreakDate: null };
+  } catch (e) {
+    console.error('Error loading streak:', e);
+    return { streak: 0, lastStreakDate: null };
+  }
+}
+
+async function saveStreakToFirebase(streakVal, lastDate) {
+  if (!currentUser) return;
+  try {
+    const docRef = db.collection('users').doc(currentUser.uid).collection('meta').doc('streak');
+    await docRef.set({
+      streak: streakVal,
+      lastStreakDate: lastDate
+    });
+  } catch (e) {
+    console.error('Error saving streak:', e);
+  }
+}
+
+function updateStreakDisplay() {
+  const streakDisplayEl = document.getElementById('streak-display');
+  const streakCountEl = document.getElementById('streak-count');
+  if (!streakDisplayEl) return;
+  if (currentUser) {
+    streakDisplayEl.style.display = 'flex';
+    if (streakCountEl) {
+      streakCountEl.textContent = streak;
+      streakCountEl.title = `Current streak: ${streak} day${streak === 1 ? '' : 's'}`;
+    }
+  } else {
+    streakDisplayEl.style.display = 'none';
   }
 }
 
@@ -218,30 +263,6 @@ function showNotification(msg) {
     }, 400);
   }, 2000);
 }
-
-// function updateUserInfo(user) {
-//   const userAvatarIcon = document.getElementById('user-avatar-icon');
-//   if (user) {
-//     let initials = '?';
-//     if (user.displayName) {
-//       const parts = user.displayName.split(' ');
-//       initials = parts.map(p => p[0]).join('').toUpperCase();
-//     } else if (user.email) {
-//       initials = user.email[0].toUpperCase();
-//     }
-//     userAvatar.textContent = initials;
-//     userAvatar.title = user.displayName || user.email || '';
-//     if (userAvatarIcon) userAvatarIcon.style.display = 'none';
-//     googleSigninBtn.style.display = 'none';
-//     signoutBtn.style.display = '';
-//   } else {
-//     userAvatar.textContent = '';
-//     userAvatar.title = 'Not signed in';
-//     if (userAvatarIcon) userAvatarIcon.style.display = '';
-//     googleSigninBtn.style.display = '';
-//     signoutBtn.style.display = 'none';
-//   }
-// }
 
 function updateUserInfo(user) {
   const userAvatarInitials = document.getElementById('user-avatar-initials');
@@ -616,6 +637,11 @@ async function saveAndRefresh() {
   renderCalendar(current.getFullYear(), current.getMonth());
   if (currentUser) {
     saveTasksToFirebase(year, month, tasks);
+    // Only check streak if selectedDate is today
+    const now = new Date();
+    if (selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate()) {
+      await checkAndUpdateStreakOnTaskComplete();
+    }
   }
 }
 
@@ -804,9 +830,13 @@ auth.onAuthStateChanged(async (user) => {
     renderCalendar(year, month);
     renderTasks();
     updateSelectedDateDisplay();
+    await checkAndUpdateStreakOnLoad();
   } else {
     currentUser = null;
     updateUserInfo(null);
+    streak = 0;
+    lastStreakDate = null;
+    updateStreakDisplay();
     // Use localStorage (already up-to-date)
     const year = current.getFullYear();
     const month = current.getMonth();
@@ -869,6 +899,7 @@ noteTextarea.addEventListener('keydown', e => {
 const settingsExportBtn = document.getElementById('settings-export-btn');
 const settingsImportBtn = document.getElementById('settings-import-btn');
 const settingsImportInput = document.getElementById('settings-import-input');
+const themeToggleBtn = document.getElementById('settings-theme-toggle');
 
 // --- Export Functionality (Settings) ---
 settingsExportBtn.addEventListener('click', () => {
@@ -961,7 +992,6 @@ async function exportAllTodos() {
 }
 
 // --- Theme Toggle Logic ---
-const themeToggleBtn = document.getElementById('settings-theme-toggle');
 function setTheme(theme) {
   if (theme === 'light') {
     document.body.classList.add('light-theme');
@@ -982,4 +1012,85 @@ if (savedTheme === 'light') {
   setTheme('light');
 } else {
   setTheme('dark');
-} 
+}
+
+// --- Streak Logic ---
+function isYesterday(date) {
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  return date.getFullYear() === y.getFullYear() && date.getMonth() === y.getMonth() && date.getDate() === y.getDate();
+}
+
+function getTodayKey() {
+  const now = new Date();
+  return getDateKey(now);
+}
+
+async function checkAndUpdateStreakOnLoad() {
+  if (!currentUser) return;
+  const { streak: loadedStreak, lastStreakDate: loadedLastDate } = await loadStreakFromFirebase();
+  streak = loadedStreak;
+  lastStreakDate = loadedLastDate;
+  // Check if streak should be reset (missed a day)
+  const todayKey = getTodayKey();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = getDateKey(yesterday);
+  // If lastStreakDate is not today or yesterday, reset
+  if (lastStreakDate && lastStreakDate !== todayKey && lastStreakDate !== yesterdayKey) {
+    streak = 0;
+    lastStreakDate = null;
+    await saveStreakToFirebase(streak, lastStreakDate);
+    showNotification('Streak reset!');
+  }
+  updateStreakDisplay();
+}
+
+async function checkAndUpdateStreakOnTaskComplete() {
+  if (!currentUser) return;
+  const today = new Date();
+  const todayKey = getDateKey(today);
+  let dayData = tasks[todayKey];
+  if (!dayData) dayData = { tasks: [], note: '' };
+  // Only if all tasks are completed and there is at least one task
+  if (dayData.tasks.length > 0 && dayData.tasks.every(t => t.completed)) {
+    // Only allow streak increment if lastStreakDate is yesterday or today
+    if (lastStreakDate === getDateKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)) || lastStreakDate === null || lastStreakDate === undefined) {
+      streak = (streak || 0) + 1;
+      lastStreakDate = todayKey;
+      await saveStreakToFirebase(streak, lastStreakDate);
+      showNotification('🔥 Streak increased!');
+    } else if (lastStreakDate !== todayKey) {
+      // If lastStreakDate is not yesterday or today, reset streak
+      streak = 1;
+      lastStreakDate = todayKey;
+      await saveStreakToFirebase(streak, lastStreakDate);
+      showNotification('🔥 Streak started!');
+    }
+  }
+  updateStreakDisplay();
+}
+
+async function checkAndResetStreakIfMissed() {
+  if (!currentUser) return;
+  const today = new Date();
+  const todayKey = getDateKey(today);
+  // If lastStreakDate is not today or yesterday, reset
+  if (lastStreakDate && lastStreakDate !== todayKey && lastStreakDate !== getDateKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1))) {
+    streak = 0;
+    lastStreakDate = null;
+    await saveStreakToFirebase(streak, lastStreakDate);
+    showNotification('Streak reset!');
+    updateStreakDisplay();
+  }
+}
+
+// --- On app load, check streak reset ---
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    checkAndResetStreakIfMissed();
+  }, 1000);
+});
+
+// --- Initial streak display ---
+updateStreakDisplay(); 

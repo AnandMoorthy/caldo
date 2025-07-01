@@ -31,20 +31,11 @@
         </div>
         <div class="header-right">
           <div class="header-actions">
-            <!-- Settings Button -->
-            <div class="dropdown-anchor">
-              <button class="settings-btn dropdown-btn" id="settings-btn" title="Settings" aria-label="Settings">
-                <span class="settings-icon">&#9881;</span>
-              </button>
-              <div id="settings-dropdown" class="dropdown">
-                <button class="settings-theme-toggle" id="settings-theme-toggle">Light Theme</button>
-                <button class="settings-export" id="settings-export-btn">Export Data</button>
-                <input type="file" id="settings-import-input" accept="application/json" style="display:none" />
-                <button class="settings-import" id="settings-import-btn">Import Data</button>
-              </div>
-            </div>
             <!-- User Button -->
             <div class="dropdown-anchor">
+              <div>
+                <span id="streak-display" class="streak-display" title="Current streak" style="display:flex;align-items:center;margin-left:1rem;font-size:1rem;"><i class="fa-solid fa-fire" style="color:orange;margin-right:0.3em;"></i><span id="streak-count">0</span></span>
+              </div>
               <button id="user-avatar" class="user-avatar dropdown-btn" title="Account"><span id="user-avatar-initials" style="display:none"></span><i class="fa-solid fa-user" id="user-avatar-icon"></i></button>
               <div id="user-dropdown" class="dropdown">
                 <button id="google-signin-btn" class="google-signin-btn" style="display:none;">
@@ -52,6 +43,10 @@
                   Sign in
                 </button>
                 <button id="signout-btn" class="signout-btn" style="display:none;">Sign Out</button>
+                <button class="settings-theme-toggle" id="settings-theme-toggle">Light Theme</button>
+                <button class="settings-export" id="settings-export-btn">Export Data</button>
+                <input type="file" id="settings-import-input" accept="application/json" style="display:none" />
+                <button class="settings-import" id="settings-import-btn">Import Data</button>
               </div>
             </div>
           </div>
