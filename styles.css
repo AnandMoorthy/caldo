@@ -1024,4 +1024,67 @@ body.light-theme .calendar {
   color: var(--header-text);
   font-size: 1.1em;
   margin-left: 0.1em;
+}
+
+/* Toggle Switch Styles for Settings */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  vertical-align: middle;
+}
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--button-bg);
+  border-radius: 26px;
+  transition: background 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background: var(--modal-input-bg);
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+.toggle-switch input:checked + .toggle-slider {
+  background: var(--google-blue);
+}
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+  background: var(--google-green);
+}
+.toggle-switch:focus-within .toggle-slider {
+  box-shadow: 0 0 0 2px var(--button-hover);
+}
+.toggle-switch-label {
+  margin-left: 0.8em;
+  font-size: 1em;
+  color: var(--header-text);
+  font-weight: 500;
+  vertical-align: middle;
+  user-select: none;
+}
+
+body.light-theme .toggle-slider {
+  background: var(--button-bg);
+}
+body.light-theme .toggle-switch input:checked + .toggle-slider {
+  background: var(--google-blue);
+}
+body.light-theme .toggle-switch input:checked + .toggle-slider:before {
+  background: var(--google-green);
 } 

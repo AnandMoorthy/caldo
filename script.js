@@ -29,6 +29,7 @@ let lastConfettiDateKey = null;
 let currentUser = null;
 let streak = 0;
 let lastStreakDate = null;
+let restrictPastEdit = false; // Feature flag for restricting past edits
 
 // --- Utility Functions ---
 function pad(n) { return n < 10 ? '0' + n : n; }
@@ -464,38 +465,47 @@ function renderTasks() {
 
   dayTasks.forEach((task, idx) => {
     const li = document.createElement('li');
-    li.setAttribute('draggable', 'true');
+    // Restrict actions for past days if feature flag is enabled
+    const now = new Date();
+    const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
+    const isFutureDate = selectedDate > now;
+    const isPastDate = selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const restrictActions = restrictPastEdit && isPastDate;
+    li.setAttribute('draggable', restrictActions ? 'false' : 'true');
     li.dataset.index = idx;
     // Drag events
-    li.addEventListener('dragstart', handleDragStart);
-    li.addEventListener('dragover', handleDragOver);
-    li.addEventListener('drop', handleDrop);
-    li.addEventListener('dragend', handleDragEnd);
+    if (!restrictActions) {
+      li.addEventListener('dragstart', handleDragStart);
+      li.addEventListener('dragover', handleDragOver);
+      li.addEventListener('drop', handleDrop);
+      li.addEventListener('dragend', handleDragEnd);
+    }
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.checked = !!task.completed;
-    checkbox.addEventListener('change', () => {
-      const prevCompleted = dayTasks.every(t => t.completed);
-      task.completed = checkbox.checked;
-      // Ensure tasks object is updated
-      tasks[dateKey].tasks = [...dayTasks];
-      // Only allow streak logic for today
-      const now = new Date();
-      const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
-      if (isTodayDate) {
-        saveAndRefresh();
-        if (!prevCompleted && dayTasks.length > 0 && dayTasks.every(t => t.completed)) {
-          lastConfettiDateKey = dateKey;
-          triggerConfetti();
+    if (restrictActions) {
+      checkbox.disabled = true;
+      checkbox.title = 'Editing past days is disabled';
+    } else {
+      checkbox.addEventListener('change', () => {
+        const prevCompleted = dayTasks.every(t => t.completed);
+        task.completed = checkbox.checked;
+        // Ensure tasks object is updated
+        tasks[dateKey].tasks = [...dayTasks];
+        if (isTodayDate) {
+          saveAndRefresh();
+          if (!prevCompleted && dayTasks.length > 0 && dayTasks.every(t => t.completed)) {
+            lastConfettiDateKey = dateKey;
+            triggerConfetti();
+          }
+        } else {
+          saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
+          renderTasks();
+          renderCalendar(current.getFullYear(), current.getMonth());
         }
-      } else {
-        // Just update tasks and UI for non-today
-        saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
-        renderTasks();
-        renderCalendar(current.getFullYear(), current.getMonth());
-      }
-    });
+      });
+    }
 
     // --- Edit logic ---
     const span = document.createElement('span');
@@ -504,79 +514,84 @@ function renderTasks() {
 
     const editBtn = document.createElement('button');
     editBtn.className = 'edit-task';
-    editBtn.title = 'Edit task';
+    editBtn.title = restrictActions ? 'Editing past days is disabled' : 'Edit task';
     editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-    editBtn.addEventListener('click', () => {
-      // Replace span with input
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = task.text;
-      input.className = 'edit-task-input';
-      input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') saveEdit();
-        if (e.key === 'Escape') cancelEdit();
-      });
-      // Save button
-      const saveBtn = document.createElement('button');
-      saveBtn.className = 'save-edit-task';
-      saveBtn.title = 'Save';
-      saveBtn.innerHTML = '<i class="fa fa-check"></i>';
-      saveBtn.addEventListener('click', saveEdit);
-      // Cancel button
-      const cancelBtn = document.createElement('button');
-      cancelBtn.className = 'cancel-edit-task';
-      cancelBtn.title = 'Cancel';
-      cancelBtn.innerHTML = '<i class="fa fa-times"></i>';
-      cancelBtn.addEventListener('click', cancelEdit);
-      // Replace content
-      li.innerHTML = '';
-      li.appendChild(checkbox);
-      li.appendChild(input);
-      li.appendChild(saveBtn);
-      li.appendChild(cancelBtn);
-      input.focus();
-      function saveEdit() {
-        const newText = input.value.trim();
-        if (newText) {
-          task.text = newText;
-          // Only allow streak logic for today
-          const now = new Date();
-          const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
-          if (isTodayDate) {
-            saveAndRefresh();
+    if (restrictActions) {
+      editBtn.disabled = true;
+    } else {
+      editBtn.addEventListener('click', () => {
+        // Replace span with input
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = task.text;
+        input.className = 'edit-task-input';
+        input.addEventListener('keydown', e => {
+          if (e.key === 'Enter') saveEdit();
+          if (e.key === 'Escape') cancelEdit();
+        });
+        // Save button
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'save-edit-task';
+        saveBtn.title = 'Save';
+        saveBtn.innerHTML = '<i class="fa fa-check"></i>';
+        saveBtn.addEventListener('click', saveEdit);
+        // Cancel button
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'cancel-edit-task';
+        cancelBtn.title = 'Cancel';
+        cancelBtn.innerHTML = '<i class="fa fa-times"></i>';
+        cancelBtn.addEventListener('click', cancelEdit);
+        // Replace content
+        li.innerHTML = '';
+        li.appendChild(checkbox);
+        li.appendChild(input);
+        li.appendChild(saveBtn);
+        li.appendChild(cancelBtn);
+        input.focus();
+        function saveEdit() {
+          const newText = input.value.trim();
+          if (newText) {
+            task.text = newText;
+            const now = new Date();
+            const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
+            if (isTodayDate) {
+              saveAndRefresh();
+            } else {
+              saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
+              renderTasks();
+              renderCalendar(current.getFullYear(), current.getMonth());
+            }
           } else {
-            saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
-            renderTasks();
-            renderCalendar(current.getFullYear(), current.getMonth());
+            showNotification('Task cannot be empty');
           }
-        } else {
-          showNotification('Task cannot be empty');
         }
-      }
-      function cancelEdit() {
-        renderTasks();
-      }
-    });
+        function cancelEdit() {
+          renderTasks();
+        }
+      });
+    }
 
     const delBtn = document.createElement('button');
     delBtn.className = 'delete-task';
-    delBtn.title = 'Delete task';
+    delBtn.title = restrictActions ? 'Editing past days is disabled' : 'Delete task';
     delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-    delBtn.addEventListener('click', () => {
-      dayData.tasks = dayTasks.filter(t => t.id !== task.id);
-      // Ensure tasks object is updated
-      tasks[dateKey].tasks = [...dayData.tasks];
-      // Only allow streak logic for today
-      const now = new Date();
-      const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
-      if (isTodayDate) {
-        saveAndRefresh();
-      } else {
-        saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
-        renderTasks();
-        renderCalendar(current.getFullYear(), current.getMonth());
-      }
-    });
+    if (restrictActions) {
+      delBtn.disabled = true;
+    } else {
+      delBtn.addEventListener('click', () => {
+        dayData.tasks = dayTasks.filter(t => t.id !== task.id);
+        tasks[dateKey].tasks = [...dayData.tasks];
+        const now = new Date();
+        const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
+        if (isTodayDate) {
+          saveAndRefresh();
+        } else {
+          saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
+          renderTasks();
+          renderCalendar(current.getFullYear(), current.getMonth());
+        }
+      });
+    }
     li.appendChild(checkbox);
     li.appendChild(span);
     li.appendChild(editBtn);
@@ -905,6 +920,18 @@ auth.onAuthStateChanged(async (user) => {
     renderTasks();
     updateSelectedDateDisplay();
     await checkAndUpdateStreakOnLoad();
+
+    // Fetch restrictPastEdit from Firestore meta
+    try {
+      const metaDoc = await db.collection('users').doc(currentUser.uid).collection('meta').doc('restrictPastEdit').get();
+      if (metaDoc.exists) {
+        restrictPastEdit = !!metaDoc.data().enabled;
+      } else {
+        restrictPastEdit = false;
+      }
+    } catch (e) {
+      restrictPastEdit = false;
+    }
   } else {
     currentUser = null;
     updateUserInfo(null);
@@ -1167,4 +1194,65 @@ window.addEventListener('load', () => {
 });
 
 // --- Initial streak display ---
-updateStreakDisplay(); 
+updateStreakDisplay();
+
+// --- Add function to update restrictPastEdit in Firestore and locally
+async function setRestrictPastEdit(enabled) {
+  restrictPastEdit = enabled;
+  if (currentUser) {
+    await db.collection('users').doc(currentUser.uid).collection('meta').doc('restrictPastEdit').set({ enabled });
+  }
+}
+
+// --- Add a settings toggle button in the dropdown (modern toggle switch style) ---
+function renderRestrictPastEditToggle() {
+  let container = document.getElementById('restrict-past-edit-toggle-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'restrict-past-edit-toggle-container';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '0.7em';
+    container.style.margin = '0.7em 0 0.2em 0';
+  } else {
+    container.innerHTML = '';
+  }
+  // Toggle switch
+  const toggle = document.createElement('label');
+  toggle.className = 'toggle-switch';
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.checked = restrictPastEdit;
+  input.setAttribute('aria-label', 'Retro Lock');
+  const slider = document.createElement('span');
+  slider.className = 'toggle-slider';
+  toggle.appendChild(input);
+  toggle.appendChild(slider);
+  // Label
+  const label = document.createElement('span');
+  label.className = 'toggle-switch-label';
+  label.textContent = 'Retro Lock';
+  // Handler
+  input.addEventListener('change', async () => {
+    await setRestrictPastEdit(input.checked);
+    showNotification('Retro Lock ' + (restrictPastEdit ? 'enabled' : 'disabled'));
+    renderTasks();
+    renderRestrictPastEditToggle();
+  });
+  container.appendChild(toggle);
+  container.appendChild(label);
+  // Insert after theme toggle
+  const themeToggleBtnEl = document.getElementById('settings-theme-toggle');
+  if (themeToggleBtnEl && themeToggleBtnEl.parentNode) {
+    if (!document.getElementById('restrict-past-edit-toggle-container')) {
+      themeToggleBtnEl.parentNode.insertBefore(container, themeToggleBtnEl.nextSibling);
+    }
+  }
+}
+// Call this after login and after toggling
+renderRestrictPastEditToggle();
+
+// On login, update button text
+if (restrictPastEditBtn) {
+  restrictPastEditBtn.textContent = 'Retro Lock: ' + (restrictPastEdit ? 'On' : 'Off');
+} 
