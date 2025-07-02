@@ -693,11 +693,15 @@ function addTask() {
   if (Array.isArray(tasks[dateKey])) {
     tasks[dateKey] = { tasks: tasks[dateKey], note: '' };
   }
-  // Add new task to the top
-  tasks[dateKey].tasks.unshift({ id: Date.now().toString(), text, completed: false });
+  // Add new task to the END
+  tasks[dateKey].tasks.push({ id: Date.now().toString(), text, completed: false });
   saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
   renderTasks();
   renderCalendar(current.getFullYear(), current.getMonth());
+  // Scroll to end of task list
+  setTimeout(() => {
+    if (taskListEl) taskListEl.scrollTop = taskListEl.scrollHeight;
+  }, 0);
   if (currentUser) {
     saveTasksToFirebase(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
     // --- Streak revert logic for adding a new task today ---
