@@ -448,8 +448,7 @@ body.light-theme .calendar {
 }
 
 .day-cell.today {
-  border: 2px solid var(--header-text);
-  box-shadow: 0 0 0 2px var(--grid-border);
+  border: 0.2em solid var(--google-blue);
 }
 
 .day-cell .day-name {
@@ -462,6 +461,28 @@ body.light-theme .calendar {
   font-size: 1.2rem;
   font-weight: bold;
 }
+
+/* .day-cell.today .date-number::after {
+  content: '';
+  display: none;
+} */
+/* .day-cell.today::before {
+  content: none;
+  display: none;
+}
+
+.day-cell.today::after {
+  content: '';
+  position: absolute;
+  top: 0.4em;
+  right: 0.4em;
+  width: 0.6em;
+  height: 0.6em;
+  background: var(--google-blue);
+  border-radius: 50%;
+  box-shadow: 0 0 2px var(--google-blue);
+  z-index: 2;
+} */
 
 .day-cell[data-status="complete"] {
   background: var(--complete);

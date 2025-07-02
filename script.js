@@ -481,13 +481,24 @@ function renderTasks() {
   const dayTasks = dayData.tasks || [];
   taskListEl.innerHTML = '';
 
+  // --- Disable add task for past days ---
+  const now = new Date();
+  const isPastDate = selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (isPastDate) {
+    addTaskBtn.disabled = true;
+    addTaskBtn.title = 'Cannot add tasks for previous days';
+    taskInput.disabled = true;
+    taskInput.placeholder = 'Cannot add tasks for previous days';
+  } else {
+    addTaskBtn.disabled = false;
+    addTaskBtn.title = '';
+    taskInput.disabled = false;
+    taskInput.placeholder = 'New Task';
+  }
+
   dayTasks.forEach((task, idx) => {
     const li = document.createElement('li');
     // Restrict actions for past days if feature flag is enabled
-    const now = new Date();
-    const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
-    const isFutureDate = selectedDate > now;
-    const isPastDate = selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const restrictActions = retroLock && isPastDate;
     li.setAttribute('draggable', restrictActions ? 'false' : 'true');
     li.dataset.index = idx;
@@ -511,16 +522,14 @@ function renderTasks() {
         task.completed = checkbox.checked;
         // Ensure tasks object is updated
         tasks[dateKey].tasks = [...dayTasks];
-        if (isTodayDate) {
+        if (isPastDate) {
+          showNotification('Cannot edit tasks for previous days');
+        } else {
           saveAndRefresh();
           if (!prevCompleted && dayTasks.length > 0 && dayTasks.every(t => t.completed)) {
             lastConfettiDateKey = dateKey;
             triggerConfetti();
           }
-        } else {
-          saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
-          renderTasks();
-          renderCalendar(current.getFullYear(), current.getMonth());
         }
       });
     }
@@ -571,13 +580,11 @@ function renderTasks() {
           if (newText) {
             task.text = newText;
             const now = new Date();
-            const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
-            if (isTodayDate) {
-              saveAndRefresh();
+            const isPastDate = selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            if (isPastDate) {
+              showNotification('Cannot edit tasks for previous days');
             } else {
-              saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
-              renderTasks();
-              renderCalendar(current.getFullYear(), current.getMonth());
+              saveAndRefresh();
             }
           } else {
             showNotification('Task cannot be empty');
@@ -600,13 +607,11 @@ function renderTasks() {
         dayData.tasks = dayTasks.filter(t => t.id !== task.id);
         tasks[dateKey].tasks = [...dayData.tasks];
         const now = new Date();
-        const isTodayDate = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth() && selectedDate.getDate() === now.getDate();
-        if (isTodayDate) {
-          saveAndRefresh();
+        const isPastDate = selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        if (isPastDate) {
+          showNotification('Cannot delete tasks for previous days');
         } else {
-          saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
-          renderTasks();
-          renderCalendar(current.getFullYear(), current.getMonth());
+          saveAndRefresh();
         }
       });
     }
@@ -673,6 +678,13 @@ function addTask() {
   const text = taskInput.value.trim();
   if (!text || !selectedDate) {
     setTimeout(() => taskInput.focus(), 100);
+    return;
+  }
+  // --- Prevent adding for past days ---
+  const now = new Date();
+  const isPastDate = selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (isPastDate) {
+    showNotification('Cannot add tasks for previous days');
     return;
   }
   const dateKey = getDateKey(selectedDate);
