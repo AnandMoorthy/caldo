@@ -345,8 +345,8 @@ body.light-theme .calendar {
 
 .task-list li {
   display: flex;
-  align-items: center;
-  padding: 0.8rem;
+  /* align-items: center; */
+  padding-left: 1.3rem;
   margin-bottom: 0.5rem;
   background: var(--modal-input-bg);
   border-radius: 0.5rem;
@@ -355,7 +355,7 @@ body.light-theme .calendar {
 }
 
 .task-list li:last-child {
-  margin-bottom: 0;
+  /* margin-bottom: 0; */
 }
 
 .task-list .task-text {
@@ -1177,4 +1177,159 @@ body.light-theme .fire-spark {
   margin-right: 0.7rem;
   vertical-align: middle;
   display: inline-block;
+}
+
+/* Subtask Styles - Optimized */
+.main-task-item {
+  position: relative;
+  margin-bottom: 0.2rem;
+  background: var(--modal-input-bg);
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.7rem 0.2rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  box-shadow: none;
+}
+.main-task-item > .main-task-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 2.1em;
+}
+.subtask-chevron {
+  background: none;
+  border: none;
+  color: var(--header-text);
+  font-size: 1.1rem;
+  margin-right: 0.2em;
+  cursor: pointer;
+  vertical-align: middle;
+  outline: none;
+  transition: color 0.2s;
+  padding: 0 0.2em;
+  height: 1.7em;
+  display: flex;
+  align-items: center;
+}
+.subtask-chevron:hover {
+  color: var(--google-blue);
+}
+.subtask-list {
+  list-style: none;
+  margin: 0.1em 0 0.1em 1.7em;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+}
+.subtask-item {
+  display: flex;
+  align-items: center;
+  /* justify-content: space-between; */
+  padding: 0.1em 0.1em;
+  border-radius: 0.2em;
+  background: none;
+  margin-bottom: 0.05em;
+  margin-left: 0.1em;
+  font-size: 0.97em;
+}
+.subtask-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15em;
+  margin-left: 0.5em;
+}
+.subtask-text {
+  margin-left: 0.5em;
+  color: var(--modal-input-text);
+  font-size: 0.95em;
+}
+.subtask-text.completed {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+.add-subtask-row {
+  display: flex;
+  align-items: center;
+  margin-top: 0.1em;
+  gap: 0.2em;
+}
+.add-subtask-input {
+  flex: 1;
+  background: var(--modal-input-bg);
+  border: 1px solid var(--grid-border);
+  border-radius: 0.3em;
+  /* padding: 0.3em 0.5em; */
+  padding: 0.5em;
+  color: var(--modal-input-text);
+  font-size: 0.95em;
+  outline: none;
+  margin-right: 0.2em;
+  transition: border-color 0.2s;
+}
+.add-subtask-input:focus {
+  border-color: var(--button-hover);
+}
+.add-subtask-btn {
+  background: var(--button-bg);
+  color: var(--header-text);
+  border: none;
+  border-radius: 0.3em;
+  padding: 0.3em 0.7em;
+  font-size: 1em;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.add-subtask-btn:hover {
+  background: var(--button-hover);
+  color: #fff;
+}
+
+/* Subtask Action Buttons Smaller */
+.subtask-action {
+  font-size: 0.85em !important;
+  width: 1.3em !important;
+  height: 1.3em !important;
+  min-width: 1.3em !important;
+  min-height: 1.3em !important;
+  padding: 0.1em !important;
+}
+
+/* Hide action buttons by default, show on hover */
+.edit-task, .save-edit-task, .cancel-edit-task {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.main-task-row:hover .edit-task,
+.main-task-row:hover .save-edit-task,
+.main-task-row:hover .cancel-edit-task {
+  opacity: 1;
+  pointer-events: auto;
+}
+.subtask-item .edit-task,
+.subtask-item .save-edit-task,
+.subtask-item .cancel-edit-task,
+.subtask-item .delete-task {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.subtask-item:hover .edit-task,
+.subtask-item:hover .save-edit-task,
+.subtask-item:hover .cancel-edit-task,
+.subtask-item:hover .delete-task {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Hide main task delete button by default, show on hover */
+.main-task-row .delete-task {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+.main-task-row:hover .delete-task {
+  opacity: 1;
+  pointer-events: auto;
 } 

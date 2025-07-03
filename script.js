@@ -497,18 +497,34 @@ function renderTasks() {
   }
 
   dayTasks.forEach((task, idx) => {
+    // Ensure subtasks array exists
+    if (!Array.isArray(task.subtasks)) task.subtasks = [];
     const li = document.createElement('li');
-    // Restrict actions for past days if feature flag is enabled
+    li.className = 'main-task-item';
     const restrictActions = retroLock && isPastDate;
     li.setAttribute('draggable', restrictActions ? 'false' : 'true');
     li.dataset.index = idx;
-    // Drag events
     if (!restrictActions) {
       li.addEventListener('dragstart', handleDragStart);
       li.addEventListener('dragover', handleDragOver);
       li.addEventListener('drop', handleDrop);
       li.addEventListener('dragend', handleDragEnd);
     }
+
+    // --- Main task row (horizontal) ---
+    const mainRowNormal = document.createElement('div');
+    mainRowNormal.className = 'main-task-row';
+
+    const chevron = document.createElement('button');
+    chevron.className = 'subtask-chevron';
+    chevron.innerHTML = task._subtasksOpen
+      ? '<i class="fa-solid fa-chevron-down"></i>'
+      : '<i class="fa-solid fa-chevron-right"></i>';
+    chevron.title = task._subtasksOpen ? 'Hide subtasks' : 'Show subtasks';
+    chevron.addEventListener('click', () => {
+      task._subtasksOpen = !task._subtasksOpen;
+      renderTasks();
+    });
 
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
@@ -518,15 +534,15 @@ function renderTasks() {
       checkbox.title = 'Editing past days is disabled';
     } else {
       checkbox.addEventListener('change', () => {
-        const prevCompleted = dayTasks.every(t => t.completed);
+        const prevCompleted = areAllTasksAndSubtasksCompleted(dayTasks);
         task.completed = checkbox.checked;
-        // Ensure tasks object is updated
+        task.subtasks.forEach(st => st.completed = task.completed);
         tasks[dateKey].tasks = [...dayTasks];
         if (isPastDate) {
           showNotification('Cannot edit tasks for previous days');
         } else {
           saveAndRefresh();
-          if (!prevCompleted && dayTasks.length > 0 && dayTasks.every(t => t.completed)) {
+          if (!prevCompleted && areAllTasksAndSubtasksCompleted(dayTasks)) {
             lastConfettiDateKey = dateKey;
             triggerConfetti();
           }
@@ -534,7 +550,6 @@ function renderTasks() {
       });
     }
 
-    // --- Edit logic ---
     const span = document.createElement('span');
     span.className = 'task-text' + (task.completed ? ' completed' : '');
     span.textContent = task.text;
@@ -547,52 +562,9 @@ function renderTasks() {
       editBtn.disabled = true;
     } else {
       editBtn.addEventListener('click', () => {
-        // Replace span with input
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.value = task.text;
-        input.className = 'edit-task-input';
-        input.addEventListener('keydown', e => {
-          if (e.key === 'Enter') saveEdit();
-          if (e.key === 'Escape') cancelEdit();
-        });
-        // Save button
-        const saveBtn = document.createElement('button');
-        saveBtn.className = 'save-edit-task';
-        saveBtn.title = 'Save';
-        saveBtn.innerHTML = '<i class="fa fa-check"></i>';
-        saveBtn.addEventListener('click', saveEdit);
-        // Cancel button
-        const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'cancel-edit-task';
-        cancelBtn.title = 'Cancel';
-        cancelBtn.innerHTML = '<i class="fa fa-times"></i>';
-        cancelBtn.addEventListener('click', cancelEdit);
-        // Replace content
-        li.innerHTML = '';
-        li.appendChild(checkbox);
-        li.appendChild(input);
-        li.appendChild(saveBtn);
-        li.appendChild(cancelBtn);
-        input.focus();
-        function saveEdit() {
-          const newText = input.value.trim();
-          if (newText) {
-            task.text = newText;
-            const now = new Date();
-            const isPastDate = selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            if (isPastDate) {
-              showNotification('Cannot edit tasks for previous days');
-            } else {
-              saveAndRefresh();
-            }
-          } else {
-            showNotification('Task cannot be empty');
-          }
-        }
-        function cancelEdit() {
-          renderTasks();
-        }
+        // Set editing flag
+        task._editing = true;
+        renderTasks();
       });
     }
 
@@ -615,13 +587,214 @@ function renderTasks() {
         }
       });
     }
-    li.appendChild(checkbox);
-    li.appendChild(span);
-    li.appendChild(editBtn);
-    li.appendChild(delBtn);
+
+    if (task._editing) {
+      // Only show edit input and save/cancel buttons
+      const mainRowEdit = document.createElement('div');
+      mainRowEdit.className = 'main-task-row';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = task.text;
+      input.className = 'edit-task-input';
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') saveEdit();
+        if (e.key === 'Escape') cancelEdit();
+      });
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'save-edit-task';
+      saveBtn.title = 'Save';
+      saveBtn.innerHTML = '<i class="fa fa-check"></i>';
+      saveBtn.addEventListener('click', saveEdit);
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'cancel-edit-task';
+      cancelBtn.title = 'Cancel';
+      cancelBtn.innerHTML = '<i class="fa fa-times"></i>';
+      cancelBtn.addEventListener('click', cancelEdit);
+      mainRowEdit.appendChild(input);
+      mainRowEdit.appendChild(saveBtn);
+      mainRowEdit.appendChild(cancelBtn);
+      li.appendChild(mainRowEdit);
+      taskListEl.appendChild(li);
+      input.focus();
+      function saveEdit() {
+        const newText = input.value.trim();
+        if (newText) {
+          task.text = newText;
+          task._editing = false;
+          const now = new Date();
+          const isPastDate = selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          if (isPastDate) {
+            showNotification('Cannot edit tasks for previous days');
+          } else {
+            saveAndRefresh();
+          }
+        } else {
+          showNotification('Task cannot be empty');
+        }
+      }
+      function cancelEdit() {
+        task._editing = false;
+        renderTasks();
+      }
+      return; // Do not render chevron, subtasks, or other actions
+    }
+
+    // Normal (non-editing) main task row
+    mainRowNormal.appendChild(chevron);
+    mainRowNormal.appendChild(checkbox);
+    mainRowNormal.appendChild(span);
+    mainRowNormal.appendChild(editBtn);
+    mainRowNormal.appendChild(delBtn);
+    li.appendChild(mainRowNormal);
+
+    // --- Subtasks UI ---
+    if (task._subtasksOpen) {
+      const subtaskList = document.createElement('ul');
+      subtaskList.className = 'subtask-list';
+      task.subtasks.forEach((subtask, sidx) => {
+        const subLi = document.createElement('li');
+        subLi.className = 'subtask-item';
+        const subCheckbox = document.createElement('input');
+        subCheckbox.type = 'checkbox';
+        subCheckbox.checked = !!subtask.completed;
+        if (restrictActions) {
+          subCheckbox.disabled = true;
+        } else {
+          subCheckbox.addEventListener('change', () => {
+            subtask.completed = subCheckbox.checked;
+            if (task.subtasks.length > 0 && task.subtasks.every(st => st.completed)) {
+              task.completed = true;
+            } else {
+              task.completed = false;
+            }
+            tasks[dateKey].tasks = [...dayTasks];
+            saveAndRefresh();
+          });
+        }
+        const subSpan = document.createElement('span');
+        subSpan.className = 'subtask-text' + (subtask.completed ? ' completed' : '');
+        subSpan.textContent = subtask.text;
+        const subEditBtn = document.createElement('button');
+        subEditBtn.className = 'edit-task subtask-action';
+        subEditBtn.title = 'Edit subtask';
+        subEditBtn.innerHTML = '<i class="fas fa-edit"></i>';
+        if (restrictActions) {
+          subEditBtn.disabled = true;
+        } else {
+          subEditBtn.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = subtask.text;
+            input.className = 'edit-task-input';
+            input.addEventListener('keydown', e => {
+              if (e.key === 'Enter') saveEdit();
+              if (e.key === 'Escape') cancelEdit();
+            });
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'save-edit-task subtask-action';
+            saveBtn.title = 'Save';
+            saveBtn.innerHTML = '<i class="fa fa-check"></i>';
+            saveBtn.addEventListener('click', saveEdit);
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'cancel-edit-task subtask-action';
+            cancelBtn.title = 'Cancel';
+            cancelBtn.innerHTML = '<i class="fa fa-times"></i>';
+            cancelBtn.addEventListener('click', cancelEdit);
+            subLi.innerHTML = '';
+            subLi.appendChild(subCheckbox);
+            subLi.appendChild(input);
+            subLi.appendChild(saveBtn);
+            subLi.appendChild(cancelBtn);
+            input.focus();
+            function saveEdit() {
+              const newText = input.value.trim();
+              if (newText) {
+                subtask.text = newText;
+                saveAndRefresh();
+              } else {
+                showNotification('Subtask cannot be empty');
+              }
+            }
+            function cancelEdit() {
+              renderTasks();
+            }
+          });
+        }
+        const subDelBtn = document.createElement('button');
+        subDelBtn.className = 'delete-task subtask-action';
+        subDelBtn.title = 'Delete subtask';
+        subDelBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        if (restrictActions) {
+          subDelBtn.disabled = true;
+        } else {
+          subDelBtn.addEventListener('click', () => {
+            task.subtasks = task.subtasks.filter((_, i) => i !== sidx);
+            if (task.subtasks.length > 0 && task.subtasks.every(st => st.completed)) {
+              task.completed = true;
+            } else {
+              task.completed = false;
+            }
+            saveAndRefresh();
+          });
+        }
+        // Action buttons container for subtasks
+        const subActions = document.createElement('div');
+        subActions.className = 'subtask-actions';
+        subActions.appendChild(subEditBtn);
+        subActions.appendChild(subDelBtn);
+        // If in edit mode, also add save/cancel (handled above)
+        subLi.appendChild(subCheckbox);
+        subLi.appendChild(subSpan);
+        subLi.appendChild(subActions);
+        subtaskList.appendChild(subLi);
+      });
+      if (!restrictActions) {
+        const addSubtaskRow = document.createElement('li');
+        addSubtaskRow.className = 'add-subtask-row';
+        const addSubtaskInput = document.createElement('input');
+        addSubtaskInput.type = 'text';
+        addSubtaskInput.placeholder = 'Add subtask...';
+        addSubtaskInput.className = 'add-subtask-input';
+        addSubtaskInput.setAttribute('data-parent-task-id', task.id);
+        const addSubtaskBtn = document.createElement('button');
+        addSubtaskBtn.className = 'add-task add-subtask-btn';
+        addSubtaskBtn.textContent = '+';
+        addSubtaskBtn.addEventListener('click', () => {
+          const text = addSubtaskInput.value.trim();
+          if (text) {
+            task.subtasks.push({ id: Date.now().toString() + Math.random().toString(36).slice(2), text, completed: false });
+            addSubtaskInput.value = '';
+            task.completed = false;
+            saveAndRefresh();
+            setTimeout(() => {
+              const selector = 'input.add-subtask-input[data-parent-task-id="' + task.id + '"]';
+              const input = document.querySelector(selector);
+              if (input) input.focus();
+            }, 100);
+          }
+        });
+        addSubtaskInput.addEventListener('keydown', e => {
+          if (e.key === 'Enter') addSubtaskBtn.click();
+        });
+        addSubtaskRow.appendChild(addSubtaskInput);
+        addSubtaskRow.appendChild(addSubtaskBtn);
+        subtaskList.appendChild(addSubtaskRow);
+      }
+      li.appendChild(subtaskList);
+    }
     taskListEl.appendChild(li);
   });
   renderNote();
+}
+
+// Helper: Check if all main tasks and all their subtasks are completed
+function areAllTasksAndSubtasksCompleted(tasksArr) {
+  if (!tasksArr || tasksArr.length === 0) return false;
+  for (const t of tasksArr) {
+    if (!t.completed) return false;
+    if (Array.isArray(t.subtasks) && t.subtasks.length > 0 && !t.subtasks.every(st => st.completed)) return false;
+  }
+  return true;
 }
 
 // Confetti animation
@@ -694,7 +867,7 @@ function addTask() {
     tasks[dateKey] = { tasks: tasks[dateKey], note: '' };
   }
   // Add new task to the END
-  tasks[dateKey].tasks.push({ id: Date.now().toString(), text, completed: false });
+  tasks[dateKey].tasks.push({ id: Date.now().toString(), text, completed: false, subtasks: [] });
   saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
   renderTasks();
   renderCalendar(current.getFullYear(), current.getMonth());
@@ -715,7 +888,7 @@ function addTask() {
       let dayData = tasks[todayKey];
       if (!dayData) dayData = { tasks: [], note: '' };
       const wasStreakForToday = lastStreakDate === todayKey;
-      const allCompleted = dayData.tasks.length > 0 && dayData.tasks.every(t => t.completed);
+      const allCompleted = areAllTasksAndSubtasksCompleted(dayData.tasks);
       // If streak was set for today and now not all tasks are completed (which will be true after adding a new task), revert
       if (wasStreakForToday && !allCompleted) {
         streak = Math.max(0, streak - 1);
@@ -750,7 +923,7 @@ async function saveAndRefresh() {
       let dayData = tasks[todayKey];
       if (!dayData) dayData = { tasks: [], note: '' };
       const wasStreakForToday = lastStreakDate === todayKey;
-      const allCompleted = dayData.tasks.length > 0 && dayData.tasks.every(t => t.completed);
+      const allCompleted = areAllTasksAndSubtasksCompleted(dayData.tasks);
       // If all tasks are completed, try to increase streak
       if (allCompleted) {
         await checkAndUpdateStreakOnTaskComplete();
@@ -1216,8 +1389,8 @@ async function checkAndUpdateStreakOnTaskComplete() {
   const todayKey = getDateKey(today);
   let dayData = tasks[todayKey];
   if (!dayData) dayData = { tasks: [], note: '' };
-  // Only if all tasks are completed and there is at least one task
-  if (dayData.tasks.length > 0 && dayData.tasks.every(t => t.completed)) {
+  // Only if all tasks and subtasks are completed and there is at least one task
+  if (areAllTasksAndSubtasksCompleted(dayData.tasks)) {
     // Only allow streak increment if lastStreakDate is yesterday or today
     if (lastStreakDate === getDateKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)) || lastStreakDate === null || lastStreakDate === undefined) {
       streak = (streak || 0) + 1;
