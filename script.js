@@ -553,6 +553,13 @@ function renderTasks() {
     const span = document.createElement('span');
     span.className = 'task-text' + (task.completed ? ' completed' : '');
     span.textContent = task.text;
+    // --- Show time if present ---
+    // if (task.time) {
+    //   const timeSpan = document.createElement('span');
+    //   timeSpan.className = 'task-time';
+    //   timeSpan.textContent = task.time;
+    //   // span.appendChild(timeSpan);
+    // }
 
     const editBtn = document.createElement('button');
     editBtn.className = 'edit-task';
@@ -651,12 +658,19 @@ function renderTasks() {
     mainTaskLeft.appendChild(checkbox);
     mainTaskLeft.appendChild(span);
 
-    // Right side: edit, delete
+    // Right side: time, edit, delete
     const mainTaskRight = document.createElement('div');
     mainTaskRight.className = 'main-task-right';
     mainTaskRight.style.display = 'flex';
     mainTaskRight.style.alignItems = 'center';
     mainTaskRight.style.gap = '0.3em';
+    // --- Show time if present ---
+    if (task.time) {
+      const timeSpan = document.createElement('span');
+      timeSpan.className = 'task-time';
+      timeSpan.textContent = task.time;
+      mainTaskRight.appendChild(timeSpan);
+    }
     mainTaskRight.appendChild(editBtn);
     mainTaskRight.appendChild(delBtn);
 
@@ -866,6 +880,14 @@ function triggerConfetti() {
 // --- Add/Remove/Edit Task: UI instant, sync in background ---
 function addTask() {
   const text = taskInput.value.trim();
+  // --- Get time value from timepicker ---
+  let time = '';
+  if (window.taskTimePicker) {
+    time = window.taskTimePicker.getFormatted();
+  } else {
+    const timeInput = document.getElementById('task-time-input');
+    if (timeInput) time = timeInput.value.trim();
+  }
   if (!text || !selectedDate) {
     setTimeout(() => taskInput.focus(), 100);
     return;
@@ -883,8 +905,8 @@ function addTask() {
   if (Array.isArray(tasks[dateKey])) {
     tasks[dateKey] = { tasks: tasks[dateKey], note: '' };
   }
-  // Add new task to the END
-  tasks[dateKey].tasks.push({ id: Date.now().toString(), text, completed: false, subtasks: [] });
+  // Add new task to the END, now with time
+  tasks[dateKey].tasks.push({ id: Date.now().toString(), text, completed: false, subtasks: [], time });
   saveTasks(selectedDate.getFullYear(), selectedDate.getMonth(), tasks);
   renderTasks();
   renderCalendar(current.getFullYear(), current.getMonth());
@@ -917,6 +939,20 @@ function addTask() {
     }
   }
   taskInput.value = '';
+  // Reset timepicker to current time
+  if (window.taskTimePicker) {
+    const now = new Date();
+    let h = now.getHours();
+    let m = now.getMinutes();
+    let ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12; if (h === 0) h = 12;
+    m = Math.round(m/5)*5;
+    window.taskTimePicker.value = { h, m, ampm };
+    window.taskTimePicker.input.value = window.taskTimePicker.getFormatted();
+  } else {
+    const timeInput = document.getElementById('task-time-input');
+    if (timeInput) timeInput.value = '';
+  }
   setTimeout(() => taskInput.focus(), 100);
 }
 
@@ -1493,5 +1529,11 @@ document.addEventListener('DOMContentLoaded', () => {
       updateSelectedDateDisplay();
       showNotification('Month data refreshed!');
     });
+  }
+
+  // --- TimePicker initialization ---
+  const taskTimeInput = document.getElementById('task-time-input');
+  if (window.TimePicker && taskTimeInput) {
+    window.taskTimePicker = new window.TimePicker(taskTimeInput, {});
   }
 }); 
