@@ -617,12 +617,32 @@ function renderTasks() {
       cancelBtn.title = 'Cancel';
       cancelBtn.innerHTML = '<i class="fa fa-times"></i>';
       cancelBtn.addEventListener('click', cancelEdit);
-      mainRowEdit.appendChild(input);
-      mainRowEdit.appendChild(saveBtn);
-      mainRowEdit.appendChild(cancelBtn);
+      // Left: input
+      const mainTaskLeft = document.createElement('div');
+      mainTaskLeft.className = 'main-task-left';
+      mainTaskLeft.style.display = 'flex';
+      mainTaskLeft.style.alignItems = 'center';
+      mainTaskLeft.style.gap = '0.2em';
+      mainTaskLeft.appendChild(input);
+      // Right: time, save, cancel
+      const mainTaskRight = document.createElement('div');
+      mainTaskRight.className = 'main-task-right';
+      mainTaskRight.style.display = 'flex';
+      mainTaskRight.style.alignItems = 'center';
+      mainTaskRight.style.gap = '0.3em';
+      if (task.time) {
+        const timeSpan = document.createElement('span');
+        timeSpan.className = 'task-time';
+        timeSpan.textContent = task.time;
+        mainTaskRight.appendChild(timeSpan);
+      }
+      mainTaskRight.appendChild(saveBtn);
+      mainTaskRight.appendChild(cancelBtn);
+      mainRowEdit.appendChild(mainTaskLeft);
+      mainRowEdit.appendChild(mainTaskRight);
       li.appendChild(mainRowEdit);
       taskListEl.appendChild(li);
-      input.focus();
+      setTimeout(() => input.focus(), 0);
       function saveEdit() {
         const newText = input.value.trim();
         if (newText) {
