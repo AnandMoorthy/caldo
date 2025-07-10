@@ -640,11 +640,28 @@ function renderTasks() {
     }
 
     // Normal (non-editing) main task row
-    mainRowNormal.appendChild(chevron);
-    mainRowNormal.appendChild(checkbox);
-    mainRowNormal.appendChild(span);
-    mainRowNormal.appendChild(editBtn);
-    mainRowNormal.appendChild(delBtn);
+    // Refactored: left and right containers
+    // Left side: chevron, checkbox, task text
+    const mainTaskLeft = document.createElement('div');
+    mainTaskLeft.className = 'main-task-left';
+    mainTaskLeft.style.display = 'flex';
+    mainTaskLeft.style.alignItems = 'center';
+    mainTaskLeft.style.gap = '0.2em';
+    mainTaskLeft.appendChild(chevron);
+    mainTaskLeft.appendChild(checkbox);
+    mainTaskLeft.appendChild(span);
+
+    // Right side: edit, delete
+    const mainTaskRight = document.createElement('div');
+    mainTaskRight.className = 'main-task-right';
+    mainTaskRight.style.display = 'flex';
+    mainTaskRight.style.alignItems = 'center';
+    mainTaskRight.style.gap = '0.3em';
+    mainTaskRight.appendChild(editBtn);
+    mainTaskRight.appendChild(delBtn);
+
+    mainRowNormal.appendChild(mainTaskLeft);
+    mainRowNormal.appendChild(mainTaskRight);
     li.appendChild(mainRowNormal);
 
     // --- Subtasks UI ---

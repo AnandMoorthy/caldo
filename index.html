@@ -6,6 +6,7 @@
   <title>Caldo - Minimalist Todo Calendar</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="timepicker.css">
   <!-- FontAwesome for user icon -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
   <!-- Firebase SDK -->
@@ -72,6 +73,7 @@
             <ul class="task-list"></ul>
             <div class="task-input-row">
               <input type="text" class="task-input" placeholder="New Task" />
+              <input type="text" id="task-time-input" class="tp-input" placeholder="Time" style="margin:0 0.5em;min-width:90px;max-width:110px;" />
               <button class="add-task">Add Task</button>
             </div>
             <div class="note-section">
@@ -87,6 +89,7 @@
     </div>
   </div>
   <script src="firebase-config.js"></script>
+  <script src="timepicker.js"></script>
   <script src="script.js"></script>
 </body>
 </html> 

@@ -1193,15 +1193,60 @@ body.light-theme .fire-spark {
 .main-task-item > .main-task-row {
   display: flex;
   align-items: center;
-  gap: 0.5em;
+  gap: 0.2em;
   min-height: 2.1em;
+  flex-wrap: nowrap;
+}
+.task-text {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 0.2em;
+  position: relative;
+  cursor: pointer;
+}
+.task-text:hover::after {
+  content: attr(data-fulltext);
+  position: absolute;
+  left: 0;
+  top: 120%;
+  background: var(--modal-bg, #fff);
+  color: var(--modal-input-text, #23272f);
+  border: 1px solid var(--grid-border, #ccc);
+  border-radius: 0.4em;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  padding: 0.5em 1em;
+  z-index: 100;
+  white-space: pre-line;
+  min-width: 180px;
+  max-width: 400px;
+  font-size: 1em;
+  pointer-events: none;
+}
+.task-time {
+  color: #3F51B5;
+  font-size: 0.95em;
+  font-weight: 500;
+  margin-left: 0.7em;
+  opacity: 0.7;
+  flex-shrink: 0;
+  align-self: center;
+  min-width: 56px;
+  text-align: right;
+}
+.tp-dropdown {
+  max-height: 320px;
+  overflow-y: auto;
 }
 .subtask-chevron {
   background: none;
   border: none;
   color: var(--header-text);
   font-size: 1.1rem;
-  margin-right: 0.2em;
+  margin-right: 0.1em;
   cursor: pointer;
   vertical-align: middle;
   outline: none;
@@ -1332,4 +1377,32 @@ body.light-theme .fire-spark {
 .main-task-row:hover .delete-task {
   opacity: 1;
   pointer-events: auto;
+} 
+
+/* --- Task Row Flex Layout --- */
+.main-task-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.main-task-left {
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+}
+.main-task-right {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+}
+
+.task-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.3em;
+}
+
+.edit-task, .delete-task {
+  /* Optionally adjust button spacing and appearance */
+  margin-left: 0;
 } 

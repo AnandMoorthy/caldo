@@ -1,0 +1,91 @@
+:root {
+  --tp-bg: var(--modal-bg, #FAFAFA);
+  --tp-border: var(--grid-border, #E0E0E0);
+  --tp-accent: var(--google-blue, #3F51B5);
+  --tp-accent-light: var(--button-hover, #E8EAF6);
+  --tp-text: var(--header-text, #23272f);
+  --tp-selected-bg: var(--google-blue, #3F51B5);
+  --tp-selected-text: #fff;
+  --tp-btn-bg: var(--button-bg, #fff);
+  --tp-btn-hover: var(--button-hover, #E3E6F3);
+  --tp-shadow: 0 4px 16px rgba(63,81,181,0.10);
+}
+.tp-input {
+  background: var(--tp-bg);
+  border: 1.5px solid var(--tp-border);
+  border-radius: 0.5em;
+  padding: 0.7em 1.1em;
+  font-size: 1em;
+  color: var(--tp-text);
+  outline: none;
+  transition: border 0.2s;
+  width: 120px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.tp-input:focus {
+  border-color: var(--tp-accent);
+}
+.tp-dropdown {
+  background: var(--tp-bg);
+  border: 1.5px solid var(--tp-border);
+  border-radius: 0.7em;
+  box-shadow: var(--tp-shadow);
+  display: flex;
+  gap: 0.4em;
+  padding: 0.5em 0.7em;
+  min-width: 220px;
+  max-width: 340px;
+  min-height: 2.5em;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.98);
+  pointer-events: none;
+  transition: opacity 0.18s cubic-bezier(.4,0,.2,1), transform 0.18s cubic-bezier(.4,0,.2,1);
+  overflow-y: auto;
+  overflow-x: auto;
+}
+.tp-dropdown.tp-open {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+.tp-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+  min-width: 48px;
+  flex: 1 1 0;
+}
+.tp-btn {
+  background: var(--tp-btn-bg);
+  border: none;
+  border-radius: 0.4em;
+  color: var(--tp-text);
+  font-size: 1em;
+  padding: 0.3em 0.5em;
+  margin: 0.05em 0;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  outline: none;
+}
+.tp-btn:hover, .tp-btn:focus {
+  background: var(--tp-btn-hover);
+  color: var(--tp-accent);
+}
+.tp-btn.tp-selected {
+  background: var(--tp-selected-bg);
+  color: var(--tp-selected-text);
+}
+@media (max-width: 600px) {
+  .tp-dropdown {
+    min-width: 90vw;
+    padding: 0.7em 0.3em;
+    left: 2vw !important;
+    right: 2vw !important;
+  }
+  .tp-input {
+    width: 100%;
+    font-size: 1em;
+    padding: 0.7em 0.7em;
+  }
+} 
