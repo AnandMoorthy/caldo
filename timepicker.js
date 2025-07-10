@@ -30,15 +30,22 @@
       this._init();
     }
     _init() {
-      // Set default value to current time
-      const now = new Date();
-      let h = now.getHours();
-      let m = now.getMinutes();
-      let ampm = h >= 12 ? 'PM' : 'AM';
-      h = h % 12; if (h === 0) h = 12;
-      m = Math.round(m/5)*5; // Snap to nearest 5 min
-      this.value = { h, m, ampm };
-      this.input.value = formatTime(h, m, ampm);
+      // Only set value if input has a value (for backward compatibility)
+      if (this.input.value) {
+        // Try to parse value (not implemented here)
+        // For now, fallback to current time
+        const now = new Date();
+        let h = now.getHours();
+        let m = now.getMinutes();
+        let ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12; if (h === 0) h = 12;
+        m = Math.round(m/5)*5; // Snap to nearest 5 min
+        this.value = { h, m, ampm };
+        this.input.value = formatTime(h, m, ampm);
+      } else {
+        this.value = null;
+        this.input.value = '';
+      }
       this.input.readOnly = true;
       this.input.classList.add('tp-input');
       this.input.addEventListener('click', () => this.open());
@@ -76,7 +83,7 @@
         const btn = document.createElement('button');
         btn.className = 'tp-btn tp-hour';
         btn.textContent = pad(h);
-        if (h === this.value.h) btn.classList.add('tp-selected');
+        if (this.value && h === this.value.h) btn.classList.add('tp-selected');
         btn.addEventListener('click', () => this._setHour(h));
         hourCol.appendChild(btn);
       }
@@ -86,7 +93,7 @@
         const btn = document.createElement('button');
         btn.className = 'tp-btn tp-min';
         btn.textContent = pad(m);
-        if (m === this.value.m) btn.classList.add('tp-selected');
+        if (this.value && m === this.value.m) btn.classList.add('tp-selected');
         btn.addEventListener('click', () => this._setMin(m));
         minCol.appendChild(btn);
       }
@@ -96,7 +103,7 @@
         const btn = document.createElement('button');
         btn.className = 'tp-btn tp-ampm';
         btn.textContent = ampm;
-        if (ampm === this.value.ampm) btn.classList.add('tp-selected');
+        if (this.value && ampm === this.value.ampm) btn.classList.add('tp-selected');
         btn.addEventListener('click', () => this._setAMPM(ampm));
         ampmCol.appendChild(btn);
       });
@@ -111,9 +118,10 @@
       document.body.appendChild(dropdown);
       setTimeout(() => dropdown.classList.add('tp-open'), 10);
       this.dropdown = dropdown;
-      // Focus first selected
+      // Focus first selected, or first hour if no value
       setTimeout(() => {
-        const sel = dropdown.querySelector('.tp-selected');
+        let sel = dropdown.querySelector('.tp-selected');
+        if (!sel) sel = dropdown.querySelector('.tp-hour');
         if (sel) sel.focus();
       }, 30);
       // Outside click/Esc
@@ -129,17 +137,26 @@
       dropdown.addEventListener('keydown', e => this._onDropdownKey(e));
     }
     _setHour(h) {
+      if (!this.value) this.value = { h: h, m: 0, ampm: 'AM' };
       this.value.h = h;
+      if (this.value.m == null) this.value.m = 0;
+      if (!this.value.ampm) this.value.ampm = 'AM';
       this._updateSelected('hour', h);
       this._updateInput();
     }
     _setMin(m) {
+      if (!this.value) this.value = { h: 12, m: m, ampm: 'AM' };
       this.value.m = m;
+      if (this.value.h == null) this.value.h = 12;
+      if (!this.value.ampm) this.value.ampm = 'AM';
       this._updateSelected('min', m);
       this._updateInput();
     }
     _setAMPM(ampm) {
+      if (!this.value) this.value = { h: 12, m: 0, ampm: ampm };
       this.value.ampm = ampm;
+      if (this.value.h == null) this.value.h = 12;
+      if (this.value.m == null) this.value.m = 0;
       this._updateSelected('ampm', ampm);
       this._updateInput();
     }
@@ -159,7 +176,11 @@
       });
     }
     _updateInput() {
-      this.input.value = formatTime(this.value.h, this.value.m, this.value.ampm);
+      if (this.value && this.value.h && this.value.m != null && this.value.ampm) {
+        this.input.value = formatTime(this.value.h, this.value.m, this.value.ampm);
+      } else {
+        this.input.value = '';
+      }
       if (this.options.onChange) {
         this.options.onChange(this.getDate(), this.getFormatted());
       }
@@ -189,9 +210,11 @@
       }
     }
     getDate() {
+      if (!this.value) return null;
       return parseTimeToDate(this.value.h, this.value.m, this.value.ampm);
     }
     getFormatted() {
+      if (!this.value) return '';
       return formatTime(this.value.h, this.value.m, this.value.ampm);
     }
   }

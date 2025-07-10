@@ -904,6 +904,8 @@ function addTask() {
   let time = '';
   if (window.taskTimePicker) {
     time = window.taskTimePicker.getFormatted();
+    // If not picked, treat as empty
+    if (!window.taskTimePicker.value) time = '';
   } else {
     const timeInput = document.getElementById('task-time-input');
     if (timeInput) time = timeInput.value.trim();
@@ -959,16 +961,10 @@ function addTask() {
     }
   }
   taskInput.value = '';
-  // Reset timepicker to current time
+  // Reset timepicker to empty
   if (window.taskTimePicker) {
-    const now = new Date();
-    let h = now.getHours();
-    let m = now.getMinutes();
-    let ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12; if (h === 0) h = 12;
-    m = Math.round(m/5)*5;
-    window.taskTimePicker.value = { h, m, ampm };
-    window.taskTimePicker.input.value = window.taskTimePicker.getFormatted();
+    window.taskTimePicker.value = null;
+    window.taskTimePicker.input.value = '';
   } else {
     const timeInput = document.getElementById('task-time-input');
     if (timeInput) timeInput.value = '';
@@ -1555,5 +1551,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const taskTimeInput = document.getElementById('task-time-input');
   if (window.TimePicker && taskTimeInput) {
     window.taskTimePicker = new window.TimePicker(taskTimeInput, {});
+    // Clear the value on load
+    window.taskTimePicker.value = null;
+    window.taskTimePicker.input.value = '';
   }
 }); 
