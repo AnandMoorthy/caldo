@@ -624,18 +624,38 @@ function renderTasks() {
       mainTaskLeft.style.alignItems = 'center';
       mainTaskLeft.style.gap = '0.2em';
       mainTaskLeft.appendChild(input);
-      // Right: time, save, cancel
+      // Right: timepicker, save, cancel
       const mainTaskRight = document.createElement('div');
       mainTaskRight.className = 'main-task-right';
       mainTaskRight.style.display = 'flex';
       mainTaskRight.style.alignItems = 'center';
       mainTaskRight.style.gap = '0.3em';
-      if (task.time) {
-        const timeSpan = document.createElement('span');
-        timeSpan.className = 'task-time';
-        timeSpan.textContent = task.time;
-        mainTaskRight.appendChild(timeSpan);
-      }
+      // --- TimePicker for editing ---
+      const timeInput = document.createElement('input');
+      timeInput.type = 'text';
+      timeInput.className = 'tp-input';
+      timeInput.style.marginRight = '0.5em';
+      timeInput.style.minWidth = '90px';
+      timeInput.style.maxWidth = '110px';
+      mainTaskRight.appendChild(timeInput);
+      // Initialize a new TimePicker for this edit row
+      let editTimePicker = null;
+      setTimeout(() => {
+        editTimePicker = new window.TimePicker(timeInput, {});
+        // Pre-fill with task time if present
+        if (task.time && editTimePicker) {
+          // Try to parse task.time (format: hh:mm AM/PM)
+          const match = task.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/);
+          if (match) {
+            let h = parseInt(match[1], 10);
+            let m = parseInt(match[2], 10);
+            let ampm = match[3];
+            editTimePicker.value = { h, m, ampm };
+            editTimePicker.input.value = editTimePicker.getFormatted();
+          }
+        }
+      }, 0);
+      // ---
       mainTaskRight.appendChild(saveBtn);
       mainTaskRight.appendChild(cancelBtn);
       mainRowEdit.appendChild(mainTaskLeft);
@@ -645,8 +665,16 @@ function renderTasks() {
       setTimeout(() => input.focus(), 0);
       function saveEdit() {
         const newText = input.value.trim();
+        let newTime = '';
+        if (editTimePicker) {
+          newTime = editTimePicker.getFormatted();
+          if (!editTimePicker.value) newTime = '';
+        } else {
+          newTime = timeInput.value.trim();
+        }
         if (newText) {
           task.text = newText;
+          task.time = newTime;
           task._editing = false;
           const now = new Date();
           const isPastDate = selectedDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
