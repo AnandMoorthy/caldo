@@ -1,0 +1,632 @@
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, parseISO } from "date-fns";
+import { motion } from "framer-motion";
+import { Plus, ChevronLeft, ChevronRight, Upload, DownloadCloud, User as UserIcon, ChevronDown, Pencil, Check, RotateCcw, Trash, Clock } from "lucide-react";
+import { auth, db, googleProvider } from "./firebase";
+
+
+// Single-file Caldo app
+// Tailwind styling expected. NPM deps: date-fns, framer-motion, lucide-react
+
+const STORAGE_KEY = "caldo_v2_tasks";
+
+function uid() {
+  return Math.random().toString(36).slice(2, 9);
+}
+
+function loadTasks() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed;
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveTasks(tasks) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+export default function App() {
+  const [cursor, setCursor] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [tasksMap, setTasksMap] = useState(() => loadTasks());
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ title: "", notes: "", priority: "medium" });
+  const [showEdit, setShowEdit] = useState(false);
+  const [editTask, setEditTask] = useState(null);
+  const [editForm, setEditForm] = useState({ title: "", notes: "", priority: "medium" });
+  const [user, setUser] = useState(null);
+  const hasLoadedCloud = useRef(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null);
+  const monthStart = startOfMonth(cursor);
+  const monthEnd = endOfMonth(monthStart);
+
+  useEffect(() => {
+    saveTasks(tasksMap);
+  }, [tasksMap]);
+
+  // Helpers for month-based docs used in the old app
+  function monthKeyFromDate(date) {
+    return format(date, 'yyyy-MM');
+  }
+  function monthKeyFromDateKey(dateKey) {
+    // dateKey is yyyy-MM-dd
+    return dateKey.slice(0, 7);
+  }
+  function getMonthMapFor(tasksMapArg, monthKey) {
+    const out = {};
+    for (const k of Object.keys(tasksMapArg)) {
+      if (k.startsWith(monthKey + '-')) out[k] = tasksMapArg[k];
+    }
+    return out;
+  }
+
+  async function saveMonthToCloud(userId, monthKey, monthMap) {
+    const docRef = db.collection('users').doc(userId).collection('todos').doc(monthKey);
+    // store under a field name for compatibility; prefer 'todos'
+    await docRef.set({ todos: monthMap, updatedAt: new Date() }, { merge: true });
+  }
+
+  // Auth listener
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(async (u) => {
+      setUser(u);
+      if (u) {
+        // Load all months from Firestore and merge with local
+        try {
+          const colRef = db.collection('users').doc(u.uid).collection('todos');
+          const querySnap = await colRef.get();
+          let cloudCombined = {};
+          querySnap.forEach((doc) => {
+            const data = doc.data() || {};
+            const monthMap = data.todos || data.tasksMap || data.dates || {};
+            cloudCombined = mergeTasksMaps(cloudCombined, monthMap);
+          });
+          const merged = mergeTasksMaps(tasksMap, cloudCombined);
+          hasLoadedCloud.current = true;
+          setTasksMap(merged);
+          // If user had only local data, seed current month to cloud for immediate consistency
+          const currentMonthKey = monthKeyFromDate(new Date());
+          const currentMonthMap = getMonthMapFor(merged, currentMonthKey);
+          await saveMonthToCloud(u.uid, currentMonthKey, currentMonthMap);
+        } catch (e) {
+          console.error('Failed to load from cloud', e);
+        }
+      } else {
+        hasLoadedCloud.current = false;
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  function mergeTasksMaps(localMap, cloudMap) {
+    const result = { ...localMap };
+    for (const dateKey of Object.keys(cloudMap || {})) {
+      const localList = result[dateKey] || [];
+      const cloudList = cloudMap[dateKey] || [];
+      const byId = new Map();
+      for (const t of localList) byId.set(t.id, t);
+      for (const t of cloudList) {
+        if (!byId.has(t.id)) byId.set(t.id, t);
+        else {
+          const existing = byId.get(t.id);
+          // prefer the most recently created/updated looking fields
+          byId.set(t.id, { ...t, ...existing });
+        }
+      }
+      const mergedList = Array.from(byId.values());
+      if (mergedList.length) result[dateKey] = mergedList;
+    }
+    return result;
+  }
+
+  async function signInWithGoogle() {
+    try {
+      await auth.signInWithPopup(googleProvider);
+    } catch (e) {
+      alert('Sign-in failed');
+      console.error(e);
+    }
+  }
+
+  async function signOut() {
+    try {
+      await auth.signOut();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // Close profile menu on outside click
+  useEffect(() => {
+    function onDocClick(e) {
+      if (!profileMenuRef.current) return;
+      if (!profileMenuRef.current.contains(e.target)) setShowProfileMenu(false);
+    }
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, []);
+
+  function renderAvatar() {
+    const getInitials = () => {
+      const name = user?.displayName?.trim();
+      if (name) {
+        const parts = name.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        if (parts.length === 1) return (parts[0].slice(0, 2)).toUpperCase();
+      }
+      const email = user?.email || '';
+      const local = email.split('@')[0] || '';
+      if (local.length >= 2) return local.slice(0, 2).toUpperCase();
+      if (local.length === 1) return (local[0] + local[0]).toUpperCase();
+      return '?';
+    };
+    return (
+      <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-semibold">
+        {getInitials()}
+      </div>
+    );
+  }
+
+  const monthDays = useMemo(() => {
+    const start = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday
+    const end = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const days = [];
+    let day = start;
+    while (day <= end) {
+      days.push(day);
+      day = addDays(day, 1);
+    }
+    return days;
+  }, [cursor]);
+
+  function nextMonth() {
+    setCursor(addMonths(cursor, 1));
+  }
+  function prevMonth() {
+    setCursor(subMonths(cursor, 1));
+  }
+
+  function keyFor(date) {
+    return format(date, "yyyy-MM-dd");
+  }
+
+  function tasksFor(date) {
+    return tasksMap[keyFor(date)] || [];
+  }
+
+  function openAddModal(date) {
+    setSelectedDate(date);
+    setForm({ title: "", notes: "", priority: "medium" });
+    setShowAdd(true);
+  }
+
+  function addTask(e) {
+    e.preventDefault();
+    const key = keyFor(selectedDate);
+    const newTask = {
+      id: uid(),
+      title: form.title || "Untitled",
+      notes: form.notes || "",
+      done: false,
+      priority: form.priority || "medium",
+      due: key,
+      createdAt: new Date().toISOString(),
+    };
+    setTasksMap((prev) => {
+      const updated = { ...prev, [key]: [newTask, ...(prev[key] || [])] };
+      // Also persist month to cloud if signed in
+      if (user) {
+        const monthKey = monthKeyFromDateKey(key);
+        const monthMap = getMonthMapFor(updated, monthKey);
+        saveMonthToCloud(user.uid, monthKey, monthMap).catch((err) => console.error('Cloud addTask failed', err));
+      }
+      return updated;
+    });
+    setShowAdd(false);
+  }
+
+  function openEditModal(task) {
+    setEditTask(task);
+    setEditForm({ title: task.title, notes: task.notes, priority: task.priority || 'medium' });
+    setShowEdit(true);
+  }
+
+  function saveEdit(e) {
+    e.preventDefault();
+    if (!editTask) return;
+    setTasksMap((prev) => {
+      const list = (prev[editTask.due] || []).map((t) =>
+        t.id === editTask.id
+          ? { ...t, title: editForm.title || 'Untitled', notes: editForm.notes || '', priority: editForm.priority || 'medium' }
+          : t
+      );
+      const updated = { ...prev, [editTask.due]: list };
+      if (user) {
+        const monthKey = monthKeyFromDateKey(editTask.due);
+        const monthMap = getMonthMapFor(updated, monthKey);
+        saveMonthToCloud(user.uid, monthKey, monthMap).catch((err) => console.error('Cloud saveEdit failed', err));
+      }
+      return updated;
+    });
+    setShowEdit(false);
+    setEditTask(null);
+  }
+
+  function toggleDone(task) {
+    setTasksMap((prev) => {
+      const list = (prev[task.due] || []).map((t) => (t.id === task.id ? { ...t, done: !t.done } : t));
+      const updated = { ...prev, [task.due]: list };
+      if (user) {
+        const monthKey = monthKeyFromDateKey(task.due);
+        const monthMap = getMonthMapFor(updated, monthKey);
+        saveMonthToCloud(user.uid, monthKey, monthMap).catch((err) => console.error('Cloud toggleDone failed', err));
+      }
+      return updated;
+    });
+  }
+
+  function deleteTask(task) {
+    setTasksMap((prev) => {
+      const list = (prev[task.due] || []).filter((t) => t.id !== task.id);
+      const copy = { ...prev };
+      if (list.length) copy[task.due] = list;
+      else delete copy[task.due];
+      if (user) {
+        const monthKey = monthKeyFromDateKey(task.due);
+        const monthMap = getMonthMapFor(copy, monthKey);
+        saveMonthToCloud(user.uid, monthKey, monthMap).catch((err) => console.error('Cloud deleteTask failed', err));
+      }
+      return copy;
+    });
+  }
+
+  function exportJSON() {
+    const blob = new Blob([JSON.stringify(tasksMap, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "caldo-tasks.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importJSON(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        // shallow merge
+        setTasksMap((prev) => {
+          const merged = { ...prev, ...parsed };
+          // Bulk sync all months to cloud if signed in
+          if (user) {
+            const months = new Set(Object.keys(merged).map((k) => monthKeyFromDateKey(k)));
+            months.forEach((m) => {
+              const monthMap = getMonthMapFor(merged, m);
+              saveMonthToCloud(user.uid, m, monthMap).catch((err) => console.error('Cloud import sync failed', err));
+            });
+          }
+          return merged;
+        });
+      } catch (err) {
+        alert("Invalid JSON file");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function clearAll() {
+    if (!confirm("Clear all tasks?")) return;
+    setTasksMap((prev) => {
+      const months = new Set(Object.keys(prev).map((k) => monthKeyFromDateKey(k)));
+      if (user) {
+        months.forEach(async (m) => {
+          try {
+            await saveMonthToCloud(user.uid, m, {});
+          } catch (e) {
+            console.error('Cloud clear month failed', e);
+          }
+        });
+      }
+      return {};
+    });
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 md:p-10 font-sans text-slate-800">
+      <div className="max-w-6xl mx-auto">
+        <header className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">Caldo — Smart Calendar</h1>
+            <p className="text-sm text-slate-500 mt-1">A lightweight, local-first calendar & todo. No backend. All in your browser.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative" ref={profileMenuRef}>
+              <button onClick={() => setShowProfileMenu((v) => !v)} className="btn inline-flex items-center gap-2">
+                {renderAvatar()}
+                <ChevronDown size={16} />
+              </button>
+              {showProfileMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border shadow-lg rounded-lg p-2 z-50">
+                  <div className="px-2 py-1.5 text-xs text-slate-500">
+                    {user ? (
+                      <span>Signed in as <span className="font-medium text-slate-700">{user.displayName || user.email}</span></span>
+                    ) : (
+                      <span>Not signed in</span>
+                    )}
+                  </div>
+                  <div className="h-px bg-slate-100 my-1" />
+                  {!user && (
+                    <button onClick={signInWithGoogle} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 inline-flex items-center gap-2">
+                      <UserIcon size={16} /> Sign in with Google
+                    </button>
+                  )}
+                  <button onClick={exportJSON} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 inline-flex items-center gap-2">
+                    <DownloadCloud size={16} /> Export data
+                  </button>
+                  <label className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 inline-flex items-center gap-2 cursor-pointer">
+                    <Upload size={16} /> Import data
+                    <input type="file" accept="application/json" className="hidden" onChange={(e) => importJSON(e.target.files[0])} />
+                  </label>
+                  {user && (
+                    <>
+                      <div className="h-px bg-slate-100 my-1" />
+                      <button onClick={signOut} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50">Sign out</button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <main className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <section className="md:col-span-2 bg-white rounded-2xl shadow p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-slate-100">
+                  <ChevronLeft size={18} />
+                </button>
+                <div className="text-lg font-semibold">{format(monthStart, "MMMM yyyy")}</div>
+                <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-slate-100">
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => { setCursor(new Date()); }} className="text-sm px-3 py-2 rounded-lg bg-slate-50">Today</button>
+                <button onClick={() => openAddModal(new Date())} className="bg-indigo-600 text-white px-3 py-2 rounded-lg inline-flex items-center gap-2">
+                  <Plus size={14} /> Add Task
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+                <div key={d} className="text-xs text-slate-500 text-center py-2">{d}</div>
+              ))}
+
+              {monthDays.map((day) => {
+                const key = keyFor(day);
+                const tasks = tasksFor(day);
+                const doneCount = tasks.filter(t => t.done).length;
+                const inMonth = isSameMonth(day, monthStart);
+                const isToday = isSameDay(day, new Date());
+                return (
+                  <motion.div
+                    key={key}
+                    layout
+                    onDoubleClick={() => openAddModal(day)}
+                    onClick={() => setSelectedDate(day)}
+                    className={`border rounded-lg p-2 min-h-[88px] cursor-pointer relative ${inMonth ? 'bg-white' : 'bg-slate-50 text-slate-400'} ${isToday ? 'ring-2 ring-indigo-300' : ''}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="text-sm font-medium">{format(day, 'd')}</div>
+                      <div className="text-xs text-slate-400">{format(day, 'MMM')}</div>
+                    </div>
+                    {/* Option 1 (hidden): numeric badge – kept for later selection */}
+                    {tasks.length > 0 && (
+                      <div
+                        className={`hidden absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                          doneCount === 0
+                            ? 'bg-red-100 text-red-700'
+                            : doneCount === tasks.length
+                            ? 'bg-green-100 text-green-700'
+                            : 'bg-amber-100 text-amber-700'
+                        }`}
+                        title={`${doneCount}/${tasks.length} done`}
+                      >
+                        {tasks.length}
+                      </div>
+                    )}
+
+                    {/* Option 2 (active): dot progression indicator */}
+                    {tasks.length > 0 && (
+                      <div
+                        className="absolute bottom-1 right-1 flex items-center gap-0.5"
+                        title={`${doneCount}/${tasks.length} done`}
+                      >
+                        {Array.from({ length: Math.min(3, tasks.length) }).map((_, idx) => (
+                          <span
+                            key={idx}
+                            className={`${
+                              doneCount === 0
+                                ? 'bg-red-400'
+                                : doneCount === tasks.length
+                                ? 'bg-green-500'
+                                : 'bg-amber-400'
+                            } inline-block w-1.5 h-1.5 rounded-full`}
+                          />
+                        ))}
+                        {tasks.length > 3 && (
+                          <span className="text-[9px] leading-none text-slate-400 ml-0.5">+{tasks.length - 3}</span>
+                        )}
+                      </div>
+                    )}
+                    {selectedDate && isSameDay(selectedDate, day) && (
+                      <div className="absolute -right-2 -top-2">
+                        <div className="w-2 h-2 rounded-full bg-indigo-500 shadow" />
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </section>
+
+          <aside className="bg-white rounded-2xl shadow p-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="text-sm text-slate-500">Tasks for</div>
+                <div className="font-semibold">{format(selectedDate, 'EEEE, MMM d')}</div>
+              </div>
+              <button onClick={() => openAddModal(selectedDate)} className="bg-indigo-600 text-white px-3 py-2 rounded-lg inline-flex items-center gap-2">
+                <Plus size={14} /> New
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-[60vh] overflow-auto pr-2">
+              {tasksFor(selectedDate).length === 0 && (
+                <div className="text-sm text-slate-400">No tasks. Double-click any day to add one quickly.</div>
+              )}
+
+              {tasksFor(selectedDate).map((t) => {
+                const priorityBorder = t.priority === 'high'
+                  ? 'border-red-300 border-l-4'
+                  : t.priority === 'low'
+                  ? 'border-green-300 border-l-4'
+                  : 'border-amber-300 border-l-4';
+                const priorityPill = t.priority === 'high'
+                  ? 'bg-red-100 text-red-700'
+                  : t.priority === 'low'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-amber-100 text-amber-700';
+                return (
+                  <motion.div
+                    key={t.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`p-3 border rounded-lg flex items-start justify-between ${priorityBorder}`}
+                    title={`${t.title}${t.notes ? '\n' + t.notes : ''}`}
+                  >
+                    <div className="min-w-0 pr-3">
+                      <div className={`font-medium truncate ${t.done ? 'line-through text-slate-400':''}`}>{t.title}</div>
+                      {t.notes && <div className="text-[11px] text-slate-600 mt-1 break-words clamp-2">{t.notes}</div>}
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-1">
+                        <Clock size={12} /> {format(parseISO(t.createdAt), 'PP p')}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => toggleDone(t)}
+                          className={`p-2 rounded-lg border hover:bg-slate-50 ${t.done ? 'text-slate-600 border-slate-200' : 'text-green-600 border-slate-200'}`}
+                          title={t.done ? 'Undo' : 'Mark done'}
+                          aria-label={t.done ? 'Undo' : 'Mark done'}
+                        >
+                          {t.done ? <RotateCcw size={16} /> : <Check size={16} />}
+                        </button>
+                        <button
+                          onClick={() => openEditModal(t)}
+                          className="p-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-indigo-600"
+                          title="Edit"
+                          aria-label="Edit"
+                        >
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          onClick={() => deleteTask(t)}
+                          className="p-2 rounded-lg border border-slate-200 hover:bg-red-50 text-red-600"
+                          title="Delete"
+                          aria-label="Delete"
+                        >
+                          <Trash size={16} />
+                        </button>
+                      </div>
+                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${t.priority==='high' ? 'bg-red-600' : t.priority==='low' ? 'bg-green-600' : 'bg-amber-600'}`} />
+                        {t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </aside>
+        </main>
+
+        {/* Add Task Modal */}
+        {showAdd && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowAdd(false)} />
+            <motion.form initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onSubmit={addTask} className="relative bg-white rounded-2xl shadow-lg p-6 z-50 w-full max-w-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-lg font-semibold">New Task — {format(selectedDate, 'PPP')}</div>
+                <button type="button" onClick={() => setShowAdd(false)} className="text-slate-500">Close</button>
+              </div>
+
+              <div className="grid gap-3">
+                <input required autoFocus value={form.title} onChange={(e) => setForm(f => ({...f, title: e.target.value}))} placeholder="Task title" className="input" />
+                <textarea rows={3} value={form.notes} onChange={(e) => setForm(f => ({...f, notes: e.target.value}))} placeholder="Notes (optional)" className="input resize-none" />
+
+                <div className="flex items-center gap-2">
+                  <label className={`px-3 py-1 rounded cursor-pointer ${form.priority==='low' ? 'bg-green-100':'bg-slate-50'}`}><input type="radio" name="p" checked={form.priority==='low'} onChange={() => setForm(f => ({...f, priority: 'low'}))} className="hidden" /> Low</label>
+                  <label className={`px-3 py-1 rounded cursor-pointer ${form.priority==='medium' ? 'bg-amber-100':'bg-slate-50'}`}><input type="radio" name="p" checked={form.priority==='medium'} onChange={() => setForm(f => ({...f, priority: 'medium'}))} className="hidden" /> Medium</label>
+                  <label className={`px-3 py-1 rounded cursor-pointer ${form.priority==='high' ? 'bg-red-100':'bg-slate-50'}`}><input type="radio" name="p" checked={form.priority==='high'} onChange={() => setForm(f => ({...f, priority: 'high'}))} className="hidden" /> High</label>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 rounded bg-slate-50">Cancel</button>
+                  <button type="submit" className="px-4 py-2 rounded bg-indigo-600 text-white">Add</button>
+                </div>
+              </div>
+            </motion.form>
+          </div>
+        )}
+
+        {/* Edit Task Modal */}
+        {showEdit && (
+          <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setShowEdit(false)} />
+            <motion.form initial={{ scale: 0.98, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onSubmit={saveEdit} className="relative bg-white rounded-2xl shadow-lg p-6 z-50 w-full max-w-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-lg font-semibold">Edit Task</div>
+                <button type="button" onClick={() => setShowEdit(false)} className="text-slate-500">Close</button>
+              </div>
+
+              <div className="grid gap-3">
+                <input required autoFocus value={editForm.title} onChange={(e) => setEditForm(f => ({...f, title: e.target.value}))} placeholder="Task title" className="input" />
+                <textarea rows={3} value={editForm.notes} onChange={(e) => setEditForm(f => ({...f, notes: e.target.value}))} placeholder="Notes (optional)" className="input resize-none" />
+
+                <div className="flex items-center gap-2">
+                  <label className={`px-3 py-1 rounded cursor-pointer ${editForm.priority==='low' ? 'bg-green-100':'bg-slate-50'}`}><input type="radio" name="ep" checked={editForm.priority==='low'} onChange={() => setEditForm(f => ({...f, priority: 'low'}))} className="hidden" /> Low</label>
+                  <label className={`px-3 py-1 rounded cursor-pointer ${editForm.priority==='medium' ? 'bg-amber-100':'bg-slate-50'}`}><input type="radio" name="ep" checked={editForm.priority==='medium'} onChange={() => setEditForm(f => ({...f, priority: 'medium'}))} className="hidden" /> Medium</label>
+                  <label className={`px-3 py-1 rounded cursor-pointer ${editForm.priority==='high' ? 'bg-red-100':'bg-slate-50'}`}><input type="radio" name="ep" checked={editForm.priority==='high'} onChange={() => setEditForm(f => ({...f, priority: 'high'}))} className="hidden" /> High</label>
+                </div>
+
+                <div className="flex items-center justify-end gap-2">
+                  <button type="button" onClick={() => setShowEdit(false)} className="px-4 py-2 rounded bg-slate-50">Cancel</button>
+                  <button type="submit" className="px-4 py-2 rounded bg-indigo-600 text-white">Save</button>
+                </div>
+              </div>
+            </motion.form>
+          </div>
+        )}
+
+        <footer className="mt-6 text-center text-sm text-slate-400">Local-first. No accounts. Your data stays in your browser.</footer>
+      </div>
+
+      {/* tiny utilities styles in page, assuming Tailwind is present */}
+      <style>{`
+        .btn{padding:.5rem .75rem;border-radius:.5rem;background:transparent;border:1px solid rgba(15,23,42,.06)}
+        .btn.ghost{background:transparent}
+        .input{padding:.6rem .75rem;border:1px solid #e6e9ee;border-radius:.5rem}
+        .clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+      `}</style>
+    </div>
+  );
+}
