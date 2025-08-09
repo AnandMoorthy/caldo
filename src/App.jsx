@@ -44,6 +44,7 @@ export default function App() {
   const profileMenuRef = useRef(null);
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(monthStart);
+  const [dragOverDayKey, setDragOverDayKey] = useState(null);
 
   useEffect(() => {
     saveTasks(tasksMap);
@@ -285,6 +286,60 @@ export default function App() {
     });
   }
 
+  // Drag and drop: move task between days
+  const DRAG_MIME = 'application/x-caldo-task';
+
+  function moveTask(fromKey, taskId, toKey) {
+    if (!fromKey || !taskId || !toKey || fromKey === toKey) return;
+    setTasksMap((prev) => {
+      const fromList = prev[fromKey] || [];
+      const task = fromList.find((t) => t.id === taskId);
+      if (!task) return prev;
+      const updatedFromList = fromList.filter((t) => t.id !== taskId);
+      const toList = prev[toKey] || [];
+      const movedTask = { ...task, due: toKey };
+      const updated = { ...prev, [toKey]: [movedTask, ...toList] };
+      if (updatedFromList.length) updated[fromKey] = updatedFromList; else delete updated[fromKey];
+      if (user) {
+        try {
+          const fromMonthKey = monthKeyFromDateKey(fromKey);
+          const toMonthKey = monthKeyFromDateKey(toKey);
+          const fromMonthMap = getMonthMapFor(updated, fromMonthKey);
+          const toMonthMap = getMonthMapFor(updated, toMonthKey);
+          saveMonthToCloud(user.uid, fromMonthKey, fromMonthMap).catch((err) => console.error('Cloud moveTask(from) failed', err));
+          if (toMonthKey !== fromMonthKey) {
+            saveMonthToCloud(user.uid, toMonthKey, toMonthMap).catch((err) => console.error('Cloud moveTask(to) failed', err));
+          }
+        } catch (err) {
+          console.error('Cloud moveTask error', err);
+        }
+      }
+      return updated;
+    });
+  }
+
+  function onDragStartTask(e, task) {
+    try {
+      e.dataTransfer.effectAllowed = 'move';
+      const payload = JSON.stringify({ taskId: task.id, fromKey: task.due });
+      e.dataTransfer.setData(DRAG_MIME, payload);
+      // Fallback for some browsers/tools
+      e.dataTransfer.setData('text/plain', payload);
+    } catch {}
+  }
+
+  function onDropTaskOnDay(e, day) {
+    e.preventDefault();
+    try {
+      const raw = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain');
+      if (!raw) return;
+      const { taskId, fromKey } = JSON.parse(raw || '{}');
+      const toKey = keyFor(day);
+      moveTask(fromKey, taskId, toKey);
+      setDragOverDayKey(null);
+    } catch {}
+  }
+
   function exportJSON() {
     const blob = new Blob([JSON.stringify(tasksMap, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -338,12 +393,12 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white p-6 md:p-10 font-sans text-slate-800">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800">
       <div className="max-w-6xl mx-auto">
         <header className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight">Caldo — Smart Calendar</h1>
-            <p className="text-sm text-slate-500 mt-1">A lightweight, local-first calendar & todo. No backend. All in your browser.</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">CalDo</h1>
+            <p className="text-sm text-slate-500 mt-1">Minimalist calendar & todo.</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="relative" ref={profileMenuRef}>
@@ -385,7 +440,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           <section className="md:col-span-2 bg-white rounded-2xl shadow p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -399,15 +454,15 @@ export default function App() {
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => { setCursor(new Date()); }} className="text-sm px-3 py-2 rounded-lg bg-slate-50">Today</button>
-                <button onClick={() => openAddModal(new Date())} className="bg-indigo-600 text-white px-3 py-2 rounded-lg inline-flex items-center gap-2">
+                {/* <button onClick={() => openAddModal(new Date())} className="bg-indigo-600 text-white px-3 py-2 rounded-lg inline-flex items-center gap-2">
                   <Plus size={14} /> Add Task
-                </button>
+                </button> */}
               </div>
             </div>
 
             <div className="grid grid-cols-7 gap-1">
               {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
-                <div key={d} className="text-xs text-slate-500 text-center py-2">{d}</div>
+                <div key={d} className="text-[10px] sm:text-xs text-slate-500 text-center py-2">{d}</div>
               ))}
 
               {monthDays.map((day) => {
@@ -422,11 +477,15 @@ export default function App() {
                     layout
                     onDoubleClick={() => openAddModal(day)}
                     onClick={() => setSelectedDate(day)}
-                    className={`border rounded-lg p-2 min-h-[88px] cursor-pointer relative ${inMonth ? 'bg-white' : 'bg-slate-50 text-slate-400'} ${isToday ? 'ring-2 ring-indigo-300' : ''}`}
+                    onDragOver={(e) => { e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch {}; setDragOverDayKey(keyFor(day)); }}
+                    onDragEnter={() => setDragOverDayKey(keyFor(day))}
+                    onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayKey((k) => (k === keyFor(day) ? null : k)); }}
+                    onDrop={(e) => onDropTaskOnDay(e, day)}
+                    className={`border rounded-lg p-1 sm:p-2 min-h-[56px] sm:min-h-[88px] cursor-pointer relative ${inMonth ? 'bg-white' : 'bg-slate-50 text-slate-400'} ${isToday ? 'ring-2 ring-indigo-300' : ''} ${dragOverDayKey === keyFor(day) ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-white' : ''}`}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="text-sm font-medium">{format(day, 'd')}</div>
-                      <div className="text-xs text-slate-400">{format(day, 'MMM')}</div>
+                      <div className="text-xs sm:text-sm font-medium">{format(day, 'd')}</div>
+                      <div className="hidden sm:block text-xs text-slate-400">{format(day, 'MMM')}</div>
                     </div>
                     {/* Option 1 (hidden): numeric badge – kept for later selection */}
                     {tasks.length > 0 && (
@@ -447,7 +506,7 @@ export default function App() {
                     {/* Option 2 (active): dot progression indicator */}
                     {tasks.length > 0 && (
                       <div
-                        className="absolute bottom-1 right-1 flex items-center gap-0.5"
+                        className="absolute bottom-1 right-1 hidden sm:flex items-center gap-0.5"
                         title={`${doneCount}/${tasks.length} done`}
                       >
                         {Array.from({ length: Math.min(3, tasks.length) }).map((_, idx) => (
@@ -489,7 +548,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="space-y-3 max-h-[60vh] overflow-auto pr-2">
+            <div className="space-y-3 max-h-[40vh] sm:max-h-[60vh] overflow-auto pr-2">
               {tasksFor(selectedDate).length === 0 && (
                 <div className="text-sm text-slate-400">No tasks. Double-click any day to add one quickly.</div>
               )}
@@ -510,17 +569,25 @@ export default function App() {
                     key={t.id}
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`p-3 border rounded-lg flex items-start justify-between ${priorityBorder}`}
+                    className={`p-2 sm:p-3 border rounded-lg ${priorityBorder} cursor-grab active:cursor-grabbing`}
+                    draggable
+                    onDragStart={(e) => onDragStartTask(e, t)}
                     title={`${t.title}${t.notes ? '\n' + t.notes : ''}`}
                   >
-                    <div className="min-w-0 pr-3">
-                      <div className={`font-medium truncate ${t.done ? 'line-through text-slate-400':''}`}>{t.title}</div>
-                      {t.notes && <div className="text-[11px] text-slate-600 mt-1 break-words clamp-2">{t.notes}</div>}
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mt-1">
-                        <Clock size={12} /> {format(parseISO(t.createdAt), 'PP p')}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className={`font-medium ${t.done ? 'line-through text-slate-400':''} truncate min-w-0`}>
+                        {t.title}
+                      </div>
+                      <div className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${t.priority==='high' ? 'bg-red-600' : t.priority==='low' ? 'bg-green-600' : 'bg-amber-600'}`} />
+                        {t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
+                    {t.notes && <div className="text-[11px] text-slate-600 mt-1 break-words clamp-2">{t.notes}</div>}
+                    <div className="mt-2 flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                        <Clock size={12} /> {format(parseISO(t.createdAt), 'PP p')}
+                      </div>
                       <div className="flex gap-1.5">
                         <button
                           onClick={() => toggleDone(t)}
@@ -546,10 +613,6 @@ export default function App() {
                         >
                           <Trash size={16} />
                         </button>
-                      </div>
-                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${t.priority==='high' ? 'bg-red-600' : t.priority==='low' ? 'bg-green-600' : 'bg-amber-600'}`} />
-                        {t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}
                       </div>
                     </div>
                   </motion.div>
@@ -617,7 +680,7 @@ export default function App() {
           </div>
         )}
 
-        <footer className="mt-6 text-center text-sm text-slate-400">Local-first. No accounts. Your data stays in your browser.</footer>
+        <footer className="mt-6 text-center text-sm text-slate-400">Made by ChatGPT</footer>
       </div>
 
       {/* tiny utilities styles in page, assuming Tailwind is present */}
