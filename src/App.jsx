@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, parseISO } from "date-fns";
 import { motion } from "framer-motion";
-import { Plus, ChevronLeft, ChevronRight, Upload, DownloadCloud, User as UserIcon, ChevronDown, Pencil, Check, RotateCcw, Trash, Clock } from "lucide-react";
+import { Plus, ChevronLeft, ChevronRight, FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, ChevronDown, Pencil, Check, RotateCcw, Trash, Clock } from "lucide-react";
 import { auth, db, googleProvider } from "./firebase";
 
 
@@ -46,9 +46,118 @@ export default function App() {
   const monthEnd = endOfMonth(monthStart);
   const [dragOverDayKey, setDragOverDayKey] = useState(null);
 
+  // Celebration state and bookkeeping
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrationDateKey, setCelebrationDateKey] = useState(null);
+  const celebrationTimerRef = useRef(null);
+  const [confettiSeed, setConfettiSeed] = useState(0);
+
+  function triggerCelebration(dateKey) {
+    setCelebrationDateKey(dateKey);
+    setShowCelebration(true);
+    setConfettiSeed((s) => s + 1);
+    if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
+    celebrationTimerRef.current = setTimeout(() => {
+      setShowCelebration(false);
+    }, 2800);
+  }
+
   useEffect(() => {
     saveTasks(tasksMap);
   }, [tasksMap]);
+
+  // Lightweight confetti canvas
+  function CelebrationCanvas() {
+    const canvasRef = useRef(null);
+    const rafRef = useRef(0);
+    const particlesRef = useRef([]);
+    const startedAtRef = useRef(0);
+
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let animationFrame = 0;
+      let width = canvas.width = window.innerWidth * window.devicePixelRatio;
+      let height = canvas.height = window.innerHeight * window.devicePixelRatio;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+
+      function onResize() {
+        width = canvas.width = window.innerWidth * window.devicePixelRatio;
+        height = canvas.height = window.innerHeight * window.devicePixelRatio;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+      }
+      window.addEventListener('resize', onResize);
+
+      const colors = ['#22c55e', '#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#a855f7'];
+      const particleCount = Math.min(180, Math.floor((window.innerWidth * window.innerHeight) / 8000));
+
+      function spawnParticles() {
+        const particles = [];
+        for (let i = 0; i < particleCount; i++) {
+          const angle = Math.random() * Math.PI - Math.PI / 2;
+          const speed = 4 + Math.random() * 6;
+          particles.push({
+            x: width / 2 + (Math.random() - 0.5) * (width * 0.3),
+            y: height * 0.2 + Math.random() * (height * 0.15),
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            g: 0.18 + Math.random() * 0.12,
+            w: 6 + Math.random() * 6,
+            h: 8 + Math.random() * 10,
+            r: Math.random() * Math.PI,
+            vr: (Math.random() - 0.5) * 0.2,
+            color: colors[i % colors.length],
+            life: 0,
+            maxLife: 120 + Math.random() * 60,
+          });
+        }
+        particlesRef.current = particles;
+      }
+
+      function drawParticle(p) {
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.r);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      }
+
+      function step(ts) {
+        if (!startedAtRef.current) startedAtRef.current = ts;
+        ctx.clearRect(0, 0, width, height);
+        for (const p of particlesRef.current) {
+          p.vy += p.g;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.r += p.vr;
+          p.life += 1;
+          drawParticle(p);
+        }
+        particlesRef.current = particlesRef.current.filter(p => p.life < p.maxLife && p.y < height + 40);
+        animationFrame = requestAnimationFrame(step);
+      }
+
+      spawnParticles();
+      animationFrame = requestAnimationFrame(step);
+
+      return () => {
+        cancelAnimationFrame(animationFrame);
+        window.removeEventListener('resize', onResize);
+      };
+    }, [confettiSeed]);
+
+    return (
+      <canvas
+        ref={canvasRef}
+        className="pointer-events-none fixed inset-0 z-[60]"
+        aria-hidden="true"
+      />
+    );
+  }
 
   // Helpers for month-based docs used in the old app
   function monthKeyFromDate(date) {
@@ -103,6 +212,8 @@ export default function App() {
     });
     return () => unsub();
   }, []);
+
+  // No effect-based triggers; we trigger celebration directly from user actions when a day becomes fully complete.
 
   function mergeTasksMaps(localMap, cloudMap) {
     const result = { ...localMap };
@@ -219,7 +330,12 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
     setTasksMap((prev) => {
-      const updated = { ...prev, [key]: [newTask, ...(prev[key] || [])] };
+      const prevList = prev[key] || [];
+      const updatedList = [newTask, ...prevList];
+      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const newAllDone = updatedList.length > 0 && updatedList.every((t) => t.done);
+      // Adding a new incomplete task should not trigger; guard by checking prev->new transition
+      const updated = { ...prev, [key]: updatedList };
       // Also persist month to cloud if signed in
       if (user) {
         const monthKey = monthKeyFromDateKey(key);
@@ -260,7 +376,13 @@ export default function App() {
 
   function toggleDone(task) {
     setTasksMap((prev) => {
-      const list = (prev[task.due] || []).map((t) => (t.id === task.id ? { ...t, done: !t.done } : t));
+      const prevList = prev[task.due] || [];
+      const list = prevList.map((t) => (t.id === task.id ? { ...t, done: !t.done } : t));
+      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const newAllDone = list.length > 0 && list.every((t) => t.done);
+      if (!prevAllDone && newAllDone) {
+        triggerCelebration(task.due);
+      }
       const updated = { ...prev, [task.due]: list };
       if (user) {
         const monthKey = monthKeyFromDateKey(task.due);
@@ -273,7 +395,14 @@ export default function App() {
 
   function deleteTask(task) {
     setTasksMap((prev) => {
-      const list = (prev[task.due] || []).filter((t) => t.id !== task.id);
+      const prevList = prev[task.due] || [];
+      const list = prevList.filter((t) => t.id !== task.id);
+      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const newAllDone = list.length > 0 && list.every((t) => t.done);
+      if (!prevAllDone && newAllDone) {
+        // Deleting the only incomplete task could complete the day, so trigger
+        triggerCelebration(task.due);
+      }
       const copy = { ...prev };
       if (list.length) copy[task.due] = list;
       else delete copy[task.due];
@@ -422,10 +551,10 @@ export default function App() {
                     </button>
                   )}
                   <button onClick={exportJSON} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 inline-flex items-center gap-2">
-                    <DownloadCloud size={16} /> Export data
+                    <ExportIcon size={16} /> Export
                   </button>
                   <label className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 inline-flex items-center gap-2 cursor-pointer">
-                    <Upload size={16} /> Import data
+                    <ImportIcon size={16} /> Import
                     <input type="file" accept="application/json" className="hidden" onChange={(e) => importJSON(e.target.files[0])} />
                   </label>
                   {user && (
@@ -444,16 +573,16 @@ export default function App() {
           <section className="md:col-span-2 bg-white rounded-2xl shadow p-4">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-slate-100">
+                <button onClick={prevMonth} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Previous month">
                   <ChevronLeft size={18} />
                 </button>
-                <div className="text-lg font-semibold">{format(monthStart, "MMMM yyyy")}</div>
-                <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-slate-100">
+                <div className="text-lg font-semibold w-44 sm:w-56 text-center select-none">{format(monthStart, "MMMM yyyy")}</div>
+                <button onClick={nextMonth} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Next month">
                   <ChevronRight size={18} />
                 </button>
               </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => { setCursor(new Date()); }} className="text-sm px-3 py-2 rounded-lg bg-slate-50">Today</button>
+                <button onClick={() => { const d = new Date(); setCursor(d); setSelectedDate(d); }} className="text-sm px-3 py-2 rounded-lg bg-slate-50">Today</button>
                 {/* <button onClick={() => openAddModal(new Date())} className="bg-indigo-600 text-white px-3 py-2 rounded-lg inline-flex items-center gap-2">
                   <Plus size={14} /> Add Task
                 </button> */}
@@ -471,20 +600,33 @@ export default function App() {
                 const doneCount = tasks.filter(t => t.done).length;
                 const inMonth = isSameMonth(day, monthStart);
                 const isToday = isSameDay(day, new Date());
+                const isSelected = selectedDate && isSameDay(selectedDate, day);
+                const baseBg = inMonth ? 'bg-white' : 'bg-slate-50 text-slate-400';
+                const ringClass = dragOverDayKey === key
+                  ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-white'
+                  : isSelected
+                  ? 'ring-2 ring-indigo-500'
+                  : isToday
+                  ? 'ring-2 ring-indigo-300'
+                  : '';
+                const selectedBg = isSelected ? 'bg-indigo-50' : '';
                 return (
                   <motion.div
                     key={key}
                     layout
                     onDoubleClick={() => openAddModal(day)}
                     onClick={() => setSelectedDate(day)}
-                    onDragOver={(e) => { e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch {}; setDragOverDayKey(keyFor(day)); }}
-                    onDragEnter={() => setDragOverDayKey(keyFor(day))}
-                    onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayKey((k) => (k === keyFor(day) ? null : k)); }}
+                    onDragOver={(e) => { e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch {}; setDragOverDayKey(key); }}
+                    onDragEnter={() => setDragOverDayKey(key)}
+                    onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayKey((k) => (k === key ? null : k)); }}
                     onDrop={(e) => onDropTaskOnDay(e, day)}
-                    className={`border rounded-lg p-1 sm:p-2 min-h-[56px] sm:min-h-[88px] cursor-pointer relative ${inMonth ? 'bg-white' : 'bg-slate-50 text-slate-400'} ${isToday ? 'ring-2 ring-indigo-300' : ''} ${dragOverDayKey === keyFor(day) ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-white' : ''}`}
+                    aria-selected={isSelected}
+                    className={`border rounded-lg p-1 sm:p-2 min-h-[56px] sm:min-h-[88px] cursor-pointer relative ${baseBg} ${selectedBg} ${ringClass}`}
                   >
                     <div className="flex items-start justify-between">
-                      <div className="text-xs sm:text-sm font-medium">{format(day, 'd')}</div>
+                      <div className={isSelected ? 'w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-indigo-600 text-white text-[11px] sm:text-xs flex items-center justify-center font-semibold' : 'text-xs sm:text-sm font-medium'}>
+                        {format(day, 'd')}
+                      </div>
                       <div className="hidden sm:block text-xs text-slate-400">{format(day, 'MMM')}</div>
                     </div>
                     {/* Option 1 (hidden): numeric badge – kept for later selection */}
@@ -526,11 +668,7 @@ export default function App() {
                         )}
                       </div>
                     )}
-                    {selectedDate && isSameDay(selectedDate, day) && (
-                      <div className="absolute -right-2 -top-2">
-                        <div className="w-2 h-2 rounded-full bg-indigo-500 shadow" />
-                      </div>
-                    )}
+                    {/* Selected indicator handled by ring + date bubble */}
                   </motion.div>
                 );
               })}
@@ -622,6 +760,25 @@ export default function App() {
           </aside>
         </main>
 
+        {/* Celebration Overlay */}
+        {showCelebration && (
+          <div className="pointer-events-none fixed inset-0 z-[60]">
+            <CelebrationCanvas key={`confetti-${confettiSeed}`} />
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="pointer-events-auto fixed top-4 right-4 z-[61]"
+            >
+              <div className="px-3 sm:px-4 py-2 rounded-lg sm:rounded-full bg-white/90 backdrop-blur shadow-lg text-[12px] sm:text-sm font-semibold text-green-700 border border-green-100 inline-flex items-center gap-2">
+                <Check size={16} className="text-green-600" />
+                <span>
+                  All tasks done for {celebrationDateKey ? format(parseISO(celebrationDateKey), 'EEE, MMM d') : ''}
+                </span>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
         {/* Add Task Modal */}
         {showAdd && (
           <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
@@ -680,7 +837,7 @@ export default function App() {
           </div>
         )}
 
-        <footer className="mt-6 text-center text-sm text-slate-400">Made by ChatGPT</footer>
+        <footer className="mt-6 text-center text-sm text-slate-400">Imagined by Human, Built by AI.</footer>
       </div>
 
       {/* tiny utilities styles in page, assuming Tailwind is present */}
@@ -690,6 +847,8 @@ export default function App() {
         .input{padding:.6rem .75rem;border:1px solid #e6e9ee;border-radius:.5rem}
         .clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
       `}</style>
+      {/* Confetti canvas component injected at end of tree */}
+      
     </div>
   );
 }
