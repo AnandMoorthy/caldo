@@ -648,7 +648,7 @@ export default function App() {
                     {/* Option 2 (active): dot progression indicator */}
                     {tasks.length > 0 && (
                       <div
-                        className="absolute bottom-1 right-1 hidden sm:flex items-center gap-0.5"
+                        className="absolute bottom-1 right-1 flex items-center gap-0.5"
                         title={`${doneCount}/${tasks.length} done`}
                       >
                         {Array.from({ length: Math.min(3, tasks.length) }).map((_, idx) => (
