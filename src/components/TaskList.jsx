@@ -11,21 +11,24 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
   return (
     <div className="space-y-3 max-h-[40vh] sm:max-h-[60vh] overflow-auto pr-2">
       {tasks.map((t) => {
-        const priorityStripe =
-          t.priority === "high" ? "bg-red-500 dark:bg-red-500" : t.priority === "low" ? "bg-green-500 dark:bg-green-500" : "bg-amber-500 dark:bg-amber-500";
         const priorityPill =
           t.priority === "high" ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300" : t.priority === "low" ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300" : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300";
+        const priorityBorder =
+          t.priority === "high"
+            ? "border-red-300 dark:border-red-800/80"
+            : t.priority === "low"
+            ? "border-green-300 dark:border-green-800/80"
+            : "border-amber-300 dark:border-amber-800/80";
         return (
           <motion.div
             key={t.id}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`relative overflow-hidden p-2 sm:p-3 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg cursor-grab active:cursor-grabbing`}
+            className={`relative overflow-hidden p-2 sm:p-3 border border-l-4 ${priorityBorder} bg-white dark:bg-slate-900 rounded-lg cursor-grab active:cursor-grabbing`}
             draggable
             onDragStart={(e) => onDragStartTask(e, t)}
             title={`${t.title}${t.notes ? "\n" + t.notes : ""}`}
           >
-            <span aria-hidden className={`absolute inset-y-0 left-0 w-1.5 rounded-l-lg ${priorityStripe}`} />
             <div className="flex items-start justify-between gap-2">
               <div className={`font-medium ${t.done ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate min-w-0`}>{t.title}</div>
               <div className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>

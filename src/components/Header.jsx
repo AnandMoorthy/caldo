@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronDown, FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun } from "lucide-react";
+import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun } from "lucide-react";
 import { loadThemePreference, saveThemePreference } from "../utils/storage";
 
 function Avatar({ user }) {
@@ -18,7 +18,7 @@ function Avatar({ user }) {
     return "?";
   }
 
-  return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
+  return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-s font-semibold">{getInitials()}</div>;
 }
 
 export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, currentStreak = 0 }) {
@@ -136,7 +136,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
           initial={{ scale: 0.9, opacity: 0.8 }}
           animate={{ scale: [1, 1.08, 1], opacity: 1 }}
           transition={{ duration: 0.6, type: 'spring', stiffness: 250, damping: 18 }}
-          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-900/50"
+          className="inline-flex items-center gap-1.5 h-7 px-2 rounded-full text-s bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-900/50"
           title="Current streak"
           aria-live="polite"
         >
@@ -146,14 +146,18 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
             transition={{ duration: 0.6 }}
             className="inline-flex"
           >
-            <StreakIcon size={14} className="text-orange-600" />
+            <StreakIcon size={16} className="text-orange-600" />
           </motion.span>
           <span className="font-semibold tabular-nums">{Number(currentStreak) || 0}</span>
         </motion.div>
         <div className="relative" ref={profileMenuRef}>
-          <button onClick={() => setShowProfileMenu((v) => !v)} className="btn inline-flex items-center gap-2 dark:hover:bg-slate-800">
+          <button
+            onClick={() => setShowProfileMenu((v) => !v)}
+            className="inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-slate-400/50 dark:focus:ring-slate-500/40"
+            aria-haspopup="menu"
+            aria-expanded={showProfileMenu}
+          >
             <Avatar user={user} />
-            <ChevronDown size={16} />
           </button>
           {showProfileMenu && (
             <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg rounded-lg p-2 z-50">
@@ -169,7 +173,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
               <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
               <button onClick={toggleTheme} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
                 {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-                Switch to {theme === 'dark' ? 'Light' : 'Dark'}
+                {theme === 'dark' ? 'Light' : 'Dark'} Mode
               </button>
               {!user && (
                 <button onClick={onSignInWithGoogle} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
