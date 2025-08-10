@@ -5,15 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Caldo</title>
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+    <link rel="shortcut icon" href="/icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="CalDo" />
     <meta name="theme-color" content="#4f46e5" />
     <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512.png" />
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
     <script>
-      if ('serviceWorker' in navigator) {
+      // Capture the install prompt as early as possible so React can use it later
+      (function () {
+        try {
+          window.__deferredPWAInstallPrompt = null;
+          window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            window.__deferredPWAInstallPrompt = e;
+            window.dispatchEvent(new CustomEvent('pwa:beforeinstallprompt'));
+          });
+          window.addEventListener('appinstalled', function () {
+            window.__deferredPWAInstallPrompt = null;
+            window.dispatchEvent(new CustomEvent('pwa:appinstalled'));
+          });
+        } catch (_) {}
+      })();
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+    <script type="module">
+      if (import.meta.env && import.meta.env.PROD && 'serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js').catch(() => {});
         });

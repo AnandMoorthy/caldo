@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ChevronDown, FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon } from "lucide-react";
+import { motion } from "framer-motion";
+import { ChevronDown, FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon } from "lucide-react";
 
 function Avatar({ user }) {
   function getInitials() {
@@ -19,9 +20,13 @@ function Avatar({ user }) {
   return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
-export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON }) {
+export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, currentStreak = 0 }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
+  const [canInstall, setCanInstall] = useState(false);
+  const deferredPromptRef = useRef(null);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
     function onDocClick(e) {
@@ -32,6 +37,72 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
+  useEffect(() => {
+    // Pick up any deferred prompt captured before React mounted
+    if (window.__deferredPWAInstallPrompt) {
+      deferredPromptRef.current = window.__deferredPWAInstallPrompt;
+      setCanInstall(true);
+    }
+
+    function handleBeforeInstallPrompt(e) {
+      e.preventDefault();
+      deferredPromptRef.current = e;
+      setCanInstall(true);
+    }
+
+    function handleAppInstalled() {
+      deferredPromptRef.current = null;
+      setCanInstall(false);
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+    // Also listen to custom relayed events from early-capture script
+    window.addEventListener('pwa:beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('pwa:appinstalled', handleAppInstalled);
+
+    const media = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(display-mode: standalone)')
+      : { matches: false, addEventListener: undefined, removeEventListener: undefined };
+    const alreadyStandalone = !!(media && media.matches) || window.navigator.standalone === true;
+    setIsStandalone(alreadyStandalone);
+    function onChange(e) { setIsStandalone(!!(e && e.matches)); }
+    media && media.addEventListener?.('change', onChange);
+
+    // Detect iOS devices (no programmatic install prompt)
+    try {
+      const ua = (navigator.userAgent || navigator.vendor || window.opera || '').toLowerCase();
+      setIsIOS(/iphone|ipad|ipod/.test(ua));
+    } catch {}
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+      window.removeEventListener('pwa:beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('pwa:appinstalled', handleAppInstalled);
+      media && media.removeEventListener?.('change', onChange);
+    };
+  }, []);
+
+  async function onClickInstall() {
+    const dp = deferredPromptRef.current;
+    if (!dp) {
+      // iOS/Safari: guide to Add to Home Screen
+      if (isIOS && !isStandalone) {
+        alert('To install CalDo on iPhone/iPad: tap the Share button, then choose "Add to Home Screen".');
+      }
+      return;
+    }
+    try {
+      dp.prompt();
+      const choice = await dp.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        setCanInstall(false);
+        deferredPromptRef.current = null;
+      }
+    } catch {}
+  }
+
   return (
     <header className="flex items-center justify-between mb-6">
       <div>
@@ -39,6 +110,30 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
         <p className="text-sm text-slate-500 mt-1">Minimalist calendar & todo.</p>
       </div>
       <div className="flex items-center gap-2">
+        {!isStandalone && (canInstall || isIOS) && (
+          <button onClick={onClickInstall} className="bg-indigo-600 text-white px-3 py-2 rounded-lg inline-flex items-center gap-2">
+            <InstallIcon size={16} /> Install
+          </button>
+        )}
+        <motion.div
+          key={Number(currentStreak) || 0}
+          initial={{ scale: 0.9, opacity: 0.8 }}
+          animate={{ scale: [1, 1.08, 1], opacity: 1 }}
+          transition={{ duration: 0.6, type: 'spring', stiffness: 250, damping: 18 }}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-50 text-orange-700 border border-orange-200"
+          title="Current streak"
+          aria-live="polite"
+        >
+          <motion.span
+            initial={{ rotate: 0 }}
+            animate={{ rotate: [0, -12, 12, -6, 0] }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex"
+          >
+            <StreakIcon size={14} className="text-orange-600" />
+          </motion.span>
+          <span className="font-semibold tabular-nums">{Number(currentStreak) || 0}</span>
+        </motion.div>
         <div className="relative" ref={profileMenuRef}>
           <button onClick={() => setShowProfileMenu((v) => !v)} className="btn inline-flex items-center gap-2">
             <Avatar user={user} />

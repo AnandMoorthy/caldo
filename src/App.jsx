@@ -9,7 +9,7 @@ import TaskList from "./components/TaskList.jsx";
 import AddTaskModal from "./components/modals/AddTaskModal.jsx";
 import EditTaskModal from "./components/modals/EditTaskModal.jsx";
 import CelebrationCanvas from "./components/CelebrationCanvas.jsx";
-import { loadTasks, saveTasks } from "./utils/storage";
+import { loadTasks, saveTasks, loadStreak, saveStreak } from "./utils/storage";
 import { uid } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
 import { DRAG_MIME } from "./constants";
@@ -36,6 +36,10 @@ export default function App() {
   const monthEnd = endOfMonth(monthStart);
   const [dragOverDayKey, setDragOverDayKey] = useState(null);
 
+  // Streak state: current, longest, lastEarnedDateKey
+  const [streak, setStreak] = useState(() => loadStreak());
+  // no-op ref removed; we use interval-based checker
+
   // Celebration state and bookkeeping
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationDateKey, setCelebrationDateKey] = useState(null);
@@ -56,6 +60,10 @@ export default function App() {
     saveTasks(tasksMap);
   }, [tasksMap]);
 
+  useEffect(() => {
+    saveStreak(streak);
+  }, [streak]);
+
   // celebration canvas moved to component
 
   // date helpers moved to utils/date.js
@@ -64,6 +72,35 @@ export default function App() {
     const docRef = db.collection('users').doc(userId).collection('todos').doc(monthKey);
     // store under a field name for compatibility; prefer 'todos'
     await docRef.set({ todos: monthMap, updatedAt: new Date() }, { merge: true });
+  }
+
+  async function saveStreakToCloud(userId, s) {
+    const docRef = db.collection('users').doc(userId).collection('meta').doc('streakInfo');
+    await docRef.set({
+      current: Number(s?.current) || 0,
+      longest: Number(s?.longest) || 0,
+      lastEarnedDateKey: s?.lastEarnedDateKey || null,
+      updatedAt: new Date(),
+    }, { merge: true });
+  }
+
+  function todayKey() {
+    return keyFor(new Date());
+  }
+
+  function yesterdayKey() {
+    return keyFor(addDays(new Date(), -1));
+  }
+
+  function ensureStreakUpToDate(s) {
+    try {
+      const t = todayKey();
+      const y = yesterdayKey();
+      if (s?.lastEarnedDateKey === t || s?.lastEarnedDateKey === y) return s;
+      return { current: 0, longest: Number(s?.longest) || 0, lastEarnedDateKey: null };
+    } catch {
+      return { current: 0, longest: Number(s?.longest) || 0, lastEarnedDateKey: null };
+    }
   }
 
   // Auth listener
@@ -88,11 +125,33 @@ export default function App() {
           const currentMonthKey = monthKeyFromDate(new Date());
           const currentMonthMap = getMonthMapFor(merged, currentMonthKey);
           await saveMonthToCloud(u.uid, currentMonthKey, currentMonthMap);
+
+          // Load streak from cloud '/users/{uid}/meta/streakInfo' doc and merge
+          try {
+            const streakDoc = await db.collection('users').doc(u.uid).collection('meta').doc('streakInfo').get();
+            const si = streakDoc.exists ? (streakDoc.data() || {}) : {};
+            const cloudStreak = {
+              current: Number(si.current) || 0,
+              longest: Number(si.longest) || 0,
+              lastEarnedDateKey: si.lastEarnedDateKey || null,
+            };
+            const localStreak = loadStreak();
+            const mergedStreak = ensureStreakUpToDate({
+              current: cloudStreak.current ?? localStreak.current ?? 0,
+              longest: Math.max(Number(localStreak.longest) || 0, Number(cloudStreak.longest) || 0),
+              lastEarnedDateKey: cloudStreak.lastEarnedDateKey || localStreak.lastEarnedDateKey || null,
+            });
+            setStreak(mergedStreak);
+          } catch (err) {
+            console.error('Failed to load streak from cloud', err);
+            setStreak((s) => ensureStreakUpToDate(s));
+          }
         } catch (e) {
           console.error('Failed to load from cloud', e);
         }
       } else {
         hasLoadedCloud.current = false;
+        setStreak((s) => ensureStreakUpToDate(s));
       }
     });
     return () => unsub();
@@ -234,6 +293,30 @@ export default function App() {
       const newAllDone = list.length > 0 && list.every((t) => t.done);
       if (!prevAllDone && newAllDone) {
         triggerCelebration(task.due);
+        // Streak can only be earned for today
+        if (task.due === todayKey()) {
+          setStreak((s) => {
+            const y = yesterdayKey();
+            const nextCurrent = s?.lastEarnedDateKey === y ? (Number(s?.current) || 0) + 1 : 1;
+            const nextLongest = Math.max(Number(s?.longest) || 0, nextCurrent);
+            const next = { current: nextCurrent, longest: nextLongest, lastEarnedDateKey: todayKey() };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+      }
+      if (prevAllDone && !newAllDone) {
+        // If undoing completion for today after earning, revert streak
+        if (task.due === todayKey()) {
+          setStreak((s) => {
+            if (s?.lastEarnedDateKey !== todayKey()) return s;
+            const decreased = Math.max(0, (Number(s?.current) || 0) - 1);
+            const newLast = decreased > 0 ? yesterdayKey() : null;
+            const next = { current: decreased, longest: Number(s?.longest) || 0, lastEarnedDateKey: newLast };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
       }
       const updated = { ...prev, [task.due]: list };
       if (user) {
@@ -254,6 +337,28 @@ export default function App() {
       if (!prevAllDone && newAllDone) {
         // Deleting the only incomplete task could complete the day, so trigger
         triggerCelebration(task.due);
+        if (task.due === todayKey()) {
+          setStreak((s) => {
+            const y = yesterdayKey();
+            const nextCurrent = s?.lastEarnedDateKey === y ? (Number(s?.current) || 0) + 1 : 1;
+            const nextLongest = Math.max(Number(s?.longest) || 0, nextCurrent);
+            const next = { current: nextCurrent, longest: nextLongest, lastEarnedDateKey: todayKey() };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+      }
+      if (prevAllDone && !newAllDone) {
+        if (task.due === todayKey()) {
+          setStreak((s) => {
+            if (s?.lastEarnedDateKey !== todayKey()) return s;
+            const decreased = Math.max(0, (Number(s?.current) || 0) - 1);
+            const newLast = decreased > 0 ? yesterdayKey() : null;
+            const next = { current: decreased, longest: Number(s?.longest) || 0, lastEarnedDateKey: newLast };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
       }
       const copy = { ...prev };
       if (list.length) copy[task.due] = list;
@@ -281,6 +386,59 @@ export default function App() {
       const movedTask = { ...task, due: toKey };
       const updated = { ...prev, [toKey]: [movedTask, ...toList] };
       if (updatedFromList.length) updated[fromKey] = updatedFromList; else delete updated[fromKey];
+
+      // Handle completion transitions for streak if today is affected
+      const prevFromAllDone = fromList.length > 0 && fromList.every((t) => t.done);
+      const newFromAllDone = updatedFromList.length > 0 && updatedFromList.every((t) => t.done);
+      const prevToAllDone = toList.length > 0 && toList.every((t) => t.done);
+      const newToAllDone = ([movedTask, ...toList]).length > 0 && [movedTask, ...toList].every((t) => t.done);
+      const tKey = todayKey();
+      if (fromKey === tKey) {
+        if (!prevFromAllDone && newFromAllDone) {
+          triggerCelebration(fromKey);
+          setStreak((s) => {
+            const y = yesterdayKey();
+            const nextCurrent = s?.lastEarnedDateKey === y ? (Number(s?.current) || 0) + 1 : 1;
+            const nextLongest = Math.max(Number(s?.longest) || 0, nextCurrent);
+            const next = { current: nextCurrent, longest: nextLongest, lastEarnedDateKey: tKey };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+        if (prevFromAllDone && !newFromAllDone) {
+          setStreak((s) => {
+            if (s?.lastEarnedDateKey !== tKey) return s;
+            const decreased = Math.max(0, (Number(s?.current) || 0) - 1);
+            const newLast = decreased > 0 ? yesterdayKey() : null;
+            const next = { current: decreased, longest: Number(s?.longest) || 0, lastEarnedDateKey: newLast };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+      }
+      if (toKey === tKey) {
+        if (!prevToAllDone && newToAllDone) {
+          triggerCelebration(toKey);
+          setStreak((s) => {
+            const y = yesterdayKey();
+            const nextCurrent = s?.lastEarnedDateKey === y ? (Number(s?.current) || 0) + 1 : 1;
+            const nextLongest = Math.max(Number(s?.longest) || 0, nextCurrent);
+            const next = { current: nextCurrent, longest: nextLongest, lastEarnedDateKey: tKey };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+        if (prevToAllDone && !newToAllDone) {
+          setStreak((s) => {
+            if (s?.lastEarnedDateKey !== tKey) return s;
+            const decreased = Math.max(0, (Number(s?.current) || 0) - 1);
+            const newLast = decreased > 0 ? yesterdayKey() : null;
+            const next = { current: decreased, longest: Number(s?.longest) || 0, lastEarnedDateKey: newLast };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+      }
       if (user) {
         try {
           const fromMonthKey = monthKeyFromDateKey(fromKey);
@@ -371,12 +529,27 @@ export default function App() {
       }
       return {};
     });
+    setStreak({ current: 0, longest: Number(streak?.longest) || 0, lastEarnedDateKey: null });
+    if (user) saveStreakToCloud(user.uid, { current: 0, longest: Number(streak?.longest) || 0, lastEarnedDateKey: null }).catch(() => {});
   }
+
+  // Keep streak valid across day changes: if last earned day is neither today nor yesterday, reset current to 0
+  useEffect(() => {
+    function checkAndResetIfBroken() {
+      setStreak((s) => ensureStreakUpToDate(s));
+    }
+    // Run on mount
+    checkAndResetIfBroken();
+    // Check periodically and at approximate midnight
+    const intervalId = setInterval(checkAndResetIfBroken, 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800">
       <div className="max-w-6xl mx-auto">
-        <Header user={user} onSignInWithGoogle={signInWithGoogle} onSignOut={signOut} onExportJSON={exportJSON} onImportJSON={importJSON} />
+        <Header user={user} onSignInWithGoogle={signInWithGoogle} onSignOut={signOut} onExportJSON={exportJSON} onImportJSON={importJSON} currentStreak={streak?.current || 0} />
+        
 
         <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           <Calendar
