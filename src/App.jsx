@@ -25,7 +25,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksMap, setTasksMap] = useState(() => loadTasks());
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title: "", notes: "", priority: "medium" });
+  const [form, setForm] = useState({ title: "", notes: "", priority: "medium", subtasks: [] });
   const [showEdit, setShowEdit] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [editForm, setEditForm] = useState({ title: "", notes: "", priority: "medium" });
@@ -334,13 +334,16 @@ export default function App() {
 
   function openAddModal(date) {
     setSelectedDate(date);
-    setForm({ title: "", notes: "", priority: "medium" });
+    setForm({ title: "", notes: "", priority: "medium", subtasks: [] });
     setShowAdd(true);
   }
 
   function addTask(e) {
     e.preventDefault();
     const key = keyFor(selectedDate);
+    const subtasks = (Array.isArray(form.subtasks) ? form.subtasks : [])
+      .map((st) => ({ id: st.id || uid(), title: (st.title || '').trim(), done: !!st.done, createdAt: new Date().toISOString() }))
+      .filter((st) => !!st.title);
     const newTask = {
       id: uid(),
       title: form.title || "Untitled",
@@ -349,6 +352,7 @@ export default function App() {
       priority: form.priority || "medium",
       due: key,
       createdAt: new Date().toISOString(),
+      ...(subtasks.length ? { subtasks } : {}),
     };
     setTasksMap((prev) => {
       const prevList = prev[key] || [];
@@ -395,7 +399,15 @@ export default function App() {
   function toggleDone(task) {
     setTasksMap((prev) => {
       const prevList = prev[task.due] || [];
-      const list = prevList.map((t) => (t.id === task.id ? { ...t, done: !t.done } : t));
+      const list = prevList.map((t) => {
+        if (t.id !== task.id) return t;
+        const nextDone = !t.done;
+        // If marking parent task done, also mark all subtasks done for coherence
+        const nextSubtasks = Array.isArray(t.subtasks)
+          ? t.subtasks.map((st) => ({ ...st, done: nextDone ? true : st.done }))
+          : t.subtasks;
+        return { ...t, done: nextDone, subtasks: nextSubtasks };
+      });
       const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
       const newAllDone = list.length > 0 && list.every((t) => t.done);
       if (!prevAllDone && newAllDone) {
@@ -477,6 +489,169 @@ export default function App() {
         }
       }
       return copy;
+    });
+  }
+
+  // Subtasks: add, toggle, delete
+  function addSubtask(parentTask, title) {
+    const trimmed = (title || '').trim();
+    if (!trimmed) return;
+    const dueKey = parentTask.due;
+    setTasksMap((prev) => {
+      const prevList = prev[dueKey] || [];
+      const list = prevList.map((t) => {
+        if (t.id !== parentTask.id) return t;
+        const currentSubtasks = Array.isArray(t.subtasks) ? t.subtasks : [];
+        const newSubtasks = [
+          ...currentSubtasks,
+          { id: uid(), title: trimmed, done: false, createdAt: new Date().toISOString() },
+        ];
+        // Parent is considered done only if all subtasks are done
+        const parentDone = newSubtasks.length > 0 ? newSubtasks.every((st) => st.done) : t.done;
+        return { ...t, subtasks: newSubtasks, done: parentDone && t.done };
+      });
+
+      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const newAllDone = list.length > 0 && list.every((t) => t.done);
+      if (!prevAllDone && newAllDone) {
+        triggerCelebration(dueKey);
+        if (dueKey === todayKey()) {
+          setStreak((s) => {
+            const y = yesterdayKey();
+            const nextCurrent = s?.lastEarnedDateKey === y ? (Number(s?.current) || 0) + 1 : 1;
+            const nextLongest = Math.max(Number(s?.longest) || 0, nextCurrent);
+            const next = { current: nextCurrent, longest: nextLongest, lastEarnedDateKey: todayKey() };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+      }
+      if (prevAllDone && !newAllDone) {
+        if (dueKey === todayKey()) {
+          setStreak((s) => {
+            if (s?.lastEarnedDateKey !== todayKey()) return s;
+            const decreased = Math.max(0, (Number(s?.current) || 0) - 1);
+            const newLast = decreased > 0 ? yesterdayKey() : null;
+            const next = { current: decreased, longest: Number(s?.longest) || 0, lastEarnedDateKey: newLast };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+      }
+
+      const sorted = sortTasksByCreatedDesc(list);
+      const updated = { ...prev, [dueKey]: sorted };
+      if (user) {
+        saveDayToCloud(user.uid, dueKey, sorted).catch((err) => console.error('Cloud addSubtask failed', err));
+      }
+      return updated;
+    });
+  }
+
+  function toggleSubtask(parentTask, subtaskId) {
+    if (!parentTask || !subtaskId) return;
+    const dueKey = parentTask.due;
+    setTasksMap((prev) => {
+      const prevList = prev[dueKey] || [];
+      const list = prevList.map((t) => {
+        if (t.id !== parentTask.id) return t;
+        const currentSubtasks = Array.isArray(t.subtasks) ? t.subtasks : [];
+        const newSubtasks = currentSubtasks.map((st) =>
+          st.id === subtaskId ? { ...st, done: !st.done } : st
+        );
+        // Parent is done if and only if all subtasks are done (when any subtasks exist)
+        const hasSubtasks = newSubtasks.length > 0;
+        const allSubsDone = hasSubtasks ? newSubtasks.every((st) => st.done) : true;
+        const parentDone = hasSubtasks ? allSubsDone : t.done;
+        return { ...t, subtasks: newSubtasks, done: parentDone };
+      });
+
+      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const newAllDone = list.length > 0 && list.every((t) => t.done);
+      if (!prevAllDone && newAllDone) {
+        triggerCelebration(dueKey);
+        if (dueKey === todayKey()) {
+          setStreak((s) => {
+            const y = yesterdayKey();
+            const nextCurrent = s?.lastEarnedDateKey === y ? (Number(s?.current) || 0) + 1 : 1;
+            const nextLongest = Math.max(Number(s?.longest) || 0, nextCurrent);
+            const next = { current: nextCurrent, longest: nextLongest, lastEarnedDateKey: todayKey() };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+      }
+      if (prevAllDone && !newAllDone) {
+        if (dueKey === todayKey()) {
+          setStreak((s) => {
+            if (s?.lastEarnedDateKey !== todayKey()) return s;
+            const decreased = Math.max(0, (Number(s?.current) || 0) - 1);
+            const newLast = decreased > 0 ? yesterdayKey() : null;
+            const next = { current: decreased, longest: Number(s?.longest) || 0, lastEarnedDateKey: newLast };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+      }
+
+      const sorted = sortTasksByCreatedDesc(list);
+      const updated = { ...prev, [dueKey]: sorted };
+      if (user) {
+        saveDayToCloud(user.uid, dueKey, sorted).catch((err) => console.error('Cloud toggleSubtask failed', err));
+      }
+      return updated;
+    });
+  }
+
+  function deleteSubtask(parentTask, subtaskId) {
+    if (!parentTask || !subtaskId) return;
+    const dueKey = parentTask.due;
+    setTasksMap((prev) => {
+      const prevList = prev[dueKey] || [];
+      const list = prevList.map((t) => {
+        if (t.id !== parentTask.id) return t;
+        const currentSubtasks = Array.isArray(t.subtasks) ? t.subtasks : [];
+        const newSubtasks = currentSubtasks.filter((st) => st.id !== subtaskId);
+        const hasSubtasks = newSubtasks.length > 0;
+        const allSubsDone = hasSubtasks ? newSubtasks.every((st) => st.done) : true;
+        const parentDone = hasSubtasks ? allSubsDone : t.done;
+        return { ...t, subtasks: newSubtasks, done: parentDone };
+      });
+
+      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const newAllDone = list.length > 0 && list.every((t) => t.done);
+      if (!prevAllDone && newAllDone) {
+        triggerCelebration(dueKey);
+        if (dueKey === todayKey()) {
+          setStreak((s) => {
+            const y = yesterdayKey();
+            const nextCurrent = s?.lastEarnedDateKey === y ? (Number(s?.current) || 0) + 1 : 1;
+            const nextLongest = Math.max(Number(s?.longest) || 0, nextCurrent);
+            const next = { current: nextCurrent, longest: nextLongest, lastEarnedDateKey: todayKey() };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+      }
+      if (prevAllDone && !newAllDone) {
+        if (dueKey === todayKey()) {
+          setStreak((s) => {
+            if (s?.lastEarnedDateKey !== todayKey()) return s;
+            const decreased = Math.max(0, (Number(s?.current) || 0) - 1);
+            const newLast = decreased > 0 ? yesterdayKey() : null;
+            const next = { current: decreased, longest: Number(s?.longest) || 0, lastEarnedDateKey: newLast };
+            if (user) saveStreakToCloud(user.uid, next).catch(() => {});
+            return next;
+          });
+        }
+      }
+
+      const sorted = sortTasksByCreatedDesc(list);
+      const updated = { ...prev, [dueKey]: sorted };
+      if (user) {
+        saveDayToCloud(user.uid, dueKey, sorted).catch((err) => console.error('Cloud deleteSubtask failed', err));
+      }
+      return updated;
     });
   }
 
@@ -699,6 +874,9 @@ export default function App() {
               onToggleDone={toggleDone}
               onOpenEditModal={openEditModal}
               onDeleteTask={deleteTask}
+              onAddSubtask={addSubtask}
+              onToggleSubtask={toggleSubtask}
+              onDeleteSubtask={deleteSubtask}
             />
           </aside>
         </main>
