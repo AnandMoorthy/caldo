@@ -18,7 +18,7 @@ function Avatar({ user }) {
     return "?";
   }
 
-  return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-s font-semibold">{getInitials()}</div>;
+  return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
 export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, currentStreak = 0 }) {
@@ -180,13 +180,13 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
                   <UserIcon size={16} /> Sign in with Google
                 </button>
               )}
-              <button onClick={onExportJSON} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
+              {/* <button onClick={onExportJSON} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
                 <ExportIcon size={16} /> Export
               </button>
               <label className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2 cursor-pointer">
                 <ImportIcon size={16} /> Import
                 <input type="file" accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && onImportJSON(e.target.files[0])} />
-              </label>
+              </label> */}
               {user && (
                 <>
                   <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
