@@ -546,7 +546,7 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200">
       <div className="max-w-6xl mx-auto">
         <Header user={user} onSignInWithGoogle={signInWithGoogle} onSignOut={signOut} onExportJSON={exportJSON} onImportJSON={importJSON} currentStreak={streak?.current || 0} />
         
@@ -569,11 +569,11 @@ export default function App() {
             onDropTaskOnDay={onDropTaskOnDay}
           />
 
-          <aside className="bg-white rounded-2xl shadow p-4">
+          <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="text-sm text-slate-500">Tasks for</div>
-                <div className="font-semibold">{format(selectedDate, 'EEEE, MMM d')}</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
+                <div className="font-semibold text-slate-900 dark:text-slate-100">{format(selectedDate, 'EEEE, MMM d')}</div>
               </div>
               <button onClick={() => openAddModal(selectedDate)} className="bg-indigo-600 text-white px-3 py-2 rounded-lg inline-flex items-center gap-2">
                 <Plus size={14} /> New
@@ -594,7 +594,7 @@ export default function App() {
           <div className="pointer-events-none fixed inset-0 z-[60]">
             <CelebrationCanvas seed={confettiSeed} />
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="pointer-events-auto fixed top-4 right-4 z-[61]">
-              <div className="px-3 sm:px-4 py-2 rounded-lg sm:rounded-full bg-white/90 backdrop-blur shadow-lg text-[12px] sm:text-sm font-semibold text-green-700 border border-green-100 inline-flex items-center gap-2">
+              <div className="px-3 sm:px-4 py-2 rounded-lg sm:rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur shadow-lg text-[12px] sm:text-sm font-semibold text-green-700 dark:text-green-300 border border-green-100 dark:border-green-900/40 inline-flex items-center gap-2">
                 <Check size={16} className="text-green-600" />
                 <span>All tasks done for {celebrationDateKey ? format(parseISO(celebrationDateKey), 'EEE, MMM d') : ''}</span>
               </div>
@@ -605,7 +605,7 @@ export default function App() {
         <AddTaskModal open={showAdd} selectedDate={selectedDate} form={form} setForm={setForm} onSubmit={addTask} onClose={() => setShowAdd(false)} />
         <EditTaskModal open={showEdit} editForm={editForm} setEditForm={setEditForm} onSubmit={saveEdit} onClose={() => setShowEdit(false)} />
 
-        <footer className="mt-6 text-center text-sm text-slate-400">Imagined by Human, Built by AI.</footer>
+        <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
       </div>
     </div>
   );

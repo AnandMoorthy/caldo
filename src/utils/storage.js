@@ -1,5 +1,6 @@
 export const STORAGE_KEY = "caldo_v2_tasks";
 export const STREAK_KEY = "caldo_v2_streak";
+export const THEME_KEY = "caldo_v2_theme"; // 'light' | 'dark'
 
 export function loadTasks() {
   try {
@@ -37,6 +38,25 @@ export function saveStreak(streak) {
     lastEarnedDateKey: streak?.lastEarnedDateKey || null,
   };
   localStorage.setItem(STREAK_KEY, JSON.stringify(safe));
+}
+
+export function loadThemePreference() {
+  try {
+    const stored = localStorage.getItem(THEME_KEY);
+    if (stored === 'light' || stored === 'dark') return stored;
+  } catch {}
+  try {
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return prefersDark ? 'dark' : 'light';
+  } catch {
+    return 'light';
+  }
+}
+
+export function saveThemePreference(theme) {
+  try {
+    if (theme === 'light' || theme === 'dark') localStorage.setItem(THEME_KEY, theme);
+  } catch {}
 }
 
 
