@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun } from "lucide-react";
+import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun, HelpCircle } from "lucide-react";
 import { loadThemePreference, saveThemePreference } from "../utils/storage";
 
 function Avatar({ user }) {
@@ -21,7 +21,7 @@ function Avatar({ user }) {
   return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
-export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, currentStreak = 0 }) {
+export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, currentStreak = 0 }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const [canInstall, setCanInstall] = useState(false);
@@ -174,6 +174,16 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
               <button onClick={toggleTheme} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
                 {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
                 {theme === 'dark' ? 'Light' : 'Dark'} Mode
+              </button>
+              <button
+                onClick={() => {
+                  try { window.location.hash = '#help'; } catch {}
+                  onOpenHelp && onOpenHelp();
+                  setShowProfileMenu(false);
+                }}
+                className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2"
+              >
+                <HelpCircle size={16} /> Help & Shortcuts
               </button>
               {!user && (
                 <button onClick={onSignInWithGoogle} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">

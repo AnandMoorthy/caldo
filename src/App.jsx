@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO } from "date-fns";
 import { motion } from "framer-motion";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, StickyNote } from "lucide-react";
 import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Calendar from "./components/Calendar.jsx";
@@ -10,10 +10,13 @@ import AddTaskModal from "./components/modals/AddTaskModal.jsx";
 import EditTaskModal from "./components/modals/EditTaskModal.jsx";
 import CelebrationCanvas from "./components/CelebrationCanvas.jsx";
 import MissedTasksDrawer from "./components/MissedTasksDrawer.jsx";
+import DayNotesDrawer from "./components/DayNotesDrawer.jsx";
+import HelpPage from "./components/HelpPage.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak } from "./utils/storage";
 import { uid } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
 import { DRAG_MIME } from "./constants";
+import { DAY_NOTE_ID } from "./constants";
 
 
 // Single-file Caldo app
@@ -38,6 +41,11 @@ export default function App() {
   const monthEnd = endOfMonth(monthStart);
   const [dragOverDayKey, setDragOverDayKey] = useState(null);
   const [showMissed, setShowMissed] = useState(false);
+  const [draftDayNote, setDraftDayNote] = useState("");
+  const [showNotes, setShowNotes] = useState(false);
+  const [notesSaving, setNotesSaving] = useState(false);
+  const [notesJustSaved, setNotesJustSaved] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Streak state: current, longest, lastEarnedDateKey
   const [streak, setStreak] = useState(() => loadStreak());
@@ -68,6 +76,44 @@ export default function App() {
   useEffect(() => {
     saveTasks(tasksMap);
   }, [tasksMap]);
+
+  // Keep draft note in sync when tasksMap changes for the selected day (e.g., remote refresh)
+  useEffect(() => {
+    try {
+      setDraftDayNote(getDayNoteByKey(keyFor(selectedDate)));
+    } catch {}
+  }, [tasksMap, selectedDate]);
+
+  // Global keyboard shortcuts: T add task, N open notes, ? open help, Esc close
+  useEffect(() => {
+    function onKeyDown(e) {
+      // Allow Esc even inside inputs; ignore other keys while typing or with modifiers
+      const tag = (e.target && e.target.tagName) || '';
+      const key = (e.key || '').toLowerCase();
+      if (key === 'escape') {
+        if (showAdd) setShowAdd(false);
+        if (showEdit) setShowEdit(false);
+        if (showNotes) setShowNotes(false);
+        if (showMissed) setShowMissed(false);
+        if (showHelp) setShowHelp(false);
+        return;
+      }
+      if (/(INPUT|TEXTAREA|SELECT)/.test(tag)) return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (key === 't') {
+        e.preventDefault();
+        openAddModal(selectedDate);
+      } else if (key === 'n') {
+        e.preventDefault();
+        setShowNotes(true);
+      } else if (e.key === '?') {
+        e.preventDefault();
+        setShowHelp(true);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedDate, showAdd, showEdit, showNotes, showMissed, showHelp]);
 
   useEffect(() => {
     saveStreak(streak);
@@ -330,8 +376,73 @@ export default function App() {
     setCursor(subMonths(cursor, 1));
   }
 
+  function isNoteItem(item) {
+    return item && item.id === DAY_NOTE_ID;
+  }
+
+  function splitDayList(list) {
+    const noteItem = (list || []).find((t) => isNoteItem(t)) || null;
+    const taskList = (list || []).filter((t) => !isNoteItem(t));
+    return { taskList, noteItem };
+  }
+
+  function mergeDayList(taskList, noteItem) {
+    return noteItem ? [...(taskList || []), noteItem] : [...(taskList || [])];
+  }
+
   function tasksFor(date) {
-    return sortTasksByCreatedDesc(tasksMap[keyFor(date)] || []);
+    const list = tasksMap[keyFor(date)] || [];
+    const { taskList } = splitDayList(list);
+    return sortTasksByCreatedDesc(taskList);
+  }
+
+  function getDayNoteByKey(dateKey) {
+    const list = tasksMap[dateKey] || [];
+    const noteItem = list.find((t) => isNoteItem(t));
+    return noteItem?.dayNote || "";
+  }
+
+  async function saveDayNoteForKey(dateKey, noteText) {
+    const text = (noteText || "").trim();
+    // Build the new full list from current state
+    const prevList = tasksMap[dateKey] || [];
+    const { taskList, noteItem } = splitDayList(prevList);
+    const newNoteItem = text
+      ? {
+          id: DAY_NOTE_ID,
+          due: dateKey,
+          dayNote: text,
+          createdAt: noteItem?.createdAt || new Date().toISOString(),
+        }
+      : null;
+    const sortedTasks = sortTasksByCreatedDesc(taskList);
+    const fullList = mergeDayList(sortedTasks, newNoteItem);
+    // Update local state immediately
+    setTasksMap((prev) => {
+      const updated = { ...prev };
+      if (fullList.length) updated[dateKey] = fullList; else delete updated[dateKey];
+      return updated;
+    });
+    // Persist to cloud
+    try {
+      if (user) {
+        if (fullList.length) {
+          await saveDayToCloud(user.uid, dateKey, fullList);
+        } else {
+          await deleteDayFromCloud(user.uid, dateKey);
+        }
+      }
+    } catch (err) {
+      console.error('Cloud saveDayNote failed', err);
+    }
+  }
+
+  function hasNoteForDay(date) {
+    try {
+      const dk = keyFor(date);
+      const list = tasksMap[dk] || [];
+      return list.some((t) => isNoteItem(t) && (t.dayNote || "").trim().length > 0);
+    } catch { return false; }
   }
 
   // Build a flattened list of this month's incomplete tasks from past days only
@@ -345,6 +456,7 @@ export default function App() {
       // only past dates strictly before today
       if (dateObj >= new Date(today.getFullYear(), today.getMonth(), today.getDate())) continue;
       for (const t of list) {
+        if (isNoteItem(t)) continue;
         if (!t.done) items.push(t);
       }
     }
@@ -376,14 +488,13 @@ export default function App() {
     };
     setTasksMap((prev) => {
       const prevList = prev[key] || [];
-      const updatedList = sortTasksByCreatedDesc([newTask, ...prevList]);
-      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
-      const newAllDone = updatedList.length > 0 && updatedList.every((t) => t.done);
+      const { taskList, noteItem } = splitDayList(prevList);
+      const updatedTasks = sortTasksByCreatedDesc([newTask, ...taskList]);
       // Adding a new incomplete task should not trigger; guard by checking prev->new transition
-      const updated = { ...prev, [key]: updatedList };
-      // Also persist month to cloud if signed in
+      const fullList = mergeDayList(updatedTasks, noteItem);
+      const updated = { ...prev, [key]: fullList };
       if (user) {
-        saveDayToCloud(user.uid, key, updatedList).catch((err) => console.error('Cloud addTask failed', err));
+        saveDayToCloud(user.uid, key, fullList).catch((err) => console.error('Cloud addTask failed', err));
       }
       return updated;
     });
@@ -400,15 +511,18 @@ export default function App() {
     e.preventDefault();
     if (!editTask) return;
     setTasksMap((prev) => {
-      const list = (prev[editTask.due] || []).map((t) =>
+      const prevList = prev[editTask.due] || [];
+      const { taskList, noteItem } = splitDayList(prevList);
+      const list = taskList.map((t) =>
         t.id === editTask.id
           ? { ...t, title: editForm.title || 'Untitled', notes: editForm.notes || '', priority: editForm.priority || 'medium' }
           : t
       );
-      const sorted = sortTasksByCreatedDesc(list);
-      const updated = { ...prev, [editTask.due]: sorted };
+      const sortedTasks = sortTasksByCreatedDesc(list);
+      const fullList = mergeDayList(sortedTasks, noteItem);
+      const updated = { ...prev, [editTask.due]: fullList };
       if (user) {
-        saveDayToCloud(user.uid, editTask.due, sorted).catch((err) => console.error('Cloud saveEdit failed', err));
+        saveDayToCloud(user.uid, editTask.due, fullList).catch((err) => console.error('Cloud saveEdit failed', err));
       }
       return updated;
     });
@@ -419,7 +533,8 @@ export default function App() {
   function toggleDone(task) {
     setTasksMap((prev) => {
       const prevList = prev[task.due] || [];
-      const list = prevList.map((t) => {
+      const { taskList, noteItem } = splitDayList(prevList);
+      const list = taskList.map((t) => {
         if (t.id !== task.id) return t;
         const nextDone = !t.done;
         // If marking parent task done, also mark all subtasks done for coherence
@@ -428,7 +543,7 @@ export default function App() {
           : t.subtasks;
         return { ...t, done: nextDone, subtasks: nextSubtasks };
       });
-      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const prevAllDone = taskList.length > 0 && taskList.every((t) => t.done);
       const newAllDone = list.length > 0 && list.every((t) => t.done);
       if (!prevAllDone && newAllDone) {
         triggerCelebration(task.due);
@@ -457,10 +572,11 @@ export default function App() {
           });
         }
       }
-      const sorted = sortTasksByCreatedDesc(list);
-      const updated = { ...prev, [task.due]: sorted };
+      const sortedTasks = sortTasksByCreatedDesc(list);
+      const fullList = mergeDayList(sortedTasks, noteItem);
+      const updated = { ...prev, [task.due]: fullList };
       if (user) {
-        saveDayToCloud(user.uid, task.due, sorted).catch((err) => console.error('Cloud toggleDone failed', err));
+        saveDayToCloud(user.uid, task.due, fullList).catch((err) => console.error('Cloud toggleDone failed', err));
       }
       return updated;
     });
@@ -469,8 +585,9 @@ export default function App() {
   function deleteTask(task) {
     setTasksMap((prev) => {
       const prevList = prev[task.due] || [];
-      const list = prevList.filter((t) => t.id !== task.id);
-      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const { taskList, noteItem } = splitDayList(prevList);
+      const list = taskList.filter((t) => t.id !== task.id);
+      const prevAllDone = taskList.length > 0 && taskList.every((t) => t.done);
       const newAllDone = list.length > 0 && list.every((t) => t.done);
       if (!prevAllDone && newAllDone) {
         // Deleting the only incomplete task could complete the day, so trigger
@@ -499,11 +616,13 @@ export default function App() {
         }
       }
       const copy = { ...prev };
-      if (list.length) copy[task.due] = sortTasksByCreatedDesc(list);
+      const sortedTasks = sortTasksByCreatedDesc(list);
+      const fullList = mergeDayList(sortedTasks, noteItem);
+      if (fullList.length) copy[task.due] = fullList;
       else delete copy[task.due];
       if (user) {
-        if (list.length) {
-          saveDayToCloud(user.uid, task.due, sortTasksByCreatedDesc(list)).catch((err) => console.error('Cloud deleteTask failed', err));
+        if (fullList.length) {
+          saveDayToCloud(user.uid, task.due, fullList).catch((err) => console.error('Cloud deleteTask failed', err));
         } else {
           deleteDayFromCloud(user.uid, task.due).catch((err) => console.error('Cloud deleteDay failed', err));
         }
@@ -519,7 +638,8 @@ export default function App() {
     const dueKey = parentTask.due;
     setTasksMap((prev) => {
       const prevList = prev[dueKey] || [];
-      const list = prevList.map((t) => {
+      const { taskList, noteItem } = splitDayList(prevList);
+      const list = taskList.map((t) => {
         if (t.id !== parentTask.id) return t;
         const currentSubtasks = Array.isArray(t.subtasks) ? t.subtasks : [];
         const newSubtasks = [
@@ -531,7 +651,7 @@ export default function App() {
         return { ...t, subtasks: newSubtasks, done: parentDone && t.done };
       });
 
-      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const prevAllDone = taskList.length > 0 && taskList.every((t) => t.done);
       const newAllDone = list.length > 0 && list.every((t) => t.done);
       if (!prevAllDone && newAllDone) {
         triggerCelebration(dueKey);
@@ -559,10 +679,11 @@ export default function App() {
         }
       }
 
-      const sorted = sortTasksByCreatedDesc(list);
-      const updated = { ...prev, [dueKey]: sorted };
+      const sortedTasks = sortTasksByCreatedDesc(list);
+      const fullList = mergeDayList(sortedTasks, noteItem);
+      const updated = { ...prev, [dueKey]: fullList };
       if (user) {
-        saveDayToCloud(user.uid, dueKey, sorted).catch((err) => console.error('Cloud addSubtask failed', err));
+        saveDayToCloud(user.uid, dueKey, fullList).catch((err) => console.error('Cloud addSubtask failed', err));
       }
       return updated;
     });
@@ -573,7 +694,8 @@ export default function App() {
     const dueKey = parentTask.due;
     setTasksMap((prev) => {
       const prevList = prev[dueKey] || [];
-      const list = prevList.map((t) => {
+      const { taskList, noteItem } = splitDayList(prevList);
+      const list = taskList.map((t) => {
         if (t.id !== parentTask.id) return t;
         const currentSubtasks = Array.isArray(t.subtasks) ? t.subtasks : [];
         const newSubtasks = currentSubtasks.map((st) =>
@@ -586,7 +708,7 @@ export default function App() {
         return { ...t, subtasks: newSubtasks, done: parentDone };
       });
 
-      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const prevAllDone = taskList.length > 0 && taskList.every((t) => t.done);
       const newAllDone = list.length > 0 && list.every((t) => t.done);
       if (!prevAllDone && newAllDone) {
         triggerCelebration(dueKey);
@@ -614,10 +736,11 @@ export default function App() {
         }
       }
 
-      const sorted = sortTasksByCreatedDesc(list);
-      const updated = { ...prev, [dueKey]: sorted };
+      const sortedTasks = sortTasksByCreatedDesc(list);
+      const fullList = mergeDayList(sortedTasks, noteItem);
+      const updated = { ...prev, [dueKey]: fullList };
       if (user) {
-        saveDayToCloud(user.uid, dueKey, sorted).catch((err) => console.error('Cloud toggleSubtask failed', err));
+        saveDayToCloud(user.uid, dueKey, fullList).catch((err) => console.error('Cloud toggleSubtask failed', err));
       }
       return updated;
     });
@@ -628,7 +751,8 @@ export default function App() {
     const dueKey = parentTask.due;
     setTasksMap((prev) => {
       const prevList = prev[dueKey] || [];
-      const list = prevList.map((t) => {
+      const { taskList, noteItem } = splitDayList(prevList);
+      const list = taskList.map((t) => {
         if (t.id !== parentTask.id) return t;
         const currentSubtasks = Array.isArray(t.subtasks) ? t.subtasks : [];
         const newSubtasks = currentSubtasks.filter((st) => st.id !== subtaskId);
@@ -638,7 +762,7 @@ export default function App() {
         return { ...t, subtasks: newSubtasks, done: parentDone };
       });
 
-      const prevAllDone = prevList.length > 0 && prevList.every((t) => t.done);
+      const prevAllDone = taskList.length > 0 && taskList.every((t) => t.done);
       const newAllDone = list.length > 0 && list.every((t) => t.done);
       if (!prevAllDone && newAllDone) {
         triggerCelebration(dueKey);
@@ -666,10 +790,11 @@ export default function App() {
         }
       }
 
-      const sorted = sortTasksByCreatedDesc(list);
-      const updated = { ...prev, [dueKey]: sorted };
+      const sortedTasks = sortTasksByCreatedDesc(list);
+      const fullList = mergeDayList(sortedTasks, noteItem);
+      const updated = { ...prev, [dueKey]: fullList };
       if (user) {
-        saveDayToCloud(user.uid, dueKey, sorted).catch((err) => console.error('Cloud deleteSubtask failed', err));
+        saveDayToCloud(user.uid, dueKey, fullList).catch((err) => console.error('Cloud deleteSubtask failed', err));
       }
       return updated;
     });
@@ -682,21 +807,25 @@ export default function App() {
     if (!fromKey || !taskId || !toKey || fromKey === toKey) return;
     setTasksMap((prev) => {
       const fromList = prev[fromKey] || [];
-      const task = fromList.find((t) => t.id === taskId);
+      const { taskList: fromTasks, noteItem: fromNote } = splitDayList(fromList);
+      const task = fromTasks.find((t) => t.id === taskId);
       if (!task) return prev;
-      const updatedFromList = fromList.filter((t) => t.id !== taskId);
-      const sortedFromList = sortTasksByCreatedDesc(updatedFromList);
+      const updatedFromTasks = fromTasks.filter((t) => t.id !== taskId);
+      const sortedFromTasks = sortTasksByCreatedDesc(updatedFromTasks);
+      const fullFromList = mergeDayList(sortedFromTasks, fromNote);
       const toList = prev[toKey] || [];
+      const { taskList: toTasks, noteItem: toNote } = splitDayList(toList);
       const movedTask = { ...task, due: toKey };
-      const newToList = sortTasksByCreatedDesc([movedTask, ...toList]);
-      const updated = { ...prev, [toKey]: newToList };
-      if (sortedFromList.length) updated[fromKey] = sortedFromList; else delete updated[fromKey];
+      const newToTasks = sortTasksByCreatedDesc([movedTask, ...toTasks]);
+      const fullToList = mergeDayList(newToTasks, toNote);
+      const updated = { ...prev, [toKey]: fullToList };
+      if (fullFromList.length) updated[fromKey] = fullFromList; else delete updated[fromKey];
 
       // Handle completion transitions for streak if today is affected
-      const prevFromAllDone = fromList.length > 0 && fromList.every((t) => t.done);
-      const newFromAllDone = updatedFromList.length > 0 && updatedFromList.every((t) => t.done);
-      const prevToAllDone = toList.length > 0 && toList.every((t) => t.done);
-      const newToAllDone = ([movedTask, ...toList]).length > 0 && [movedTask, ...toList].every((t) => t.done);
+      const prevFromAllDone = fromTasks.length > 0 && fromTasks.every((t) => t.done);
+      const newFromAllDone = updatedFromTasks.length > 0 && updatedFromTasks.every((t) => t.done);
+      const prevToAllDone = toTasks.length > 0 && toTasks.every((t) => t.done);
+      const newToAllDone = ([movedTask, ...toTasks]).length > 0 && [movedTask, ...toTasks].every((t) => t.done);
       const tKey = todayKey();
       if (fromKey === tKey) {
         if (!prevFromAllDone && newFromAllDone) {
@@ -746,12 +875,12 @@ export default function App() {
       }
       if (user) {
         try {
-          if (sortedFromList.length) {
-            saveDayToCloud(user.uid, fromKey, sortedFromList).catch((err) => console.error('Cloud moveTask(from) failed', err));
+          if (fullFromList.length) {
+            saveDayToCloud(user.uid, fromKey, fullFromList).catch((err) => console.error('Cloud moveTask(from) failed', err));
           } else {
             deleteDayFromCloud(user.uid, fromKey).catch((err) => console.error('Cloud moveTask(delete from) failed', err));
           }
-          saveDayToCloud(user.uid, toKey, newToList).catch((err) => console.error('Cloud moveTask(to) failed', err));
+          saveDayToCloud(user.uid, toKey, fullToList).catch((err) => console.error('Cloud moveTask(to) failed', err));
         } catch (err) {
           console.error('Cloud moveTask error', err);
         }
@@ -851,7 +980,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200">
       <div className="max-w-6xl mx-auto">
-        <Header user={user} onSignInWithGoogle={signInWithGoogle} onSignOut={signOut} onExportJSON={exportJSON} onImportJSON={importJSON} currentStreak={streak?.current || 0} />
+        <Header user={user} onSignInWithGoogle={signInWithGoogle} onSignOut={signOut} onExportJSON={exportJSON} onImportJSON={importJSON} onOpenHelp={() => setShowHelp(true)} currentStreak={streak?.current || 0} />
         
 
         <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
@@ -867,10 +996,14 @@ export default function App() {
                 // Fetch the clicked day's tasks in the background and merge
                 refreshDayFromCloud(user.uid, dk);
               }
+              try {
+                setDraftDayNote(getDayNoteByKey(keyFor(d)));
+              } catch {}
             }}
             onPrevMonth={prevMonth}
             onNextMonth={nextMonth}
             tasksFor={tasksFor}
+            hasNoteFor={hasNoteForDay}
             onOpenAddModal={openAddModal}
             dragOverDayKey={dragOverDayKey}
             setDragOverDayKey={setDragOverDayKey}
@@ -885,10 +1018,26 @@ export default function App() {
                 <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
                 <div className="font-semibold text-slate-900 dark:text-slate-100">{format(selectedDate, 'EEEE, MMM d')}</div>
               </div>
-              <button onClick={() => openAddModal(selectedDate)} className="bg-indigo-600 text-white px-3 py-2 rounded-lg inline-flex items-center gap-2">
-                <Plus size={14} /> New
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowNotes(true)}
+                  className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
+                  aria-label="Open notes (N)"
+                  title="Open notes (N)"
+                >
+                  <StickyNote size={16} />
+                </button>
+                <button
+                  onClick={() => openAddModal(selectedDate)}
+                  className="bg-indigo-600 text-white p-2 rounded-lg inline-flex items-center justify-center"
+                  aria-label="Add task (T)"
+                  title="Add task (T)"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
             </div>
+
 
             <TaskList
               tasks={tasksFor(selectedDate)}
@@ -930,6 +1079,30 @@ export default function App() {
           onToggleSubtask={toggleSubtask}
           onDeleteSubtask={deleteSubtask}
         />
+
+        <DayNotesDrawer
+          open={showNotes}
+          dateLabel={format(selectedDate, 'PPP')}
+          value={draftDayNote}
+          onChange={setDraftDayNote}
+          onSave={async () => {
+            try {
+              setNotesSaving(true);
+              await saveDayNoteForKey(keyFor(selectedDate), draftDayNote);
+              setNotesJustSaved(true);
+              setTimeout(() => setNotesJustSaved(false), 900);
+            } finally {
+              setNotesSaving(false);
+            }
+          }}
+          saving={notesSaving}
+          justSaved={notesJustSaved}
+          onClose={() => {
+            setShowNotes(false);
+          }}
+        />
+
+        <HelpPage open={showHelp || (typeof window !== 'undefined' && window.location.hash === '#help')} onClose={() => { setShowHelp(false); try { if (window.location.hash === '#help') history.replaceState(null, '', location.pathname + location.search); } catch {} }} />
 
         <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
       </div>

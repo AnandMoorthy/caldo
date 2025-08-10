@@ -11,6 +11,7 @@ export default function Calendar({
   onPrevMonth,
   onNextMonth,
   tasksFor,
+  hasNoteFor,
   onOpenAddModal,
   dragOverDayKey,
   setDragOverDayKey,
@@ -98,17 +99,39 @@ export default function Calendar({
                 <div className={isSelected ? "w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-indigo-600 text-white text-[11px] sm:text-xs flex items-center justify-center font-semibold" : "text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100"}>
                   {format(day, "d")}
                 </div>
-                <div className="hidden sm:block text-xs text-slate-400 dark:text-slate-500">{format(day, "MMM")}</div>
+                <div className="hidden sm:block text-xs text-slate-400 dark:text-slate-500 relative">{format(day, "MMM")}</div>
               </div>
-              {tasks.length > 0 && (
-                <div className="absolute bottom-1 right-1 flex items-center gap-0.5" title={`${doneCount}/${tasks.length} done`}>
-                  {Array.from({ length: Math.min(3, tasks.length) }).map((_, idx) => (
+              {(tasks.length > 0 || (hasNoteFor && hasNoteFor(day))) && (
+                <div
+                  className="absolute bottom-1 right-1 flex items-center gap-0.5"
+                  title={`${doneCount}/${tasks.length} done${hasNoteFor && hasNoteFor(day) ? ' • Notes' : ''}`}
+                >
+                  {hasNoteFor && hasNoteFor(day) && (
                     <span
-                      key={idx}
-                      className={`${doneCount === 0 ? "bg-red-400" : doneCount === tasks.length ? "bg-green-500" : "bg-amber-400"} inline-block w-1.5 h-1.5 rounded-full`}
+                      className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"
+                      title="Notes present"
                     />
-                  ))}
-                  {tasks.length > 3 && <span className="text-[9px] leading-none text-slate-400 dark:text-slate-500 ml-0.5">+{tasks.length - 3}</span>}
+                  )}
+                  {(() => {
+                    const hasNote = !!(hasNoteFor && hasNoteFor(day));
+                    const maxDots = 3;
+                    const taskDots = Math.min(maxDots - (hasNote ? 1 : 0), tasks.length);
+                    return Array.from({ length: taskDots }).map((_, idx) => (
+                      <span
+                        key={`t-${idx}`}
+                        className={`${doneCount === 0 ? "bg-red-400" : doneCount === tasks.length ? "bg-green-500" : "bg-amber-400"} inline-block w-1.5 h-1.5 rounded-full`}
+                      />
+                    ));
+                  })()}
+                  {(() => {
+                    const hasNote = !!(hasNoteFor && hasNoteFor(day));
+                    const maxDots = 3;
+                    const taskDotsShown = Math.min(maxDots - (hasNote ? 1 : 0), tasks.length);
+                    const overflow = tasks.length - taskDotsShown;
+                    return overflow > 0 ? (
+                      <span className="text-[9px] leading-none text-slate-400 dark:text-slate-500 ml-0.5">+{overflow}</span>
+                    ) : null;
+                  })()}
                 </div>
               )}
             </motion.div>
