@@ -1,7 +1,7 @@
 import React from "react";
 import { format, isSameDay, isSameMonth } from "date-fns";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ListX } from "lucide-react";
 
 export default function Calendar({
   monthStart,
@@ -15,6 +15,8 @@ export default function Calendar({
   dragOverDayKey,
   setDragOverDayKey,
   onDropTaskOnDay,
+  missedCount = 0,
+  onOpenMissed,
 }) {
   return (
     <section className="md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
@@ -29,6 +31,18 @@ export default function Calendar({
           </button>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={onOpenMissed}
+            className="relative text-sm px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 inline-flex items-center gap-2"
+            aria-label="Show missed tasks"
+            title="Show missed tasks this month"
+          >
+            <ListX size={16} />
+            <span>Missed</span>
+            <span className="ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 tabular-nums">
+              {Number(missedCount) || 0}
+            </span>
+          </button>
           <button onClick={() => onSelectDate(new Date())} className="text-sm px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
             Today
           </button>

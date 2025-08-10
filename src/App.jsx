@@ -9,6 +9,7 @@ import TaskList from "./components/TaskList.jsx";
 import AddTaskModal from "./components/modals/AddTaskModal.jsx";
 import EditTaskModal from "./components/modals/EditTaskModal.jsx";
 import CelebrationCanvas from "./components/CelebrationCanvas.jsx";
+import MissedTasksDrawer from "./components/MissedTasksDrawer.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak } from "./utils/storage";
 import { uid } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
@@ -36,6 +37,7 @@ export default function App() {
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(monthStart);
   const [dragOverDayKey, setDragOverDayKey] = useState(null);
+  const [showMissed, setShowMissed] = useState(false);
 
   // Streak state: current, longest, lastEarnedDateKey
   const [streak, setStreak] = useState(() => loadStreak());
@@ -331,6 +333,24 @@ export default function App() {
   function tasksFor(date) {
     return sortTasksByCreatedDesc(tasksMap[keyFor(date)] || []);
   }
+
+  // Build a flattened list of this month's incomplete tasks from past days only
+  const missedTasksThisMonth = useMemo(() => {
+    const today = new Date();
+    const currentMonthKey = monthKeyFromDate(monthStart);
+    const items = [];
+    for (const [dateKey, list] of Object.entries(tasksMap || {})) {
+      if (!dateKey.startsWith(currentMonthKey + "-")) continue;
+      const dateObj = parseISO(dateKey);
+      // only past dates strictly before today
+      if (dateObj >= new Date(today.getFullYear(), today.getMonth(), today.getDate())) continue;
+      for (const t of list) {
+        if (!t.done) items.push(t);
+      }
+    }
+    // newest first like the rest of the app
+    return sortTasksByCreatedDesc(items);
+  }, [tasksMap, monthStart]);
 
   function openAddModal(date) {
     setSelectedDate(date);
@@ -855,6 +875,8 @@ export default function App() {
             dragOverDayKey={dragOverDayKey}
             setDragOverDayKey={setDragOverDayKey}
             onDropTaskOnDay={onDropTaskOnDay}
+            missedCount={missedTasksThisMonth.length}
+            onOpenMissed={() => setShowMissed(true)}
           />
 
           <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
@@ -895,6 +917,19 @@ export default function App() {
 
         <AddTaskModal open={showAdd} selectedDate={selectedDate} form={form} setForm={setForm} onSubmit={addTask} onClose={() => setShowAdd(false)} />
         <EditTaskModal open={showEdit} editForm={editForm} setEditForm={setEditForm} onSubmit={saveEdit} onClose={() => setShowEdit(false)} />
+        <MissedTasksDrawer
+          open={showMissed}
+          count={missedTasksThisMonth.length}
+          tasks={missedTasksThisMonth}
+          onClose={() => setShowMissed(false)}
+          onDragStartTask={onDragStartTask}
+          onToggleDone={toggleDone}
+          onOpenEditModal={openEditModal}
+          onDeleteTask={deleteTask}
+          onAddSubtask={addSubtask}
+          onToggleSubtask={toggleSubtask}
+          onDeleteSubtask={deleteSubtask}
+        />
 
         <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
       </div>

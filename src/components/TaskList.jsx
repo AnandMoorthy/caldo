@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Check, RotateCcw, Trash, Clock, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 
-function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask }) {
+function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, showDueDate = false }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
   const completedSubtasks = hasSubtasks ? t.subtasks.filter((st) => st.done).length : 0;
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
@@ -48,10 +48,17 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
       title={`${t.title}${t.notes ? "\n" + t.notes : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className={`font-medium ${t.done ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate min-w-0`}>{t.title}</div>
-        <div className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
-          <span className={`${t.priority === "high" ? "bg-red-600" : t.priority === "low" ? "bg-green-600" : "bg-amber-600"} w-1.5 h-1.5 rounded-full`} />
-          {t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}
+        <div className="min-w-0">
+          <div className={`font-medium ${t.done ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate`}>{t.title}</div>
+        </div>
+        <div className="shrink-0 flex flex-col items-end gap-1">
+          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
+            <span className={`${t.priority === "high" ? "bg-red-600" : t.priority === "low" ? "bg-green-600" : "bg-amber-600"} w-1.5 h-1.5 rounded-full`} />
+            {t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}
+          </div>
+          {showDueDate && t.due && (
+            <div className="text-[10px] text-slate-500 dark:text-slate-400">Due on {format(parseISO(t.due), "EEE, MMM d")}</div>
+          )}
         </div>
       </div>
       {t.notes && <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 break-words clamp-2">{t.notes}</div>}
@@ -155,13 +162,13 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   );
 }
 
-export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask }) {
+export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, fullHeight = false, showDueDate = false }) {
   if (!tasks || tasks.length === 0) {
     return <div className="text-sm text-slate-400 dark:text-slate-500">No tasks. Double-click any day to add one quickly.</div>;
   }
 
   return (
-    <div className="space-y-3 max-h-[40vh] sm:max-h-[60vh] overflow-auto pr-2">
+    <div className={fullHeight ? "space-y-3 h-full overflow-auto pr-2" : "space-y-3 max-h-[40vh] sm:max-h-[60vh] overflow-auto pr-2"}>
       {tasks.map((t) => (
         <TaskCard
           key={t.id}
@@ -173,6 +180,7 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
           onAddSubtask={onAddSubtask}
           onToggleSubtask={onToggleSubtask}
           onDeleteSubtask={onDeleteSubtask}
+          showDueDate={showDueDate}
         />
       ))}
     </div>
