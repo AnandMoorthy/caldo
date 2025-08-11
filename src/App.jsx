@@ -6,7 +6,7 @@ import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Calendar from "./components/Calendar.jsx";
 import TaskList from "./components/TaskList.jsx";
-import AddTaskModal from "./components/modals/AddTaskModal.jsx";
+import AddTaskDrawer from "./components/AddTaskDrawer.jsx";
 import EditTaskModal from "./components/modals/EditTaskModal.jsx";
 import CelebrationCanvas from "./components/CelebrationCanvas.jsx";
 import MissedTasksDrawer from "./components/MissedTasksDrawer.jsx";
@@ -470,7 +470,7 @@ export default function App() {
     setShowAdd(true);
   }
 
-  function addTask(e) {
+  function addTask(e, options = {}) {
     e.preventDefault();
     const key = keyFor(selectedDate);
     const subtasks = (Array.isArray(form.subtasks) ? form.subtasks : [])
@@ -498,7 +498,12 @@ export default function App() {
       }
       return updated;
     });
-    setShowAdd(false);
+    if (options?.addAnother) {
+      setForm({ title: "", notes: "", priority: "medium", subtasks: [] });
+      setShowAdd(true);
+    } else {
+      setShowAdd(false);
+    }
   }
 
   function openEditModal(task) {
@@ -1064,7 +1069,7 @@ export default function App() {
           </div>
         )}
 
-        <AddTaskModal open={showAdd} selectedDate={selectedDate} form={form} setForm={setForm} onSubmit={addTask} onClose={() => setShowAdd(false)} />
+        <AddTaskDrawer open={showAdd} selectedDate={selectedDate} form={form} setForm={setForm} onSubmit={addTask} onClose={() => setShowAdd(false)} />
         <EditTaskModal open={showEdit} editForm={editForm} setEditForm={setEditForm} onSubmit={saveEdit} onClose={() => setShowEdit(false)} />
         <MissedTasksDrawer
           open={showMissed}
