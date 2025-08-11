@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun, HelpCircle } from "lucide-react";
+import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun, HelpCircle, Search } from "lucide-react";
 import { loadThemePreference, saveThemePreference } from "../utils/storage";
 
 function Avatar({ user }) {
@@ -21,7 +21,7 @@ function Avatar({ user }) {
   return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
-export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, currentStreak = 0 }) {
+export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, currentStreak = 0 }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const [canInstall, setCanInstall] = useState(false);
@@ -29,6 +29,15 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
   const [isStandalone, setIsStandalone] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [theme, setTheme] = useState(() => (typeof window === 'undefined' ? 'light' : loadThemePreference()));
+
+  // Detect OS for keyboard shortcut display
+  const [isMac, setIsMac] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsMac(navigator.platform.toUpperCase().indexOf('MAC') >= 0);
+    }
+  }, []);
 
   useEffect(() => {
     function onDocClick(e) {
@@ -126,11 +135,18 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Minimalist calendar & todo.</p>
       </div>
       <div className="flex items-center gap-2">
-        {!isStandalone && (canInstall || isIOS) && (
+        <button 
+          onClick={onOpenSearch} 
+          className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
+          title={`Search tasks and notes (${isMac ? '⌘K' : 'Ctrl+K'})`}
+        >
+          <Search size={18} />
+        </button>
+        {/* {!isStandalone && (canInstall || isIOS) && (
           <button onClick={onClickInstall} className="bg-indigo-600 text-white px-3 py-2 rounded-lg inline-flex items-center gap-2">
             <InstallIcon size={16} /> Install
           </button>
-        )}
+        )} */}
         <motion.div
           key={Number(currentStreak) || 0}
           initial={{ scale: 0.9, opacity: 0.8 }}
@@ -181,7 +197,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
                   onOpenHelp && onOpenHelp();
                   setShowProfileMenu(false);
                 }}
-                className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2"
+                className="w-full text-center px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2"
               >
                 <HelpCircle size={16} /> Help & Shortcuts
               </button>
@@ -198,10 +214,9 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
                 <input type="file" accept="application/json" className="hidden" onChange={(e) => e.target.files?.[0] && onImportJSON(e.target.files[0])} />
               </label> */}
               {user && (
-                <>
-                  <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
-                  <button onClick={onSignOut} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800">Sign out</button>
-                </>
+                <button onClick={onSignOut} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
+                  <UserIcon size={16} /> Sign out
+                </button>
               )}
             </div>
           )}

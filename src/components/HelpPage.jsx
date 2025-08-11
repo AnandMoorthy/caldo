@@ -63,9 +63,27 @@ export default function HelpPage({ open, onClose }) {
                   <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">N</kbd>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span>Search tasks & notes</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">
+                    {navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘K' : 'Ctrl+K'}
+                  </kbd>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                   <span>Close dialog/drawer</span>
                   <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">Esc</kbd>
                 </div>
+              </div>
+            </section>
+            <section className="mb-6">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Search</h2>
+              <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                <p>Quickly find tasks and notes across all your data:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[11px]">⌘K</kbd> or <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[11px]">Ctrl+K</kbd> to open search</li>
+                  <li>Search by task title, notes, or subtasks</li>
+                  <li>Use arrow keys to navigate results, Enter to select</li>
+                  <li>Click any result to jump to that date and item</li>
+                </ul>
               </div>
             </section>
             <section className="mb-6">

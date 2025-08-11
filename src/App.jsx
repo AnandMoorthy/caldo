@@ -12,9 +12,11 @@ import CelebrationCanvas from "./components/CelebrationCanvas.jsx";
 import MissedTasksDrawer from "./components/MissedTasksDrawer.jsx";
 import DayNotesDrawer from "./components/DayNotesDrawer.jsx";
 import HelpPage from "./components/HelpPage.jsx";
+import SearchModal from "./components/SearchModal.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak } from "./utils/storage";
 import { uid } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
+import { buildSearchIndex, searchTasks } from "./utils/search.js";
 import { DRAG_MIME } from "./constants";
 import { DAY_NOTE_ID } from "./constants";
 
@@ -47,6 +49,12 @@ export default function App() {
   const [notesJustSaved, setNotesJustSaved] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
 
+  // Search state
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchIndex, setSearchIndex] = useState([]);
+
   // Streak state: current, longest, lastEarnedDateKey
   const [streak, setStreak] = useState(() => loadStreak());
   // no-op ref removed; we use interval-based checker
@@ -77,6 +85,22 @@ export default function App() {
     saveTasks(tasksMap);
   }, [tasksMap]);
 
+  // Build search index when tasks change
+  useEffect(() => {
+    const newIndex = buildSearchIndex(tasksMap);
+    setSearchIndex(newIndex);
+  }, [tasksMap]);
+
+  // Update search results when query changes
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const results = searchTasks(searchQuery, searchIndex);
+      setSearchResults(results);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, searchIndex]);
+
   // Keep draft note in sync when tasksMap changes for the selected day (e.g., remote refresh)
   useEffect(() => {
     try {
@@ -84,7 +108,7 @@ export default function App() {
     } catch {}
   }, [tasksMap, selectedDate]);
 
-  // Global keyboard shortcuts: T add task, N open notes, ? open help, Esc close
+  // Global keyboard shortcuts: T add task, N open notes, ? open help, CMD+K/Ctrl+K search, Esc close
   useEffect(() => {
     function onKeyDown(e) {
       // Allow Esc even inside inputs; ignore other keys while typing or with modifiers
@@ -96,9 +120,19 @@ export default function App() {
         if (showNotes) setShowNotes(false);
         if (showMissed) setShowMissed(false);
         if (showHelp) setShowHelp(false);
+        if (showSearch) setShowSearch(false);
         return;
       }
       if (/(INPUT|TEXTAREA|SELECT)/.test(tag)) return;
+      
+      // Handle CMD+K/Ctrl+K for search
+      if ((e.metaKey || e.ctrlKey) && key === 'k') {
+        e.preventDefault();
+        setShowSearch(true);
+        setSearchQuery("");
+        return;
+      }
+      
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (key === 't') {
         e.preventDefault();
@@ -113,7 +147,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [selectedDate, showAdd, showEdit, showNotes, showMissed, showHelp]);
+  }, [selectedDate, showAdd, showEdit, showNotes, showMissed, showHelp, showSearch]);
 
   useEffect(() => {
     saveStreak(streak);
@@ -443,6 +477,31 @@ export default function App() {
       const list = tasksMap[dk] || [];
       return list.some((t) => isNoteItem(t) && (t.dayNote || "").trim().length > 0);
     } catch { return false; }
+  }
+
+  // Navigate to search result item
+  function navigateToSearchResult(result) {
+    try {
+      const dateKey = result.dateKey;
+      const date = parseISO(dateKey);
+      
+      // Navigate to the date in calendar
+      setSelectedDate(date);
+      setCursor(date);
+      
+      // Close search modal
+      setShowSearch(false);
+      setSearchQuery("");
+      
+      // If it's a note, open the notes drawer
+      if (result.type === 'note') {
+        setShowNotes(true);
+      }
+      
+      // TODO: In future phases, we can add highlighting and scrolling to specific tasks
+    } catch (error) {
+      console.error('Failed to navigate to search result:', error);
+    }
   }
 
   // Build a flattened list of this month's incomplete tasks from past days only
@@ -985,7 +1044,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200">
       <div className="max-w-6xl mx-auto">
-        <Header user={user} onSignInWithGoogle={signInWithGoogle} onSignOut={signOut} onExportJSON={exportJSON} onImportJSON={importJSON} onOpenHelp={() => setShowHelp(true)} currentStreak={streak?.current || 0} />
+        <Header user={user} onSignInWithGoogle={signInWithGoogle} onSignOut={signOut} onExportJSON={exportJSON} onImportJSON={importJSON} onOpenHelp={() => setShowHelp(true)} onOpenSearch={() => setShowSearch(true)} currentStreak={streak?.current || 0} />
         
 
         <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
@@ -1108,6 +1167,15 @@ export default function App() {
         />
 
         <HelpPage open={showHelp || (typeof window !== 'undefined' && window.location.hash === '#help')} onClose={() => { setShowHelp(false); try { if (window.location.hash === '#help') history.replaceState(null, '', location.pathname + location.search); } catch {} }} />
+
+        <SearchModal
+          isOpen={showSearch}
+          onClose={() => setShowSearch(false)}
+          searchResults={searchResults}
+          onNavigateToItem={navigateToSearchResult}
+          query={searchQuery}
+          onQueryChange={setSearchQuery}
+        />
 
         <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
       </div>
