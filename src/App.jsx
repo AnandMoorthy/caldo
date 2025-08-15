@@ -14,11 +14,12 @@ import DayNotesDrawer from "./components/DayNotesDrawer.jsx";
 import HelpPage from "./components/HelpPage.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak } from "./utils/storage";
-import { uid } from "./utils/uid";
+import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
 import { buildSearchIndex, searchTasks } from "./utils/search.js";
 import { DRAG_MIME } from "./constants";
-import { DAY_NOTE_ID } from "./constants";
+import { createTaskRepository } from "./services/repositories/taskRepository";
+import { createDayNoteRepository } from "./services/repositories/noteRepository";
 
 
 // Single-file Caldo app
@@ -38,6 +39,10 @@ export default function App() {
   const [user, setUser] = useState(null);
   const hasLoadedCloud = useRef(false);
   const loadedMonthsRef = useRef(new Set());
+  
+  // Repositories
+  const taskRepoRef = useRef(null);
+  const noteRepoRef = useRef(null);
   // profile menu moved into Header component
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(monthStart);
@@ -201,10 +206,28 @@ export default function App() {
     if (loadedMonthsRef.current.has(monthKey)) return;
     loadedMonthsRef.current.add(monthKey);
     try {
-      const monthMap = await loadMonthFromCloud(userId, monthKey);
-      if (Object.keys(monthMap).length) {
-        setTasksMap((prev) => mergeTasksMaps(prev, monthMap));
-      }
+      // New schema: read tasks and notes for month via repositories
+      if (!taskRepoRef.current || !noteRepoRef.current) return;
+      const [y, m] = monthKey.split('-');
+      const start = new Date(Number(y), Number(m) - 1, 1);
+      const end = new Date(Number(y), Number(m), 1);
+      const tasks = await taskRepoRef.current.fetchTasksInRange(start, end);
+      const notes = await noteRepoRef.current.fetchMonthNotes(monthKey);
+      const byDate = {};
+      tasks.forEach(t => {
+        const dk = t.dateKey;
+        if (!byDate[dk]) byDate[dk] = [];
+        // Ensure UI expects 'due' to be present
+        byDate[dk].push({ ...t, due: dk });
+      });
+      notes.forEach(n => {
+        const dk = n.dateKey;
+        const existing = byDate[dk] || [];
+        const list = existing.slice();
+        if (n.content) list.push({ id: 'day_note', due: dk, dayNote: n.content, createdAt: n.updatedAt || new Date().toISOString() });
+        byDate[dk] = list;
+      });
+      setTasksMap((prev) => mergeTasksMaps(prev, byDate));
     } catch (e) {
       console.error('Failed to load month from cloud', e);
     }
@@ -230,15 +253,18 @@ export default function App() {
 
   async function refreshDayFromCloud(userId, dateKey) {
     try {
-      const monthKey = monthKeyFromDateKey(dateKey);
-      const monthMap = await loadMonthFromCloud(userId, monthKey);
-      const cloudList = sortTasksByCreatedDesc(monthMap[dateKey] || []);
+      if (!taskRepoRef.current || !noteRepoRef.current) return;
+      const tasks = await taskRepoRef.current.fetchTasksForDate(dateKey);
+      const tasksWithDue = (tasks || []).map(t => ({ ...t, due: dateKey }));
+      const note = await noteRepoRef.current.getDayNote(dateKey);
+      const taskList = sortTasksByCreatedDesc(tasksWithDue);
+      const fullList = note?.content ? [...taskList, { id: 'day_note', due: dateKey, dayNote: note.content, createdAt: note.updatedAt || new Date().toISOString() }] : taskList;
       setTasksMap((prev) => {
         const prevList = prev[dateKey] || [];
         const prevJson = JSON.stringify(prevList);
-        const nextJson = JSON.stringify(cloudList);
+        const nextJson = JSON.stringify(fullList);
         if (prevJson === nextJson) return prev;
-        return { ...prev, [dateKey]: cloudList };
+        return { ...prev, [dateKey]: fullList };
       });
     } catch (e) {
       console.error('Failed to refresh day from cloud', e);
@@ -279,23 +305,48 @@ export default function App() {
     const unsub = auth.onAuthStateChanged(async (u) => {
       setUser(u);
       if (u) {
+        // Initialize repositories for the new user
+        taskRepoRef.current = createTaskRepository(u.uid);
+        noteRepoRef.current = createDayNoteRepository(u.uid);
+        
         // Load current month from Firestore and merge with local
         try {
           const currentMonthKey = monthKeyFromDate(new Date());
-          const monthMap = await loadMonthFromCloud(u.uid, currentMonthKey);
+          let monthMap = {};
+          if (taskRepoRef.current && noteRepoRef.current) {
+            const [y, m] = currentMonthKey.split('-');
+            const start = new Date(Number(y), Number(m) - 1, 1);
+            const end = new Date(Number(y), Number(m), 1);
+            const tasks = await taskRepoRef.current.fetchTasksInRange(start, end);
+            const notes = await noteRepoRef.current.fetchMonthNotes(currentMonthKey);
+            const byDate = {};
+            tasks.forEach(t => {
+              const dk = t.dateKey;
+              if (!byDate[dk]) byDate[dk] = [];
+              byDate[dk].push({ ...t, due: dk });
+            });
+            notes.forEach(n => {
+              const dk = n.dateKey;
+              const existing = byDate[dk] || [];
+              const list = existing.slice();
+              if (n.content) list.push({ id: 'day_note', due: dk, dayNote: n.content, createdAt: n.updatedAt || new Date().toISOString() });
+              byDate[dk] = list;
+            });
+            monthMap = byDate;
+          }
+          
           hasLoadedCloud.current = true;
           loadedMonthsRef.current.add(currentMonthKey);
           setTasksMap((prev) => {
             const merged = mergeTasksMaps(prev, monthMap);
-            // Seed current month to cloud for immediate consistency
-            const currentMonthMap = getMonthMapFor(merged, currentMonthKey);
-            saveMonthToCloud(u.uid, currentMonthKey, currentMonthMap).catch((e) => console.error('Seed month to cloud failed', e));
-            // Immediately sync all local months to Firestore
+            // TODO: Convert existing local data to new schema format
+            // For now, we'll keep the old sync logic but mark it for removal
             try {
               const months = new Set(Object.keys(merged).map((k) => monthKeyFromDateKey(k)));
               months.forEach((m) => {
                 const mMap = getMonthMapFor(merged, m);
-                saveMonthToCloud(u.uid, m, mMap).catch((err) => console.error('Cloud month sync failed', err));
+                // TODO: Convert to new schema and save using firebaseService
+                // saveMonthToCloud(u.uid, m, mMap).catch((err) => console.error('Cloud month sync failed', err));
               });
             } catch (err) {
               console.error('Bulk month sync failed', err);
@@ -329,6 +380,8 @@ export default function App() {
       } else {
         hasLoadedCloud.current = false;
         loadedMonthsRef.current = new Set();
+        taskRepoRef.current = null;
+        noteRepoRef.current = null;
         setStreak((s) => ensureStreakUpToDate(s));
       }
     });
@@ -411,7 +464,7 @@ export default function App() {
   }
 
   function isNoteItem(item) {
-    return item && item.id === DAY_NOTE_ID;
+    return item && item.id === 'day_note';
   }
 
   function splitDayList(list) {
@@ -443,7 +496,7 @@ export default function App() {
     const { taskList, noteItem } = splitDayList(prevList);
     const newNoteItem = text
       ? {
-          id: DAY_NOTE_ID,
+          id: 'day_note',
           due: dateKey,
           dayNote: text,
           createdAt: noteItem?.createdAt || new Date().toISOString(),
@@ -457,13 +510,13 @@ export default function App() {
       if (fullList.length) updated[dateKey] = fullList; else delete updated[dateKey];
       return updated;
     });
-    // Persist to cloud
+    // Persist to cloud using flat schema
     try {
-      if (user) {
-        if (fullList.length) {
-          await saveDayToCloud(user.uid, dateKey, fullList);
+      if (user && noteRepoRef.current) {
+        if (text) {
+          await noteRepoRef.current.saveDayNote(dateKey, text);
         } else {
-          await deleteDayFromCloud(user.uid, dateKey);
+          await noteRepoRef.current.deleteDayNote(dateKey);
         }
       }
     } catch (err) {
@@ -533,10 +586,10 @@ export default function App() {
     e.preventDefault();
     const key = keyFor(selectedDate);
     const subtasks = (Array.isArray(form.subtasks) ? form.subtasks : [])
-      .map((st) => ({ id: st.id || uid(), title: (st.title || '').trim(), done: !!st.done, createdAt: new Date().toISOString() }))
+      .map((st) => ({ id: st.id || generateId(), title: (st.title || '').trim(), done: !!st.done, createdAt: new Date().toISOString() }))
       .filter((st) => !!st.title);
     const newTask = {
-      id: uid(),
+      id: generateId(),
       title: form.title || "Untitled",
       notes: form.notes || "",
       done: false,
@@ -552,8 +605,8 @@ export default function App() {
       // Adding a new incomplete task should not trigger; guard by checking prev->new transition
       const fullList = mergeDayList(updatedTasks, noteItem);
       const updated = { ...prev, [key]: fullList };
-      if (user) {
-        saveDayToCloud(user.uid, key, fullList).catch((err) => console.error('Cloud addTask failed', err));
+      if (user && taskRepoRef.current) {
+        taskRepoRef.current.saveTask(key, newTask).catch((err) => console.error('Cloud addTask failed', err));
       }
       return updated;
     });
@@ -585,8 +638,9 @@ export default function App() {
       const sortedTasks = sortTasksByCreatedDesc(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [editTask.due]: fullList };
-      if (user) {
-        saveDayToCloud(user.uid, editTask.due, fullList).catch((err) => console.error('Cloud saveEdit failed', err));
+      if (user && taskRepoRef.current) {
+        const updatedTask = list.find(t => t.id === editTask.id);
+        if (updatedTask) taskRepoRef.current.saveTask(editTask.due, updatedTask).catch((err) => console.error('Cloud saveEdit failed', err));
       }
       return updated;
     });
@@ -639,8 +693,8 @@ export default function App() {
       const sortedTasks = sortTasksByCreatedDesc(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [task.due]: fullList };
-      if (user) {
-        saveDayToCloud(user.uid, task.due, fullList).catch((err) => console.error('Cloud toggleDone failed', err));
+      if (user && taskRepoRef.current) {
+        taskRepoRef.current.setTaskDone(task.id, !task.done).catch((err) => console.error('Cloud toggleDone failed', err));
       }
       return updated;
     });
@@ -684,12 +738,14 @@ export default function App() {
       const fullList = mergeDayList(sortedTasks, noteItem);
       if (fullList.length) copy[task.due] = fullList;
       else delete copy[task.due];
-      if (user) {
-        if (fullList.length) {
-          saveDayToCloud(user.uid, task.due, fullList).catch((err) => console.error('Cloud deleteTask failed', err));
-        } else {
-          deleteDayFromCloud(user.uid, task.due).catch((err) => console.error('Cloud deleteDay failed', err));
-        }
+      if (user && taskRepoRef.current) {
+        (async () => {
+          try {
+            await taskRepoRef.current.deleteTask(task.id);
+          } catch (err) {
+            console.error('Cloud deleteTask failed', err);
+          }
+        })();
       }
       return copy;
     });
@@ -708,7 +764,7 @@ export default function App() {
         const currentSubtasks = Array.isArray(t.subtasks) ? t.subtasks : [];
         const newSubtasks = [
           ...currentSubtasks,
-          { id: uid(), title: trimmed, done: false, createdAt: new Date().toISOString() },
+          { id: generateId(), title: trimmed, done: false, createdAt: new Date().toISOString() },
         ];
         // Parent is considered done only if all subtasks are done
         const parentDone = newSubtasks.length > 0 ? newSubtasks.every((st) => st.done) : t.done;
@@ -746,8 +802,9 @@ export default function App() {
       const sortedTasks = sortTasksByCreatedDesc(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [dueKey]: fullList };
-      if (user) {
-        saveDayToCloud(user.uid, dueKey, fullList).catch((err) => console.error('Cloud addSubtask failed', err));
+      if (user && taskRepoRef.current) {
+        const updatedTask = list.find(t => t.id === parentTask.id);
+        if (updatedTask) taskRepoRef.current.saveTask(dueKey, updatedTask).catch((err) => console.error('Cloud addSubtask failed', err));
       }
       return updated;
     });
@@ -803,8 +860,9 @@ export default function App() {
       const sortedTasks = sortTasksByCreatedDesc(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [dueKey]: fullList };
-      if (user) {
-        saveDayToCloud(user.uid, dueKey, fullList).catch((err) => console.error('Cloud toggleSubtask failed', err));
+      if (user && taskRepoRef.current) {
+        const updatedTask = list.find(t => t.id === parentTask.id);
+        if (updatedTask) taskRepoRef.current.saveTask(dueKey, updatedTask).catch((err) => console.error('Cloud toggleSubtask failed', err));
       }
       return updated;
     });
@@ -857,8 +915,9 @@ export default function App() {
       const sortedTasks = sortTasksByCreatedDesc(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [dueKey]: fullList };
-      if (user) {
-        saveDayToCloud(user.uid, dueKey, fullList).catch((err) => console.error('Cloud deleteSubtask failed', err));
+      if (user && taskRepoRef.current) {
+        const updatedTask = list.find(t => t.id === parentTask.id);
+        if (updatedTask) taskRepoRef.current.saveTask(dueKey, updatedTask).catch((err) => console.error('Cloud deleteSubtask failed', err));
       }
       return updated;
     });
@@ -937,14 +996,10 @@ export default function App() {
           });
         }
       }
-      if (user) {
+      if (user && taskRepoRef.current) {
         try {
-          if (fullFromList.length) {
-            saveDayToCloud(user.uid, fromKey, fullFromList).catch((err) => console.error('Cloud moveTask(from) failed', err));
-          } else {
-            deleteDayFromCloud(user.uid, fromKey).catch((err) => console.error('Cloud moveTask(delete from) failed', err));
-          }
-          saveDayToCloud(user.uid, toKey, fullToList).catch((err) => console.error('Cloud moveTask(to) failed', err));
+          // Persist changes: delete from original day and upsert to new day
+          taskRepoRef.current.updateTaskDueDate(taskId, toKey).catch((err) => console.error('Cloud moveTask failed', err));
         } catch (err) {
           console.error('Cloud moveTask error', err);
         }
@@ -994,11 +1049,17 @@ export default function App() {
         setTasksMap((prev) => {
           const merged = { ...prev, ...parsed };
           // Bulk sync all months to cloud if signed in
-          if (user) {
+          if (user && taskRepoRef.current && noteRepoRef.current) {
             const months = new Set(Object.keys(merged).map((k) => monthKeyFromDateKey(k)));
             months.forEach((m) => {
               const monthMap = getMonthMapFor(merged, m);
-              saveMonthToCloud(user.uid, m, monthMap).catch((err) => console.error('Cloud import sync failed', err));
+              Object.entries(monthMap).forEach(([dateKey, dayList]) => {
+                if (Array.isArray(dayList)) {
+                  const { taskList, noteItem } = splitDayList(dayList);
+                  taskList.forEach(t => taskRepoRef.current.saveTask(dateKey, t).catch(() => {}));
+                  if (noteItem?.dayNote) noteRepoRef.current.saveDayNote(dateKey, noteItem.dayNote).catch(() => {});
+                }
+              });
             });
           }
           return merged;
@@ -1012,19 +1073,25 @@ export default function App() {
 
   function clearAll() {
     if (!confirm("Clear all tasks?")) return;
-    setTasksMap((prev) => {
-      const months = new Set(Object.keys(prev).map((k) => monthKeyFromDateKey(k)));
-      if (user) {
-        months.forEach(async (m) => {
-          try {
-            await saveMonthToCloud(user.uid, m, {});
-          } catch (e) {
-            console.error('Cloud clear month failed', e);
-          }
-        });
-      }
-      return {};
-    });
+    const prevSnapshot = tasksMap;
+    setTasksMap(() => ({}));
+    // Fire and forget cloud cleanup
+    if (user && taskRepoRef.current) {
+      (async () => {
+        try {
+          const years = Array.from(new Set(Object.keys(prevSnapshot).map(k => k.slice(0, 4))));
+          await Promise.all(
+            years.map((year) => {
+              const start = new Date(Number(year), 0, 1);
+              const end = new Date(Number(year) + 1, 0, 1);
+              return taskRepoRef.current.deleteTasksInRange(start, end);
+            })
+          );
+        } catch (e) {
+          console.error('Cloud clear failed', e);
+        }
+      })();
+    }
     setStreak({ current: 0, longest: Number(streak?.longest) || 0, lastEarnedDateKey: null });
     if (user) saveStreakToCloud(user.uid, { current: 0, longest: Number(streak?.longest) || 0, lastEarnedDateKey: null }).catch(() => {});
   }

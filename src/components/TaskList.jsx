@@ -2,21 +2,29 @@ import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Check, RotateCcw, Trash, Clock, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { generateId } from "../utils/uid";
 
 function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, showDueDate = false }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
   const completedSubtasks = hasSubtasks ? t.subtasks.filter((st) => st.done).length : 0;
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
+  const isDone = t.done || false;
+  const dueDate = t.due || t.dateKey || null;
+  const createdAt = t.createdAt || new Date().toISOString();
+  const priority = t.priority || "medium";
+  const title = t.title || "Untitled";
+  const notes = t.notes || "";
+  const taskId = t.id || generateId();
   const priorityPill =
-    t.priority === "high"
+    priority === "high"
       ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
-      : t.priority === "low"
+      : priority === "low"
       ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
       : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300";
   const priorityBorder =
-    t.priority === "high"
+    priority === "high"
       ? "border-red-300 dark:border-red-800/80"
-      : t.priority === "low"
+      : priority === "low"
       ? "border-green-300 dark:border-green-800/80"
       : "border-amber-300 dark:border-amber-800/80";
   const [expanded, setExpanded] = useState(false);
@@ -39,29 +47,29 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   }
   return (
     <motion.div
-      key={t.id}
+      key={taskId}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       className={`relative overflow-hidden p-2 sm:p-3 border border-l-4 ${priorityBorder} bg-white dark:bg-slate-900 rounded-lg cursor-grab active:cursor-grabbing`}
       draggable
       onDragStart={(e) => onDragStartTask(e, t)}
-      title={`${t.title}${t.notes ? "\n" + t.notes : ""}`}
+      title={`${title}${notes ? "\n" + notes : ""}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className={`font-medium ${t.done ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate`}>{t.title}</div>
+          <div className={`font-medium ${isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate`}>{title}</div>
         </div>
         <div className="shrink-0 flex flex-col items-end gap-1">
           <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
-            <span className={`${t.priority === "high" ? "bg-red-600" : t.priority === "low" ? "bg-green-600" : "bg-amber-600"} w-1.5 h-1.5 rounded-full`} />
-            {t.priority.charAt(0).toUpperCase() + t.priority.slice(1)}
+            <span className={`${priority === "high" ? "bg-red-600" : priority === "low" ? "bg-green-600" : "bg-amber-600"} w-1.5 h-1.5 rounded-full`} />
+            {priority.charAt(0).toUpperCase() + priority.slice(1)}
           </div>
-          {showDueDate && t.due && (
-            <div className="text-[10px] text-slate-500 dark:text-slate-400">Due on {format(parseISO(t.due), "EEE, MMM d")}</div>
+          {showDueDate && dueDate && (
+            <div className="text-[10px] text-slate-500 dark:text-slate-400">Due on {format(parseISO(dueDate), "EEE, MMM d")}</div>
           )}
         </div>
       </div>
-      {t.notes && <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 break-words clamp-2">{t.notes}</div>}
+      {notes && <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 break-words clamp-2">{notes}</div>}
       <div className="mt-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {hasSubtasks && (
@@ -97,19 +105,19 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
           >
             <div className="space-y-1.5 py-1">
               {hasSubtasks && t.subtasks.map((st) => (
-                <div key={st.id} className="flex items-center justify-between gap-2">
+                <div key={st.id || generateId()} className="flex items-center justify-between gap-2">
                   <label className="flex items-center gap-2 min-w-0">
                     <input
                       type="checkbox"
-                      checked={!!st.done}
-                      onChange={() => onToggleSubtask && onToggleSubtask(t, st.id)}
+                      checked={!!(st.done || false)}
+                      onChange={() => onToggleSubtask && onToggleSubtask(t, st.id || generateId())}
                       className="w-4 h-4 rounded-md border-slate-300 dark:border-slate-600 accent-indigo-600 dark:accent-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
-                    <span className={`text-[12px] truncate ${st.done ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-300"}`}>{st.title}</span>
+                    <span className={`text-[12px] truncate ${(st.done || false) ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-300"}`}>{st.title || "Untitled"}</span>
                   </label>
                   <button
                     type="button"
-                    onClick={() => onDeleteSubtask && onDeleteSubtask(t, st.id)}
+                    onClick={() => onDeleteSubtask && onDeleteSubtask(t, st.id || generateId())}
                     className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400"
                     title="Delete subtask"
                     aria-label="Delete subtask"
@@ -144,12 +152,12 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
       </AnimatePresence>
       <div className="mt-2 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
-          <Clock size={12} /> {format(parseISO(t.createdAt), "PP p")}
+          <Clock size={12} /> {format(parseISO(createdAt), "PP p")}
         </div>
         <div className="flex gap-1.5">
-          <button onClick={() => onToggleDone(t)} className={`p-2 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 ${t.done ? "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700" : "text-green-600 dark:text-green-400 border-slate-200 dark:border-slate-700"}`} title={t.done ? "Undo" : "Mark done"} aria-label={t.done ? "Undo" : "Mark done"}>
-            {t.done ? <RotateCcw size={16} /> : <Check size={16} />}
-          </button>
+                  <button onClick={() => onToggleDone(t)} className={`p-2 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 ${isDone ? "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700" : "text-green-600 dark:text-green-400 border-slate-200 dark:border-slate-700"}`} title={isDone ? "Undo" : "Mark done"} aria-label={isDone ? "Undo" : "Mark done"}>
+          {isDone ? <RotateCcw size={16} /> : <Check size={16} />}
+        </button>
           <button onClick={() => onOpenEditModal(t)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400" title="Edit" aria-label="Edit">
             <Pencil size={16} />
           </button>

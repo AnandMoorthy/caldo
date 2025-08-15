@@ -1,5 +1,3 @@
-import { DAY_NOTE_ID } from "../constants.js";
-
 // Build searchable index from tasksMap
 export function buildSearchIndex(tasksMap) {
   const index = [];
@@ -9,7 +7,7 @@ export function buildSearchIndex(tasksMap) {
     
     // Index all tasks
     dayTasks.forEach(task => {
-      if (task.id === DAY_NOTE_ID) return; // Skip day notes here, handle separately
+      if (task.id === 'day_note') return; // Skip day notes here, handle separately
       
       index.push({
         id: task.id,
@@ -18,14 +16,14 @@ export function buildSearchIndex(tasksMap) {
         content: task.notes || '',
         dateKey,
         priority: task.priority,
-        completed: task.completed,
+        completed: !!task.done,
         due: task.due,
         searchableText: `${task.title} ${task.notes || ''} ${task.subtasks?.map(st => st.title).join(' ') || ''}`.toLowerCase()
       });
     });
     
     // Index day notes
-    const dayNote = dayTasks.find(item => item.id === DAY_NOTE_ID);
+    const dayNote = dayTasks.find(item => item.id === 'day_note');
     if (dayNote?.dayNote) {
       index.push({
         id: `${dateKey}_note`,
