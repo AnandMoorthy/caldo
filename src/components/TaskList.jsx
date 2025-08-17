@@ -4,7 +4,7 @@ import { Pencil, Check, RotateCcw, Trash, Clock, ChevronDown, ChevronRight, Plus
 import { format, parseISO } from "date-fns";
 import { generateId } from "../utils/uid";
 
-function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, showDueDate = false }) {
+function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, showDueDate = false, density = 'normal' }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
   const completedSubtasks = hasSubtasks ? t.subtasks.filter((st) => st.done).length : 0;
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
@@ -45,19 +45,28 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
     onAddSubtask && onAddSubtask(t, title);
     setNewSubTitle("");
   }
+  const paddingCls = density === 'minified' ? 'p-1' : density === 'compact' ? 'p-2' : 'p-2 sm:p-3';
+  const titleSizeCls = density === 'minified' ? 'text-[13px]' : density === 'compact' ? 'text-[14px]' : '';
+  const topGapCls = density === 'minified' ? 'gap-1' : 'gap-2';
+  const titleLeftMarginCls = density === 'minified' ? 'ml-0.5' : '';
+  const metaMarginTopCls = density === 'minified' ? 'mt-1' : 'mt-2';
+  const actionPadCls = density === 'minified' ? 'p-1' : density === 'compact' ? 'p-1.5' : 'p-2';
+  const iconSize = density === 'minified' ? 12 : density === 'compact' ? 14 : 16;
+  const showNotesPreview = !!notes && density !== 'minified';
+
   return (
     <motion.div
       key={taskId}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative overflow-hidden p-2 sm:p-3 border border-l-4 ${priorityBorder} bg-white dark:bg-slate-900 rounded-lg cursor-grab active:cursor-grabbing`}
+      className={`relative overflow-hidden ${paddingCls} border border-l-4 ${priorityBorder} bg-white dark:bg-slate-900 rounded-lg cursor-grab active:cursor-grabbing`}
       draggable
       onDragStart={(e) => onDragStartTask(e, t)}
       title={`${title}${notes ? "\n" + notes : ""}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className={`font-medium ${isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate`}>{title}</div>
+      <div className={`flex items-start justify-between ${topGapCls}`}>
+        <div className={`min-w-0 ${titleLeftMarginCls}`}>
+          <div className={`font-medium ${titleSizeCls} ${isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate`}>{title}</div>
         </div>
         <div className="shrink-0 flex flex-col items-end gap-1">
           <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
@@ -69,8 +78,8 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
           )}
         </div>
       </div>
-      {notes && <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 break-words clamp-2">{notes}</div>}
-      <div className="mt-2 flex items-center justify-between">
+      {showNotesPreview && <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 break-words clamp-2">{notes}</div>}
+      <div className={`${metaMarginTopCls} flex items-center justify-between`}>
         <div className="flex items-center gap-2">
           {hasSubtasks && (
             <button
@@ -80,7 +89,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
               aria-expanded={expanded}
               title={expanded ? "Hide subtasks" : "Show subtasks"}
             >
-              {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              {expanded ? <ChevronDown size={iconSize - 0} /> : <ChevronRight size={iconSize - 0} />}
               <span className="tabular-nums">
                 {completedSubtasks}/{totalSubtasks}
               </span>
@@ -90,9 +99,9 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
         <button
           type="button"
           onClick={onClickAddSubtask}
-          className="inline-flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline"
+          className={`inline-flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline ${density === 'minified' ? 'mr-0.5' : ''}`}
         >
-          <Plus size={12} /> Subtask
+          <Plus size={Math.max(10, iconSize - 2)} /> Subtask
         </button>
       </div>
       <AnimatePresence initial={false}>
@@ -122,7 +131,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
                     title="Delete subtask"
                     aria-label="Delete subtask"
                   >
-                    <Trash size={14} />
+                    <Trash size={Math.max(12, iconSize - 2)} />
                   </button>
                 </div>
               ))}
@@ -150,19 +159,21 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
           </motion.div>
         )}
       </AnimatePresence>
-      <div className="mt-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
-          <Clock size={12} /> {format(parseISO(createdAt), "PP p")}
-        </div>
+      <div className={`${metaMarginTopCls} flex items-center justify-between`}>
+        {density !== 'minified' && (
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500">
+            <Clock size={Math.max(10, iconSize - 2)} /> {format(parseISO(createdAt), "PP p")}
+          </div>
+        )}
         <div className="flex gap-1.5">
-                  <button onClick={() => onToggleDone(t)} className={`p-2 rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 ${isDone ? "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700" : "text-green-600 dark:text-green-400 border-slate-200 dark:border-slate-700"}`} title={isDone ? "Undo" : "Mark done"} aria-label={isDone ? "Undo" : "Mark done"}>
-          {isDone ? <RotateCcw size={16} /> : <Check size={16} />}
-        </button>
-          <button onClick={() => onOpenEditModal(t)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400" title="Edit" aria-label="Edit">
-            <Pencil size={16} />
+          <button onClick={() => onToggleDone(t)} className={`${actionPadCls} rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 ${isDone ? "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700" : "text-green-600 dark:text-green-400 border-slate-200 dark:border-slate-700"}`} title={isDone ? "Undo" : "Mark done"} aria-label={isDone ? "Undo" : "Mark done"}>
+            {isDone ? <RotateCcw size={iconSize} /> : <Check size={iconSize} />}
           </button>
-          <button onClick={() => onDeleteTask(t)} className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400" title="Delete" aria-label="Delete">
-            <Trash size={16} />
+          <button onClick={() => onOpenEditModal(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400`} title="Edit" aria-label="Edit">
+            <Pencil size={iconSize} />
+          </button>
+          <button onClick={() => onDeleteTask(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400`} title="Delete" aria-label="Delete">
+            <Trash size={iconSize} />
           </button>
         </div>
       </div>
@@ -170,13 +181,13 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   );
 }
 
-export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, fullHeight = false, showDueDate = false }) {
+export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, fullHeight = false, showDueDate = false, density = 'normal' }) {
   if (!tasks || tasks.length === 0) {
     return <div className="text-sm text-slate-400 dark:text-slate-500">No tasks. Double-click any day to add one quickly.</div>;
   }
 
   return (
-    <div className={fullHeight ? "space-y-3 h-full overflow-auto pr-2" : "space-y-3 max-h-[40vh] sm:max-h-[60vh] overflow-auto pr-2"}>
+    <div className={fullHeight ? `${density === 'minified' ? 'space-y-1.5' : density === 'compact' ? 'space-y-2' : 'space-y-3'} h-full overflow-auto pr-2` : `${density === 'minified' ? 'space-y-1.5' : density === 'compact' ? 'space-y-2' : 'space-y-3'} max-h-[40vh] sm:max-h-[60vh] overflow-auto pr-2`}>
       {tasks.map((t) => (
         <TaskCard
           key={t.id}
@@ -189,6 +200,7 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
           onToggleSubtask={onToggleSubtask}
           onDeleteSubtask={onDeleteSubtask}
           showDueDate={showDueDate}
+          density={density}
         />
       ))}
     </div>

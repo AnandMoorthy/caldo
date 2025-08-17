@@ -1,19 +1,19 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO } from "date-fns";
 import { motion } from "framer-motion";
-import { Plus, Check, StickyNote } from "lucide-react";
+import { Plus, Check, StickyNote, List, Grip, Minimize2 } from "lucide-react";
 import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Calendar from "./components/Calendar.jsx";
 import TaskList from "./components/TaskList.jsx";
 import AddTaskDrawer from "./components/AddTaskDrawer.jsx";
-import EditTaskModal from "./components/modals/EditTaskModal.jsx";
+import EditTaskDrawer from "./components/EditTaskDrawer.jsx";
 import CelebrationCanvas from "./components/CelebrationCanvas.jsx";
 import MissedTasksDrawer from "./components/MissedTasksDrawer.jsx";
 import DayNotesDrawer from "./components/DayNotesDrawer.jsx";
 import HelpPage from "./components/HelpPage.jsx";
 import SearchModal from "./components/SearchModal.jsx";
-import { loadTasks, saveTasks, loadStreak, saveStreak } from "./utils/storage";
+import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
 import { buildSearchIndex, searchTasks } from "./utils/search.js";
@@ -53,6 +53,9 @@ export default function App() {
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesJustSaved, setNotesJustSaved] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [density, setDensity] = useState(() => (typeof window === 'undefined' ? 'normal' : loadDensityPreference()));
+  const [showDensityMenu, setShowDensityMenu] = useState(false);
+  const densityMenuRef = useRef(null);
 
   // Search state
   const [showSearch, setShowSearch] = useState(false);
@@ -157,6 +160,19 @@ export default function App() {
   useEffect(() => {
     saveStreak(streak);
   }, [streak]);
+
+  useEffect(() => {
+    try { saveDensityPreference(density); } catch {}
+  }, [density]);
+
+  useEffect(() => {
+    function onDocClick(e) {
+      if (!densityMenuRef.current) return;
+      if (!densityMenuRef.current.contains(e.target)) setShowDensityMenu(false);
+    }
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, []);
 
   // celebration canvas moved to component
 
@@ -620,7 +636,19 @@ export default function App() {
 
   function openEditModal(task) {
     setEditTask(task);
-    setEditForm({ title: task.title, notes: task.notes, priority: task.priority || 'medium' });
+    setEditForm({
+      title: task.title,
+      notes: task.notes,
+      priority: task.priority || 'medium',
+      subtasks: Array.isArray(task.subtasks)
+        ? task.subtasks.map((st) => ({
+            id: st.id || generateId(),
+            title: st.title || '',
+            done: !!st.done,
+            createdAt: st.createdAt || new Date().toISOString(),
+          }))
+        : [],
+    });
     setShowEdit(true);
   }
 
@@ -630,11 +658,29 @@ export default function App() {
     setTasksMap((prev) => {
       const prevList = prev[editTask.due] || [];
       const { taskList, noteItem } = splitDayList(prevList);
-      const list = taskList.map((t) =>
-        t.id === editTask.id
-          ? { ...t, title: editForm.title || 'Untitled', notes: editForm.notes || '', priority: editForm.priority || 'medium' }
-          : t
-      );
+      const list = taskList.map((t) => {
+        if (t.id !== editTask.id) return t;
+        const sanitizedSubs = Array.isArray(editForm.subtasks)
+          ? editForm.subtasks
+              .map((st) => ({
+                id: st.id || generateId(),
+                title: (st.title || '').trim(),
+                done: !!st.done,
+                createdAt: st.createdAt || new Date().toISOString(),
+              }))
+              .filter((st) => !!st.title)
+          : [];
+        const parentDone = sanitizedSubs.length > 0 ? sanitizedSubs.every((st) => st.done) : t.done;
+        const updated = {
+          ...t,
+          title: editForm.title || 'Untitled',
+          notes: editForm.notes || '',
+          priority: editForm.priority || 'medium',
+          done: parentDone,
+          ...(sanitizedSubs.length ? { subtasks: sanitizedSubs } : { subtasks: [] }),
+        };
+        return updated;
+      });
       const sortedTasks = sortTasksByCreatedDesc(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [editTask.due]: fullList };
@@ -1150,6 +1196,51 @@ export default function App() {
                 <div className="font-semibold text-slate-900 dark:text-slate-100">{format(selectedDate, 'EEEE, MMM d')}</div>
               </div>
               <div className="flex items-center gap-2">
+                <div className="relative" ref={densityMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setShowDensityMenu((v) => !v)}
+                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
+                    aria-label="Task card density"
+                    title="Task card density"
+                  >
+                    {density === 'minified' ? <Minimize2 size={16} /> : density === 'compact' ? <Grip size={16} /> : <List size={16} />}
+                  </button>
+                  {showDensityMenu && (
+                    <div className="absolute right-0 z-10 mt-2 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1">
+                      <button
+                        type="button"
+                        onClick={() => { setDensity('normal'); setShowDensityMenu(false); }}
+                        className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'normal' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        title="Normal"
+                        aria-label="Normal density"
+                      >
+                        <List size={16} />
+                        <span className="text-sm">Normal</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setDensity('compact'); setShowDensityMenu(false); }}
+                        className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'compact' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        title="Compact"
+                        aria-label="Compact density"
+                      >
+                        <Grip size={16} />
+                        <span className="text-sm">Compact</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setDensity('minified'); setShowDensityMenu(false); }}
+                        className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'minified' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        title="Minified"
+                        aria-label="Minified density"
+                      >
+                        <Minimize2 size={16} />
+                        <span className="text-sm">Minified</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   onClick={() => setShowNotes(true)}
                   className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
@@ -1179,6 +1270,7 @@ export default function App() {
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
               onDeleteSubtask={deleteSubtask}
+              density={density}
             />
           </aside>
         </main>
@@ -1196,7 +1288,7 @@ export default function App() {
         )}
 
         <AddTaskDrawer open={showAdd} selectedDate={selectedDate} form={form} setForm={setForm} onSubmit={addTask} onClose={() => setShowAdd(false)} />
-        <EditTaskModal open={showEdit} editForm={editForm} setEditForm={setEditForm} onSubmit={saveEdit} onClose={() => setShowEdit(false)} />
+        <EditTaskDrawer open={showEdit} editForm={editForm} setEditForm={setEditForm} onSubmit={saveEdit} onClose={() => setShowEdit(false)} />
         <MissedTasksDrawer
           open={showMissed}
           count={missedTasksThisMonth.length}
@@ -1209,6 +1301,7 @@ export default function App() {
           onAddSubtask={addSubtask}
           onToggleSubtask={toggleSubtask}
           onDeleteSubtask={deleteSubtask}
+          density={density}
         />
 
         <DayNotesDrawer

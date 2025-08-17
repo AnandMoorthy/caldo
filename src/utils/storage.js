@@ -1,6 +1,7 @@
 export const STORAGE_KEY = "caldo_v2_tasks";
 export const STREAK_KEY = "caldo_v2_streak";
 export const THEME_KEY = "caldo_v2_theme"; // 'light' | 'dark'
+export const DENSITY_KEY = "caldo_v2_density"; // 'normal' | 'compact' | 'minified'
 
 export function loadTasks() {
   try {
@@ -56,6 +57,22 @@ export function loadThemePreference() {
 export function saveThemePreference(theme) {
   try {
     if (theme === 'light' || theme === 'dark') localStorage.setItem(THEME_KEY, theme);
+  } catch {}
+}
+
+export function loadDensityPreference() {
+  try {
+    const stored = localStorage.getItem(DENSITY_KEY);
+    if (stored === 'normal' || stored === 'compact' || stored === 'minified') return stored;
+  } catch {}
+  return 'normal';
+}
+
+export function saveDensityPreference(density) {
+  try {
+    if (density === 'normal' || density === 'compact' || density === 'minified') {
+      localStorage.setItem(DENSITY_KEY, density);
+    }
   } catch {}
 }
 

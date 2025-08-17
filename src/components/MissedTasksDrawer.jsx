@@ -15,6 +15,7 @@ export default function MissedTasksDrawer({
   onAddSubtask,
   onToggleSubtask,
   onDeleteSubtask,
+  density = 'normal',
 }) {
   return (
     <AnimatePresence>
@@ -60,6 +61,7 @@ export default function MissedTasksDrawer({
               onDeleteSubtask={onDeleteSubtask}
               fullHeight
               showDueDate
+              density={density}
             />
           </div>
         </motion.aside>
