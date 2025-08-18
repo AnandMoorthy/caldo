@@ -1,5 +1,5 @@
 // Build searchable index from tasksMap
-export function buildSearchIndex(tasksMap) {
+export function buildSearchIndex(tasksMap, snippets = []) {
   const index = [];
   
   Object.entries(tasksMap).forEach(([dateKey, dayTasks]) => {
@@ -35,6 +35,19 @@ export function buildSearchIndex(tasksMap) {
     }
   });
   
+  // Index global snippets
+  (Array.isArray(snippets) ? snippets : []).forEach(snippet => {
+    if (!snippet) return;
+    index.push({
+      id: snippet.id,
+      type: 'snippet',
+      title: snippet.title || 'Snippet',
+      content: snippet.content || '',
+      updatedAt: snippet.updatedAt || null,
+      searchableText: `${snippet.title || ''} ${snippet.content || ''}`.toLowerCase(),
+    });
+  });
+
   return index;
 }
 
@@ -44,6 +57,14 @@ export function searchTasks(query, searchIndex) {
   
   const searchTerm = query.toLowerCase().trim();
   
+  const normalizeDate = (value) => {
+    try {
+      if (!value) return new Date(0);
+      if (typeof value?.toDate === 'function') return value.toDate();
+      return new Date(value);
+    } catch { return new Date(0); }
+  };
+
   return searchIndex
     .filter(item => 
       item.searchableText.includes(searchTerm) ||
@@ -53,12 +74,12 @@ export function searchTasks(query, searchIndex) {
       // Prioritize exact title matches
       const aTitleMatch = a.title?.toLowerCase().includes(searchTerm);
       const bTitleMatch = b.title?.toLowerCase().includes(searchTerm);
-      
       if (aTitleMatch && !bTitleMatch) return -1;
       if (!aTitleMatch && bTitleMatch) return 1;
-      
-      // Then by recency (newer dates first)
-      return new Date(b.dateKey) - new Date(a.dateKey);
+      // Then by recency: snippets by updatedAt, others by dateKey
+      const aTime = a.updatedAt ? normalizeDate(a.updatedAt) : (a.dateKey ? normalizeDate(a.dateKey) : new Date(0));
+      const bTime = b.updatedAt ? normalizeDate(b.updatedAt) : (b.dateKey ? normalizeDate(b.dateKey) : new Date(0));
+      return bTime - aTime;
     })
     .slice(0, 20); // Limit results for performance
 }

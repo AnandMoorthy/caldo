@@ -136,7 +136,7 @@ export default function AddTaskDrawer({ open, selectedDate, form, setForm, onSub
                             }))
                           }
                           className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400"
-                          title="Delete subtask"
+                          data-tip="Delete subtask"
                           aria-label="Delete subtask"
                         >
                           <Trash size={14} />
@@ -226,7 +226,7 @@ export default function AddTaskDrawer({ open, selectedDate, form, setForm, onSub
                                       return { ...f, recurrence: { ...(f?.recurrence || {}), byWeekday: cur } };
                                     })}
                                     className={`h-8 rounded ${active ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}
-                                    title={labels[d]}
+                                    data-tip={labels[d]}
                                   >
                                     {labels[d]}
                                   </button>

@@ -14,6 +14,8 @@ import DayNotesDrawer from "./components/DayNotesDrawer.jsx";
 import HelpPage from "./components/HelpPage.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 import ScopeDialog from "./components/ScopeDialog.jsx";
+import SnippetsModal from "./components/SnippetsModal.jsx";
+import TooltipProvider from "./components/Tooltip.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
@@ -21,6 +23,7 @@ import { buildSearchIndex, searchTasks } from "./utils/search.js";
 import { DRAG_MIME } from "./constants";
 import { createTaskRepository } from "./services/repositories/taskRepository";
 import { createDayNoteRepository } from "./services/repositories/noteRepository";
+import { createSnippetRepository } from "./services/repositories/snippetRepository";
 import { materializeSeries } from "./utils/recurrence";
 
 
@@ -48,6 +51,8 @@ export default function App() {
   // Repositories
   const taskRepoRef = useRef(null);
   const noteRepoRef = useRef(null);
+  const snippetRepoRef = useRef(null);
+  const [snippetsCache, setSnippetsCache] = useState([]);
   // profile menu moved into Header component
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(monthStart);
@@ -58,6 +63,7 @@ export default function App() {
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesJustSaved, setNotesJustSaved] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showSnippets, setShowSnippets] = useState(false);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const scopeActionRef = useRef(null); // { type: 'delete'|'edit', task }
   const [density, setDensity] = useState(() => (typeof window === 'undefined' ? 'normal' : loadDensityPreference()));
@@ -105,11 +111,11 @@ export default function App() {
     try { saveRecurringSeries(recurringSeries); } catch {}
   }, [recurringSeries]);
 
-  // Build search index when tasks change
+  // Build search index when tasks or snippets change
   useEffect(() => {
-    const newIndex = buildSearchIndex(tasksMap);
+    const newIndex = buildSearchIndex(tasksMap, snippetsCache);
     setSearchIndex(newIndex);
-  }, [tasksMap]);
+  }, [tasksMap, snippetsCache]);
 
   // Update search results when query changes
   useEffect(() => {
@@ -162,6 +168,7 @@ export default function App() {
         if (showNotes) setShowNotes(false);
         if (showMissed) setShowMissed(false);
         if (showHelp) setShowHelp(false);
+        if (showSnippets) setShowSnippets(false);
         if (showSearch) setShowSearch(false);
         stopNavRepeat();
         return;
@@ -173,6 +180,13 @@ export default function App() {
         e.preventDefault();
         setShowSearch(true);
         setSearchQuery("");
+        return;
+      }
+
+      // Handle Cmd/Ctrl+Shift+S for snippets
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && key === 's') {
+        e.preventDefault();
+        setShowSnippets(true);
         return;
       }
       
@@ -408,6 +422,11 @@ export default function App() {
         // Initialize repositories for the new user
         taskRepoRef.current = createTaskRepository(u.uid);
         noteRepoRef.current = createDayNoteRepository(u.uid);
+        snippetRepoRef.current = createSnippetRepository(u.uid);
+        // Warm snippet cache (non-blocking)
+        try {
+          snippetRepoRef.current.listSnippets({ includeArchived: false, limit: 500 }).then((items) => setSnippetsCache(items)).catch(() => {});
+        } catch {}
         
         // Load current month from Firestore and merge with local
         try {
@@ -510,6 +529,8 @@ export default function App() {
         loadedMonthsRef.current = new Set();
         taskRepoRef.current = null;
         noteRepoRef.current = null;
+        snippetRepoRef.current = null;
+        setSnippetsCache([]);
         setRecurringEnabled(true);
         setDeleteAllTasksEnabled(false);
         setStreak((s) => ensureStreakUpToDate(s));
@@ -706,21 +727,31 @@ export default function App() {
   // Navigate to search result item
   function navigateToSearchResult(result) {
     try {
+      // Snippet: open snippets modal focused on that snippet
+      if (result.type === 'snippet') {
+        setShowSearch(false);
+        setSearchQuery("");
+        setShowSnippets(true);
+        // Defer selection to the modal via custom event
+        setTimeout(() => {
+          try {
+            const event = new CustomEvent('snippets:select', { detail: { id: result.id } });
+            window.dispatchEvent(event);
+          } catch {}
+        }, 0);
+        return;
+      }
+
       const dateKey = result.dateKey;
       const date = parseISO(dateKey);
-      
-      // Navigate to the date in calendar
+
       setSelectedDate(date);
       setCursor(date);
-      
-      // Close search modal
+
       setShowSearch(false);
       setSearchQuery("");
-      
-      // If it's a note, open the notes drawer
-      if (result.type === 'note') {
-        setShowNotes(true);
-      }
+
+      if (result.type === 'note') setShowNotes(true);
       
       // TODO: In future phases, we can add highlighting and scrolling to specific tasks
     } catch (error) {
@@ -1554,6 +1585,7 @@ export default function App() {
           onImportJSON={importJSON}
           onOpenHelp={() => setShowHelp(true)}
           onOpenSearch={() => setShowSearch(true)}
+          onOpenSnippets={() => setShowSnippets(true)}
           currentStreak={streak?.current || 0}
           deleteAllTasksEnabled={!!deleteAllTasksEnabled}
           onDeleteAllTasks={deleteAllTasksFromCloud}
@@ -1602,7 +1634,7 @@ export default function App() {
                     onClick={() => setShowDensityMenu((v) => !v)}
                     className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
                     aria-label="Task card density"
-                    title="Task card density"
+                    data-tip="Task card density"
                   >
                     {density === 'minified' ? <Minimize2 size={16} /> : density === 'compact' ? <Grip size={16} /> : <List size={16} />}
                   </button>
@@ -1612,7 +1644,7 @@ export default function App() {
                         type="button"
                         onClick={() => { setDensity('normal'); setShowDensityMenu(false); }}
                         className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'normal' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                        title="Normal"
+                        data-tip="Normal"
                         aria-label="Normal density"
                       >
                         <List size={16} />
@@ -1622,7 +1654,7 @@ export default function App() {
                         type="button"
                         onClick={() => { setDensity('compact'); setShowDensityMenu(false); }}
                         className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'compact' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                        title="Compact"
+                        data-tip="Compact"
                         aria-label="Compact density"
                       >
                         <Grip size={16} />
@@ -1632,7 +1664,7 @@ export default function App() {
                         type="button"
                         onClick={() => { setDensity('minified'); setShowDensityMenu(false); }}
                         className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'minified' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                        title="Minified"
+                        data-tip="Minified"
                         aria-label="Minified density"
                       >
                         <Minimize2 size={16} />
@@ -1645,7 +1677,7 @@ export default function App() {
                   onClick={() => setShowNotes(true)}
                   className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
                   aria-label="Open notes (N)"
-                  title="Open notes (N)"
+                  data-tip="Open notes (N)"
                 >
                   <StickyNote size={16} />
                 </button>
@@ -1653,7 +1685,7 @@ export default function App() {
                   onClick={() => openAddModal(selectedDate)}
                   className="bg-indigo-600 text-white p-2 rounded-lg inline-flex items-center justify-center"
                   aria-label="Add task (T)"
-                  title="Add task (T)"
+                  data-tip="Add task (T)"
                 >
                   <Plus size={16} />
                 </button>
@@ -1737,6 +1769,14 @@ export default function App() {
           onQueryChange={setSearchQuery}
         />
 
+        <SnippetsModal
+          open={showSnippets}
+          onClose={() => setShowSnippets(false)}
+          repo={snippetRepoRef.current}
+          user={user}
+          onSnippetsChanged={(items) => setSnippetsCache(items || [])}
+        />
+
         <ScopeDialog
           open={scopeDialogOpen}
           onClose={() => { setScopeDialogOpen(false); scopeActionRef.current = null; }}
@@ -1745,6 +1785,7 @@ export default function App() {
         />
 
         <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
+        <TooltipProvider />
       </div>
     </div>
   );

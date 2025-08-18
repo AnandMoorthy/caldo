@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun, HelpCircle, Search } from "lucide-react";
+import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun, HelpCircle, Search, Code2 } from "lucide-react";
 import { loadThemePreference, saveThemePreference } from "../utils/storage";
 
 function Avatar({ user }) {
@@ -21,7 +21,7 @@ function Avatar({ user }) {
   return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
-export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks }) {
+export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, onOpenSnippets, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const [canInstall, setCanInstall] = useState(false);
@@ -138,9 +138,16 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
         <button 
           onClick={onOpenSearch} 
           className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
-          title={`Search tasks and notes (${isMac ? '⌘K' : 'Ctrl+K'})`}
+          data-tip={`Search tasks and notes (${isMac ? '⌘K' : 'Ctrl+K'})`}
         >
           <Search size={18} />
+        </button>
+        <button 
+          onClick={onOpenSnippets}
+          className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
+          data-tip={`Snippets (${isMac ? '⌘⇧S' : 'Ctrl+Shift+S'})`}
+        >
+          <Code2 size={18} />
         </button>
         {/* {!isStandalone && (canInstall || isIOS) && (
           <button onClick={onClickInstall} className="bg-indigo-600 text-white px-3 py-2 rounded-lg inline-flex items-center gap-2">
@@ -153,7 +160,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
           animate={{ scale: [1, 1.08, 1], opacity: 1 }}
           transition={{ duration: 0.6, type: 'spring', stiffness: 250, damping: 18 }}
           className="inline-flex items-center gap-1.5 h-7 px-2 rounded-full text-s bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-900/50"
-          title="Current streak"
+          data-tip="Current streak"
           aria-live="polite"
         >
           <motion.span

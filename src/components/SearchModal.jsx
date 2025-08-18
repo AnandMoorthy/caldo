@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Calendar, StickyNote, CheckCircle, Circle, Clock } from "lucide-react";
+import { Search, Calendar, StickyNote, CheckCircle, Circle, Clock, Code2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { highlightText } from "../utils/search.js";
 
@@ -106,7 +106,7 @@ export default function SearchModal({
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search tasks and notes..."
+            placeholder="Search tasks, notes, and snippets..."
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             className="w-full pl-10 pr-4 py-3 text-base bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white"
@@ -163,12 +163,14 @@ export default function SearchModal({
 
 function SearchResult({ result, isSelected, query, onClick }) {
   const getIcon = () => {
+    if (result.type === 'snippet') return <Code2 size={16} />;
     if (result.type === 'note') return <StickyNote size={16} />;
     if (result.completed) return <CheckCircle size={16} />;
     return <Circle size={16} />;
   };
 
   const getPriorityColor = () => {
+    if (result.type === 'snippet') return 'text-indigo-500';
     if (result.type === 'note') return 'text-blue-500';
     if (result.priority === 'high') return 'text-red-500';
     if (result.priority === 'low') return 'text-green-500';
@@ -200,7 +202,7 @@ function SearchResult({ result, isSelected, query, onClick }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-              {result.type === 'note' ? 'Day Note' : result.title}
+              {result.type === 'note' ? 'Day Note' : result.type === 'snippet' ? (result.title || 'Snippet') : result.title}
             </span>
             {result.type === 'task' && result.priority && (
               <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -222,16 +224,20 @@ function SearchResult({ result, isSelected, query, onClick }) {
             />
           )}
           
-          <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <Calendar size={12} />
-            <span>{formatDate(result.dateKey)}</span>
-            {result.type === 'task' && result.due && (
-              <>
-                <Clock size={12} />
-                <span>Due {format(parseISO(result.due), 'MMM d')}</span>
-              </>
-            )}
-          </div>
+          {result.type !== 'snippet' ? (
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <Calendar size={12} />
+              <span>{formatDate(result.dateKey)}</span>
+              {result.type === 'task' && result.due && (
+                <>
+                  <Clock size={12} />
+                  <span>Due {format(parseISO(result.due), 'MMM d')}</span>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="text-xs text-slate-500 dark:text-slate-400">Snippet</div>
+          )}
         </div>
       </div>
     </div>

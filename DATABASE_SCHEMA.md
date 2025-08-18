@@ -13,6 +13,9 @@ We use a flat, query-first schema to support fast daily/weekly/monthly views and
 - Day notes: `users/{uid}/dayNotes/{dateKey}`
   - One document per day note (at most one note per day).
 
+- Snippets: `users/{uid}/snippets/{snippetId}`
+  - Developer-focused global notes (code/JSON/markdown). Not date-bound.
+
 - Meta: `users/{uid}/meta/streakInfo`
   - Single document for streak data.
 
@@ -48,6 +51,23 @@ Notes:
   "ownerUid": "<uid>",
   "dateKey": "YYYY-MM-DD",
   "content": "Note content",
+  "updatedAt": <timestamp>
+}
+```
+
+## Snippet document
+```json
+{
+  "ownerUid": "<uid>",
+  "title": "Untitled snippet",
+  "content": "Markdown/code content",
+  "tags": ["api", "json"],
+  "language": "js|null",
+  "pinned": false,
+  "archived": false,
+  "copyCount": 0,
+  "lastCopiedAt": <timestamp|null>,
+  "createdAt": <timestamp>,
   "updatedAt": <timestamp>
 }
 ```
@@ -124,6 +144,19 @@ service cloud.firestore {
                             && request.auth.uid == userId
                             && (resource == null || resource.data.ownerUid == userId)
                             && request.resource.data.ownerUid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Snippets
+    match /users/{userId}/snippets/{snippetId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.ownerUid == userId;
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && resource.data.ownerUid == userId
+                    && request.resource.data.ownerUid == userId;
       allow delete: if request.auth != null && request.auth.uid == userId;
     }
 

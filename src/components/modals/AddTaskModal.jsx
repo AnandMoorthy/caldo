@@ -87,7 +87,7 @@ export default function AddTaskModal({ open, selectedDate, form, setForm, onSubm
                         }))
                       }
                       className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400"
-                      title="Delete subtask"
+                      data-tip="Delete subtask"
                       aria-label="Delete subtask"
                     >
                       <Trash size={14} />

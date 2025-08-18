@@ -22,7 +22,7 @@ export default function HelpPage({ open, onClose }) {
               onClick={onClose}
               className="w-9 h-9 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
               aria-label="Close help"
-              title="Close (Esc)"
+              data-tip="Close (Esc)"
             >
               <X size={18} />
             </button>

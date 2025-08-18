@@ -36,7 +36,7 @@ export default function Calendar({
             onClick={onOpenMissed}
             className="relative text-sm px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 inline-flex items-center gap-2"
             aria-label="Show missed tasks"
-            title="Show missed tasks this month"
+            data-tip="Show missed tasks this month"
           >
             <ListX size={16} />
             <span>Missed</span>
@@ -104,12 +104,12 @@ export default function Calendar({
               {(tasks.length > 0 || (hasNoteFor && hasNoteFor(day))) && (
                 <div
                   className="absolute bottom-1 right-1 flex items-center gap-0.5"
-                  title={`${doneCount}/${tasks.length} done${hasNoteFor && hasNoteFor(day) ? ' • Notes' : ''}`}
+                  data-tip={`${doneCount}/${tasks.length} done${hasNoteFor && hasNoteFor(day) ? ' • Notes' : ''}`}
                 >
                   {hasNoteFor && hasNoteFor(day) && (
                     <span
                       className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"
-                      title="Notes present"
+                      data-tip="Notes present"
                     />
                   )}
                   {(() => {

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Bold, Italic, List, ListOrdered, Square } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -9,6 +9,7 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
   const textareaRef = useRef(null);
   const [mode, setMode] = useState(() => loadNotesModePreference()); // 'edit' | 'preview'
   const safeText = useMemo(() => String(value || ""), [value]);
+  const [autoJustSaved, setAutoJustSaved] = useState(false);
 
   function goEdit() {
     setMode('edit');
@@ -97,6 +98,21 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
   function onOl() { formatLines((i) => `${i + 1}. `); }
   function onChecklist() { formatLines(() => '- [ ] '); }
 
+  // Autosave day note: debounce when in edit mode
+  useEffect(() => {
+    if (!open) return;
+    if (mode !== 'edit') return;
+    const text = String(value || '');
+    const handle = setTimeout(async () => {
+      try {
+        if (onSave) await onSave();
+        setAutoJustSaved(true);
+        setTimeout(() => setAutoJustSaved(false), 900);
+      } catch {}
+    }, 1200);
+    return () => clearTimeout(handle);
+  }, [value, mode, open]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -132,20 +148,20 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
             </div>
 
             <div className="flex flex-wrap items-center gap-1 mb-2">
-              <button type="button" disabled={mode==='preview'} onClick={onBold} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} title="Bold (wrap with **)">
+              <button type="button" disabled={mode==='preview'} onClick={onBold} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Bold (wrap with **)">
                 <Bold size={14} /> Bold
               </button>
-              <button type="button" disabled={mode==='preview'} onClick={onItalic} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} title="Italic (wrap with *)">
+              <button type="button" disabled={mode==='preview'} onClick={onItalic} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Italic (wrap with *)">
                 <Italic size={14} /> Italic
               </button>
               <span className="inline-block w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
-              <button type="button" disabled={mode==='preview'} onClick={onUl} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} title="Bullet list (-)">
+              <button type="button" disabled={mode==='preview'} onClick={onUl} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Bullet list (-)">
                 <List size={14} /> Bullets
               </button>
-              <button type="button" disabled={mode==='preview'} onClick={onOl} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} title="Numbered list (1.)">
+              <button type="button" disabled={mode==='preview'} onClick={onOl} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Numbered list (1.)">
                 <ListOrdered size={14} /> Numbers
               </button>
-              <button type="button" disabled={mode==='preview'} onClick={onChecklist} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} title="Checklist (- [ ] )">
+              <button type="button" disabled={mode==='preview'} onClick={onChecklist} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Checklist (- [ ] )">
                 <Square size={14} /> Checklist
               </button>
             </div>

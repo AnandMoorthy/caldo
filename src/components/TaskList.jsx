@@ -62,7 +62,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
       className={`relative overflow-hidden ${paddingCls} border border-l-4 ${priorityBorder} bg-white dark:bg-slate-900 rounded-lg cursor-grab active:cursor-grabbing`}
       draggable
       onDragStart={(e) => onDragStartTask(e, t)}
-      title={`${title}${notes ? "\n" + notes : ""}`}
+      data-tip={`${title}${notes ? "\n" + notes : ""}`}
     >
       <div className={`flex items-start justify-between ${topGapCls}`}>
         <div className={`min-w-0 ${titleLeftMarginCls}`}>
@@ -87,7 +87,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
               onClick={() => setExpanded((v) => !v)}
               className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               aria-expanded={expanded}
-              title={expanded ? "Hide subtasks" : "Show subtasks"}
+              data-tip={expanded ? "Hide subtasks" : "Show subtasks"}
             >
               {expanded ? <ChevronDown size={iconSize - 0} /> : <ChevronRight size={iconSize - 0} />}
               <span className="tabular-nums">
@@ -128,7 +128,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
                     type="button"
                     onClick={() => onDeleteSubtask && onDeleteSubtask(t, st.id || generateId())}
                     className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400"
-                    title="Delete subtask"
+                    data-tip="Delete subtask"
                     aria-label="Delete subtask"
                   >
                     <Trash size={Math.max(12, iconSize - 2)} />
@@ -167,17 +167,17 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
         )}
         <div className="flex gap-1.5 items-center">
           {t.isRecurringInstance && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400" title="Recurring">
+            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400" data-tip="Recurring">
               <RefreshCcw size={Math.max(10, iconSize - 2)} /> Recurring
             </span>
           )}
-          <button onClick={() => onToggleDone(t)} className={`${actionPadCls} rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 ${isDone ? "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700" : "text-green-600 dark:text-green-400 border-slate-200 dark:border-slate-700"}`} title={isDone ? "Undo" : "Mark done"} aria-label={isDone ? "Undo" : "Mark done"}>
+          <button onClick={() => onToggleDone(t)} className={`${actionPadCls} rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 ${isDone ? "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700" : "text-green-600 dark:text-green-400 border-slate-200 dark:border-slate-700"}`} data-tip={isDone ? "Undo" : "Mark done"} aria-label={isDone ? "Undo" : "Mark done"}>
             {isDone ? <RotateCcw size={iconSize} /> : <Check size={iconSize} />}
           </button>
-          <button onClick={() => onOpenEditModal(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400`} title="Edit" aria-label="Edit">
+          <button onClick={() => onOpenEditModal(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400`} data-tip="Edit" aria-label="Edit">
             <Pencil size={iconSize} />
           </button>
-          <button onClick={() => onDeleteTask(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400`} title="Delete" aria-label="Delete">
+          <button onClick={() => onDeleteTask(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400`} data-tip="Delete" aria-label="Delete">
             <Trash size={iconSize} />
           </button>
         </div>
