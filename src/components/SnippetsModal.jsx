@@ -66,6 +66,29 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     }
   }
 
+  // Optimized update function that doesn't reload the entire list
+  function updateSnippetInList(id, updates) {
+    setSnippets(prev => {
+      const updated = prev.map(s => s.id === id ? { ...s, ...updates } : s);
+      // Re-sort to maintain pinned order
+      return updated.sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || (new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0) - new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0)));
+    });
+  }
+
+  // Add snippet to list without reloading
+  function addSnippetToList(snippet) {
+    setSnippets(prev => {
+      const newList = [...prev, snippet];
+      // Re-sort to maintain pinned order
+      return newList.sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || (new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0) - new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0)));
+    });
+  }
+
+  // Remove snippet from list without reloading
+  function removeSnippetFromList(id) {
+    setSnippets(prev => prev.filter(s => s.id !== id));
+  }
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return snippets;
@@ -92,7 +115,8 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     setSaving(true);
     try {
       await repo.updateSnippet(id, { pinned: nextPinned });
-      await refreshList();
+      // Update in list without reloading
+      updateSnippetInList(id, { pinned: nextPinned });
     } catch (e) {
       console.error('Toggle pin failed', e);
     } finally {
@@ -115,12 +139,18 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
       const payload = { title: (title || 'Untitled snippet').trim(), content: String(content || '') };
       if (selectedId === '__new__' || !snippets.find(s => s.id === selectedId)) {
         const created = await repo.createSnippet(payload);
-        await refreshList();
+        // Add to list without reloading
+        addSnippetToList(created);
         setSelectedId(created?.id || null);
         lastSavedRef.current = { id: created?.id || null, title: payload.title, content: payload.content };
       } else {
         await repo.updateSnippet(selectedId, payload);
-        await refreshList();
+        // Update in list without reloading
+        updateSnippetInList(selectedId, { 
+          title: payload.title, 
+          content: payload.content,
+          updatedAt: new Date()
+        });
         lastSavedRef.current = { id: selectedId, title: payload.title, content: payload.content };
       }
       setJustSaved(true);
@@ -146,7 +176,8 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     try {
       await repo.deleteSnippet(id);
       setSelectedId(prev => (prev === id ? null : prev));
-      await refreshList();
+      // Remove from list without reloading
+      removeSnippetFromList(id);
     } catch (e) {
       console.error('Delete snippet failed', e);
     } finally {
@@ -181,6 +212,20 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, content, selectedId, open]);
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    if (!open) return;
+    
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    }
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, onClose]);
 
   const selected = useMemo(() => snippets.find(s => s.id === selectedId) || null, [snippets, selectedId]);
 
@@ -218,8 +263,8 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
 
               <div className="flex-1 min-h-0 grid grid-cols-12">
                 {/* Left pane: list */}
-                <div className="col-span-4 border-r border-slate-200 dark:border-slate-800 flex flex-col">
-                  <div className="p-3">
+                <div className="col-span-4 border-r border-slate-200 dark:border-slate-800 flex flex-col min-h-0">
+                  <div className="p-3 flex-shrink-0">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                       <input
@@ -231,13 +276,13 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
                       />
                     </div>
                   </div>
-                  <div className="flex-1 min-h-0 overflow-auto">
+                  <div className="flex-1 min-h-0 overflow-y-auto">
                     {loading ? (
                       <div className="p-4 text-sm text-slate-500">Loading…</div>
                     ) : filtered.length === 0 ? (
                       <div className="p-4 text-sm text-slate-500">No snippets</div>
                     ) : (
-                      <ul>
+                      <ul className="space-y-0">
                         {filtered.map((sn) => (
                           <li key={sn.id} className={`px-3 py-2 border-b border-slate-100 dark:border-slate-800 cursor-pointer ${selectedId === sn.id ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`} onClick={() => onSelectSnippet(sn)}>
                             <div className="min-w-0 flex items-center gap-2">
