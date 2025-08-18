@@ -3,17 +3,24 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Bold, Italic, List, ListOrdered, Square } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { loadNotesModePreference, saveNotesModePreference } from "../utils/storage";
 
 export default function DayNotesDrawer({ open, dateLabel = "", value = "", onChange, onSave, onClose, saving = false, justSaved = false }) {
   const textareaRef = useRef(null);
-  const [mode, setMode] = useState('edit'); // 'edit' | 'preview'
+  const [mode, setMode] = useState(() => loadNotesModePreference()); // 'edit' | 'preview'
   const safeText = useMemo(() => String(value || ""), [value]);
 
   function goEdit() {
     setMode('edit');
+    saveNotesModePreference('edit');
     setTimeout(() => {
       try { textareaRef.current && textareaRef.current.focus(); } catch {}
     }, 0);
+  }
+
+  function goPreview() {
+    setMode('preview');
+    saveNotesModePreference('preview');
   }
 
   function getSelection() {
@@ -120,7 +127,7 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
             <div className="flex justify-center mb-2">
               <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <button type="button" onClick={goEdit} className={`px-3 py-1.5 text-xs ${mode==='edit' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>Edit</button>
-                <button type="button" onClick={() => setMode('preview')} className={`px-3 py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${mode==='preview' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>Preview</button>
+                <button type="button" onClick={goPreview} className={`px-3 py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${mode==='preview' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>Preview</button>
               </div>
             </div>
 

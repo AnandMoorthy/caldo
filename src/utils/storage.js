@@ -3,6 +3,7 @@ export const STREAK_KEY = "caldo_v2_streak";
 export const THEME_KEY = "caldo_v2_theme"; // 'light' | 'dark'
 export const DENSITY_KEY = "caldo_v2_density"; // 'normal' | 'compact' | 'minified'
 export const RECURRENCE_KEY = "caldo_v2_recurring_series";
+export const NOTES_MODE_KEY = "caldo_v2_notes_mode"; // 'edit' | 'preview'
 
 export function loadTasks() {
   try {
@@ -93,6 +94,21 @@ export function saveRecurringSeries(seriesList) {
   try {
     const safe = Array.isArray(seriesList) ? seriesList : [];
     localStorage.setItem(RECURRENCE_KEY, JSON.stringify(safe));
+  } catch {}
+}
+
+
+export function loadNotesModePreference() {
+  try {
+    const stored = localStorage.getItem(NOTES_MODE_KEY);
+    if (stored === 'edit' || stored === 'preview') return stored;
+  } catch {}
+  return 'edit';
+}
+
+export function saveNotesModePreference(mode) {
+  try {
+    if (mode === 'edit' || mode === 'preview') localStorage.setItem(NOTES_MODE_KEY, mode);
   } catch {}
 }
 
