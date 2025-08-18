@@ -63,6 +63,7 @@ export default function App() {
   const [density, setDensity] = useState(() => (typeof window === 'undefined' ? 'normal' : loadDensityPreference()));
   const [showDensityMenu, setShowDensityMenu] = useState(false);
   const densityMenuRef = useRef(null);
+  const navRepeatRef = useRef({ dir: null, timeoutId: null, intervalId: null, active: false });
 
   // Search state
   const [showSearch, setShowSearch] = useState(false);
@@ -127,8 +128,30 @@ export default function App() {
     } catch {}
   }, [tasksMap, selectedDate]);
 
-  // Global keyboard shortcuts: T add task, N open notes, ? open help, CMD+K/Ctrl+K search, Esc close
+  // Global keyboard shortcuts: T add task, N open notes, M missed tasks, D density menu, ArrowLeft prev month, ArrowRight next month, 0 today, ? help, CMD+K/Ctrl+K search, Esc close
   useEffect(() => {
+    function stopNavRepeat() {
+      const r = navRepeatRef.current;
+      if (r.timeoutId) { try { clearTimeout(r.timeoutId); } catch {} r.timeoutId = null; }
+      if (r.intervalId) { try { clearInterval(r.intervalId); } catch {} r.intervalId = null; }
+      r.active = false;
+      r.dir = null;
+    }
+
+    function startNavRepeat(direction) {
+      const r = navRepeatRef.current;
+      // If changing direction, stop first
+      if (r.active && r.dir !== direction) stopNavRepeat();
+      if (r.active) return;
+      r.active = true;
+      r.dir = direction;
+      r.timeoutId = setTimeout(() => {
+        r.intervalId = setInterval(() => {
+          if (r.dir === 'prev') prevMonth(); else nextMonth();
+        }, 120);
+      }, 350);
+    }
+
     function onKeyDown(e) {
       // Allow Esc even inside inputs; ignore other keys while typing or with modifiers
       const tag = (e.target && e.target.tagName) || '';
@@ -140,6 +163,7 @@ export default function App() {
         if (showMissed) setShowMissed(false);
         if (showHelp) setShowHelp(false);
         if (showSearch) setShowSearch(false);
+        stopNavRepeat();
         return;
       }
       if (/(INPUT|TEXTAREA|SELECT)/.test(tag)) return;
@@ -159,13 +183,53 @@ export default function App() {
       } else if (key === 'n') {
         e.preventDefault();
         setShowNotes(true);
+      } else if (key === 'm') {
+        e.preventDefault();
+        setShowMissed(true);
+      } else if (key === 'd') {
+        e.preventDefault();
+        setShowDensityMenu((v) => !v);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        prevMonth();
+        if (!e.repeat) startNavRepeat('prev');
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        nextMonth();
+        if (!e.repeat) startNavRepeat('next');
+      } else if (key === '0') {
+        e.preventDefault();
+        const today = new Date();
+        setSelectedDate(today);
+        setCursor(today);
+        try {
+          setDraftDayNote(getDayNoteByKey(keyFor(today)));
+        } catch {}
+        if (user) {
+          const dk = keyFor(today);
+          refreshDayFromCloud(user.uid, dk);
+        }
       } else if (e.key === '?') {
         e.preventDefault();
         setShowHelp(true);
       }
     }
+    function onKeyUp(e) {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        stopNavRepeat();
+      }
+    }
+    function onBlurWindow() {
+      stopNavRepeat();
+    }
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlurWindow);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlurWindow);
+    };
   }, [selectedDate, showAdd, showEdit, showNotes, showMissed, showHelp, showSearch]);
 
   useEffect(() => {
@@ -523,10 +587,10 @@ export default function App() {
   }, [cursor]);
 
   function nextMonth() {
-    setCursor(addMonths(cursor, 1));
+    setCursor((prev) => addMonths(prev, 1));
   }
   function prevMonth() {
-    setCursor(subMonths(cursor, 1));
+    setCursor((prev) => subMonths(prev, 1));
   }
 
   function isNoteItem(item) {

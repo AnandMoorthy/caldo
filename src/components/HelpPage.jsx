@@ -63,15 +63,36 @@ export default function HelpPage({ open, onClose }) {
                   <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">N</kbd>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span>Open missed tasks</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">M</kbd>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span>Toggle density menu</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">D</kbd>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                   <span>Search tasks & notes</span>
                   <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">
                     {navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘K' : 'Ctrl+K'}
                   </kbd>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span>Go to previous month</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">←</kbd>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span>Go to next month</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">→</kbd>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                  <span>Jump to today</span>
+                  <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">0</kbd>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
                   <span>Close dialog/drawer</span>
                   <kbd className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-[12px]">Esc</kbd>
                 </div>
+                
               </div>
             </section>
             <section className="mb-6">
