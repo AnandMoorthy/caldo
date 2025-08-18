@@ -132,7 +132,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
     <header className="flex items-center justify-between mb-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">CalDo</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Minimalist calendar & todo.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Minimalist calendar todo</p>
       </div>
       <div className="flex items-center gap-2">
         <button 

@@ -1758,7 +1758,20 @@ export default function App() {
           }}
         />
 
-        <HelpPage open={showHelp || (typeof window !== 'undefined' && window.location.hash === '#help')} onClose={() => { setShowHelp(false); try { if (window.location.hash === '#help') history.replaceState(null, '', location.pathname + location.search); } catch {} }} />
+        <HelpPage 
+          open={showHelp || (typeof window !== 'undefined' && window.location.hash === '#help')} 
+          onClose={() => { 
+            console.log('App: HelpPage onClose called');
+            setShowHelp(false); 
+            try { 
+              if (window.location.hash === '#help') {
+                history.replaceState(null, '', location.pathname + location.search);
+              }
+            } catch (e) {
+              console.error('App: Error updating history:', e);
+            }
+          }} 
+        />
 
         <SearchModal
           isOpen={showSearch}
