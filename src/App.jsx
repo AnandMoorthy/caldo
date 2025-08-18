@@ -13,13 +13,15 @@ import MissedTasksDrawer from "./components/MissedTasksDrawer.jsx";
 import DayNotesDrawer from "./components/DayNotesDrawer.jsx";
 import HelpPage from "./components/HelpPage.jsx";
 import SearchModal from "./components/SearchModal.jsx";
-import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference } from "./utils/storage";
+import ScopeDialog from "./components/ScopeDialog.jsx";
+import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
 import { buildSearchIndex, searchTasks } from "./utils/search.js";
 import { DRAG_MIME } from "./constants";
 import { createTaskRepository } from "./services/repositories/taskRepository";
 import { createDayNoteRepository } from "./services/repositories/noteRepository";
+import { materializeSeries } from "./utils/recurrence";
 
 
 // Single-file Caldo app
@@ -39,6 +41,9 @@ export default function App() {
   const [user, setUser] = useState(null);
   const hasLoadedCloud = useRef(false);
   const loadedMonthsRef = useRef(new Set());
+  const [recurringSeries, setRecurringSeries] = useState(() => loadRecurringSeries());
+  const [recurringEnabled, setRecurringEnabled] = useState(true);
+  const [deleteAllTasksEnabled, setDeleteAllTasksEnabled] = useState(false);
   
   // Repositories
   const taskRepoRef = useRef(null);
@@ -53,6 +58,8 @@ export default function App() {
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesJustSaved, setNotesJustSaved] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const scopeActionRef = useRef(null); // { type: 'delete'|'edit', task }
   const [density, setDensity] = useState(() => (typeof window === 'undefined' ? 'normal' : loadDensityPreference()));
   const [showDensityMenu, setShowDensityMenu] = useState(false);
   const densityMenuRef = useRef(null);
@@ -92,6 +99,10 @@ export default function App() {
   useEffect(() => {
     saveTasks(tasksMap);
   }, [tasksMap]);
+
+  useEffect(() => {
+    try { saveRecurringSeries(recurringSeries); } catch {}
+  }, [recurringSeries]);
 
   // Build search index when tasks change
   useEffect(() => {
@@ -273,14 +284,23 @@ export default function App() {
       const tasks = await taskRepoRef.current.fetchTasksForDate(dateKey);
       const tasksWithDue = (tasks || []).map(t => ({ ...t, due: dateKey }));
       const note = await noteRepoRef.current.getDayNote(dateKey);
-      const taskList = sortTasksByCreatedDesc(tasksWithDue);
-      const fullList = note?.content ? [...taskList, { id: 'day_note', due: dateKey, dayNote: note.content, createdAt: note.updatedAt || new Date().toISOString() }] : taskList;
+      // Merge with existing local tasks for that day by id, preserving note item
       setTasksMap((prev) => {
         const prevList = prev[dateKey] || [];
-        const prevJson = JSON.stringify(prevList);
-        const nextJson = JSON.stringify(fullList);
-        if (prevJson === nextJson) return prev;
-        return { ...prev, [dateKey]: fullList };
+        const { taskList: localTasks, noteItem: localNote } = splitDayList(prevList);
+        const byId = new Map(localTasks.map((t) => [t.id, t]));
+        for (const t of tasksWithDue) {
+          const existing = byId.get(t.id);
+          byId.set(t.id, existing ? { ...existing, ...t } : t);
+        }
+        const mergedTasks = sortTasksByCreatedDesc(Array.from(byId.values()));
+        const dayNoteItem = note?.content
+          ? { id: 'day_note', due: dateKey, dayNote: note.content, createdAt: note.updatedAt || localNote?.createdAt || new Date().toISOString() }
+          : localNote || null;
+        const fullList = mergeDayList(mergedTasks, dayNoteItem);
+        const next = { ...prev };
+        if (fullList.length) next[dateKey] = fullList; else delete next[dateKey];
+        return next;
       });
     } catch (e) {
       console.error('Failed to refresh day from cloud', e);
@@ -370,6 +390,34 @@ export default function App() {
             return merged;
           });
 
+          // Feature flag: recurring tasks (default enabled). Stored at
+          // /users/{uid}/meta/featureFlag { recurringTasks: boolean }
+          try {
+            const flagRef = db.collection('users').doc(u.uid).collection('meta').doc('featureFlag');
+            const flagDoc = await flagRef.get();
+            let enabled = true;
+            if (flagDoc.exists) enabled = !!(flagDoc.data()?.recurringTasks ?? true);
+            setRecurringEnabled(enabled);
+            if (!flagDoc.exists) await flagRef.set({ recurringTasks: true }, { merge: true });
+          } catch (err) {
+            console.warn('Feature flag fetch failed; defaulting to enabled', err);
+            setRecurringEnabled(true);
+          }
+
+          // Feature flag: delete all tasks (default disabled). Stored at
+          // /users/{uid}/meta/featureFlag { deleteAllTasks: boolean }
+          try {
+            const delFlagRef = db.collection('users').doc(u.uid).collection('meta').doc('featureFlag');
+            const delFlagDoc = await delFlagRef.get();
+            let enabled = false;
+            if (delFlagDoc.exists) enabled = !!(delFlagDoc.data()?.deleteAllTasks ?? false);
+            setDeleteAllTasksEnabled(enabled);
+            if (!delFlagDoc.exists) await delFlagRef.set({ deleteAllTasks: false }, { merge: true });
+          } catch (err) {
+            console.warn('Delete-all flag fetch failed; defaulting to disabled', err);
+            setDeleteAllTasksEnabled(false);
+          }
+
           // Load streak from cloud '/users/{uid}/meta/streakInfo' doc and merge
           try {
             const streakDoc = await db.collection('users').doc(u.uid).collection('meta').doc('streakInfo').get();
@@ -398,6 +446,8 @@ export default function App() {
         loadedMonthsRef.current = new Set();
         taskRepoRef.current = null;
         noteRepoRef.current = null;
+        setRecurringEnabled(true);
+        setDeleteAllTasksEnabled(false);
         setStreak((s) => ensureStreakUpToDate(s));
       }
     });
@@ -498,6 +548,47 @@ export default function App() {
     const { taskList } = splitDayList(list);
     return sortTasksByCreatedDesc(taskList);
   }
+
+  // Recurrence materialization
+  function getMaterializationWindow() {
+    const start = startOfMonth(addMonths(monthStart, -1));
+    const end = endOfMonth(addMonths(monthStart, 1));
+    return { start, end };
+  }
+
+  function mergeWithRecurringInstances(baseMap, recMap) {
+    const output = { ...baseMap };
+    for (const [dateKey, recList] of Object.entries(recMap || {})) {
+      const prevList = output[dateKey] || [];
+      const { taskList, noteItem } = splitDayList(prevList);
+      const byId = new Map(taskList.map((t) => [t.id, t]));
+      // Prefer existing tasks (often from cloud) over materialized recurring instances
+      for (const rt of recList) {
+        if (byId.has(rt.id)) {
+          // Keep existing as source of truth; fill any missing props from recurring instance
+          const existing = byId.get(rt.id);
+          byId.set(rt.id, { ...rt, ...existing });
+        } else {
+          byId.set(rt.id, rt);
+        }
+      }
+      const mergedTasks = sortTasksByCreatedDesc(Array.from(byId.values()));
+      const full = mergeDayList(mergedTasks, noteItem);
+      if (full.length) output[dateKey] = full; else delete output[dateKey];
+    }
+    return output;
+  }
+
+  useEffect(() => {
+    if (!recurringEnabled) return;
+    try {
+      const { start, end } = getMaterializationWindow();
+      const recMap = materializeSeries(recurringSeries, start, end);
+      setTasksMap((prev) => mergeWithRecurringInstances(prev, recMap));
+    } catch (e) {
+      console.error('Failed to materialize recurring series', e);
+    }
+  }, [cursor, recurringSeries, recurringEnabled]);
 
   function getDayNoteByKey(dateKey) {
     const list = tasksMap[dateKey] || [];
@@ -604,6 +695,41 @@ export default function App() {
     const subtasks = (Array.isArray(form.subtasks) ? form.subtasks : [])
       .map((st) => ({ id: st.id || generateId(), title: (st.title || '').trim(), done: !!st.done, createdAt: new Date().toISOString() }))
       .filter((st) => !!st.title);
+    const wantsRecurrence = recurringEnabled && form?.recurrence && form.recurrence.frequency && form.recurrence.frequency !== 'none';
+    if (wantsRecurrence) {
+      const seriesId = `rec_${generateId()}`;
+      const series = {
+        id: seriesId,
+        title: form.title || 'Untitled',
+        notes: form.notes || '',
+        priority: form.priority || 'medium',
+        subtasks: subtasks.length ? subtasks : [],
+        startDateKey: key,
+        recurrence: {
+          frequency: form.recurrence.frequency,
+          interval: Math.max(1, Number(form.recurrence.interval) || 1),
+          ...(form.recurrence.frequency === 'weekly' ? { byWeekday: Array.isArray(form.recurrence.byWeekday) ? form.recurrence.byWeekday.map(Number) : [] } : {}),
+          ...(form.recurrence.frequency === 'monthly' ? { byMonthday: Array.isArray(form.recurrence.byMonthday) ? form.recurrence.byMonthday.map(Number) : [] } : {}),
+          ends: form.recurrence.ends?.type ? form.recurrence.ends : { type: 'never' },
+        },
+        exceptions: [],
+        overrides: {},
+      };
+      setRecurringSeries((prev) => [...prev, series]);
+      // Materialize immediately (effect will also run)
+      try {
+        const { start, end } = getMaterializationWindow();
+        const recMap = materializeSeries([series], start, end);
+        setTasksMap((prev) => mergeWithRecurringInstances(prev, recMap));
+      } catch {}
+      if (options?.addAnother) {
+        setForm({ title: "", notes: "", priority: "medium", subtasks: [], recurrence: { frequency: 'none', interval: 1 } });
+        setShowAdd(true);
+      } else {
+        setShowAdd(false);
+      }
+      return;
+    }
     const newTask = {
       id: generateId(),
       title: form.title || "Untitled",
@@ -655,6 +781,7 @@ export default function App() {
   function saveEdit(e) {
     e.preventDefault();
     if (!editTask) return;
+    // If recurring, treat as Only this occurrence (override). Series-wide edit will come later if needed
     setTasksMap((prev) => {
       const prevList = prev[editTask.due] || [];
       const { taskList, noteItem } = splitDayList(prevList);
@@ -679,6 +806,20 @@ export default function App() {
           done: parentDone,
           ...(sanitizedSubs.length ? { subtasks: sanitizedSubs } : { subtasks: [] }),
         };
+        if (t.isRecurringInstance && t.seriesId) {
+          setRecurringSeries((prevSeries) => prevSeries.map((s) => {
+            if (s.id !== t.seriesId) return s;
+            const ov = { ...(s.overrides || {}) };
+            ov[t.due] = {
+              title: updated.title,
+              notes: updated.notes,
+              priority: updated.priority,
+              done: updated.done,
+              subtasks: updated.subtasks || [],
+            };
+            return { ...s, overrides: ov };
+          }));
+        }
         return updated;
       });
       const sortedTasks = sortTasksByCreatedDesc(list);
@@ -686,7 +827,15 @@ export default function App() {
       const updated = { ...prev, [editTask.due]: fullList };
       if (user && taskRepoRef.current) {
         const updatedTask = list.find(t => t.id === editTask.id);
-        if (updatedTask) taskRepoRef.current.saveTask(editTask.due, updatedTask).catch((err) => console.error('Cloud saveEdit failed', err));
+        if (updatedTask) {
+          const safeTask = {
+            ...updatedTask,
+            subtasks: Array.isArray(updatedTask.subtasks) ? updatedTask.subtasks : [],
+            isRecurringInstance: !!updatedTask.isRecurringInstance,
+            seriesId: updatedTask.isRecurringInstance ? updatedTask.seriesId || null : undefined,
+          };
+          taskRepoRef.current.saveTask(editTask.due, safeTask).catch((err) => console.error('Cloud saveEdit failed', err));
+        }
       }
       return updated;
     });
@@ -704,8 +853,25 @@ export default function App() {
         // If marking parent task done, also mark all subtasks done for coherence
         const nextSubtasks = Array.isArray(t.subtasks)
           ? t.subtasks.map((st) => ({ ...st, done: nextDone ? true : st.done }))
-          : t.subtasks;
-        return { ...t, done: nextDone, subtasks: nextSubtasks };
+          : [];
+        const updated = { ...t, done: nextDone, subtasks: nextSubtasks };
+        // For recurring instances, persist override to series
+        if (t.isRecurringInstance && t.seriesId) {
+          setRecurringSeries((prevSeries) => {
+            const next = prevSeries.map((s) => {
+              if (s.id !== t.seriesId) return s;
+              const ov = { ...(s.overrides || {}) };
+              ov[t.due] = {
+                ...(ov[t.due] || {}),
+                done: updated.done,
+                subtasks: Array.isArray(updated.subtasks) ? updated.subtasks : [],
+              };
+              return { ...s, overrides: ov };
+            });
+            return next;
+          });
+        }
+        return updated;
       });
       const prevAllDone = taskList.length > 0 && taskList.every((t) => t.done);
       const newAllDone = list.length > 0 && list.every((t) => t.done);
@@ -740,13 +906,29 @@ export default function App() {
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [task.due]: fullList };
       if (user && taskRepoRef.current) {
-        taskRepoRef.current.setTaskDone(task.id, !task.done).catch((err) => console.error('Cloud toggleDone failed', err));
+        const updatedTask = list.find(t => t.id === task.id);
+        if (updatedTask) {
+          // Ensure no undefined fields before saving
+          const safeTask = {
+            ...updatedTask,
+            subtasks: Array.isArray(updatedTask.subtasks) ? updatedTask.subtasks : [],
+            isRecurringInstance: !!updatedTask.isRecurringInstance,
+            seriesId: updatedTask.isRecurringInstance ? updatedTask.seriesId || null : undefined,
+          };
+          taskRepoRef.current.saveTask(task.due, safeTask).catch((err) => console.error('Cloud toggleDone failed', err));
+        }
       }
       return updated;
     });
   }
 
   function deleteTask(task) {
+    // For recurring instance, ask for scope
+    if (task?.isRecurringInstance && task.seriesId) {
+      scopeActionRef.current = { type: 'delete', task };
+      setScopeDialogOpen(true);
+      return;
+    }
     setTasksMap((prev) => {
       const prevList = prev[task.due] || [];
       const { taskList, noteItem } = splitDayList(prevList);
@@ -797,6 +979,60 @@ export default function App() {
     });
   }
 
+  // Scope handlers for recurring actions
+  function handleScopeOnlyThis() {
+    const payload = scopeActionRef.current;
+    setScopeDialogOpen(false);
+    if (!payload) return;
+    const task = payload.task;
+    if (payload.type === 'delete') {
+      // Only this occurrence: add exception and remove from local day
+      setRecurringSeries((prev) => prev.map((s) => {
+        if (s.id !== task.seriesId) return s;
+        const ex = Array.isArray(s.exceptions) ? s.exceptions.slice() : [];
+        if (!ex.includes(task.due)) ex.push(task.due);
+        return { ...s, exceptions: ex };
+      }));
+      // Remove this instance from local state
+      setTasksMap((prev) => {
+        const prevList = prev[task.due] || [];
+        const { taskList, noteItem } = splitDayList(prevList);
+        const list = taskList.filter((t) => t.id !== task.id);
+        const sorted = sortTasksByCreatedDesc(list);
+        const full = mergeDayList(sorted, noteItem);
+        const next = { ...prev };
+        if (full.length) next[task.due] = full; else delete next[task.due];
+        return next;
+      });
+    }
+    scopeActionRef.current = null;
+  }
+
+  // Removed 'This and future' flow per product decision
+
+  function handleScopeEntireSeries() {
+    const payload = scopeActionRef.current;
+    setScopeDialogOpen(false);
+    if (!payload) return;
+    const task = payload.task;
+    if (payload.type === 'delete') {
+      // Remove entire series
+      setRecurringSeries((prev) => prev.filter((s) => s.id !== task.seriesId));
+      // Remove all materialized instances from local tasks
+      setTasksMap((prev) => {
+        const next = { ...prev };
+        for (const [dateKey, list] of Object.entries(prev)) {
+          const { taskList, noteItem } = splitDayList(list);
+          const filtered = taskList.filter((t) => t.seriesId !== task.seriesId);
+          const merged = mergeDayList(sortTasksByCreatedDesc(filtered), noteItem);
+          if (merged.length) next[dateKey] = merged; else delete next[dateKey];
+        }
+        return next;
+      });
+    }
+    scopeActionRef.current = null;
+  }
+
   // Subtasks: add, toggle, delete
   function addSubtask(parentTask, title) {
     const trimmed = (title || '').trim();
@@ -814,7 +1050,20 @@ export default function App() {
         ];
         // Parent is considered done only if all subtasks are done
         const parentDone = newSubtasks.length > 0 ? newSubtasks.every((st) => st.done) : t.done;
-        return { ...t, subtasks: newSubtasks, done: parentDone && t.done };
+        const updated = { ...t, subtasks: newSubtasks, done: parentDone && t.done };
+        if (t.isRecurringInstance && t.seriesId) {
+          setRecurringSeries((prevSeries) => prevSeries.map((s) => {
+            if (s.id !== t.seriesId) return s;
+            const ov = { ...(s.overrides || {}) };
+            ov[t.due] = {
+              ...(ov[t.due] || {}),
+              subtasks: updated.subtasks,
+              done: updated.done,
+            };
+            return { ...s, overrides: ov };
+          }));
+        }
+        return updated;
       });
 
       const prevAllDone = taskList.length > 0 && taskList.every((t) => t.done);
@@ -855,6 +1104,26 @@ export default function App() {
       return updated;
     });
   }
+  // Skip a recurring occurrence (add to exceptions and remove locally)
+  function skipOccurrence(task) {
+    if (!task?.isRecurringInstance || !task.seriesId) return;
+    setRecurringSeries((prev) => prev.map((s) => {
+      if (s.id !== task.seriesId) return s;
+      const ex = Array.isArray(s.exceptions) ? s.exceptions.slice() : [];
+      if (!ex.includes(task.due)) ex.push(task.due);
+      return { ...s, exceptions: ex };
+    }));
+    setTasksMap((prev) => {
+      const prevList = prev[task.due] || [];
+      const { taskList, noteItem } = splitDayList(prevList);
+      const list = taskList.filter((t) => t.id !== task.id);
+      const sorted = sortTasksByCreatedDesc(list);
+      const full = mergeDayList(sorted, noteItem);
+      const next = { ...prev };
+      if (full.length) next[task.due] = full; else delete next[task.due];
+      return next;
+    });
+  }
 
   function toggleSubtask(parentTask, subtaskId) {
     if (!parentTask || !subtaskId) return;
@@ -872,7 +1141,20 @@ export default function App() {
         const hasSubtasks = newSubtasks.length > 0;
         const allSubsDone = hasSubtasks ? newSubtasks.every((st) => st.done) : true;
         const parentDone = hasSubtasks ? allSubsDone : t.done;
-        return { ...t, subtasks: newSubtasks, done: parentDone };
+        const updated = { ...t, subtasks: newSubtasks, done: parentDone };
+        if (t.isRecurringInstance && t.seriesId) {
+          setRecurringSeries((prevSeries) => prevSeries.map((s) => {
+            if (s.id !== t.seriesId) return s;
+            const ov = { ...(s.overrides || {}) };
+            ov[t.due] = {
+              ...(ov[t.due] || {}),
+              subtasks: updated.subtasks,
+              done: updated.done,
+            };
+            return { ...s, overrides: ov };
+          }));
+        }
+        return updated;
       });
 
       const prevAllDone = taskList.length > 0 && taskList.every((t) => t.done);
@@ -927,7 +1209,20 @@ export default function App() {
         const hasSubtasks = newSubtasks.length > 0;
         const allSubsDone = hasSubtasks ? newSubtasks.every((st) => st.done) : true;
         const parentDone = hasSubtasks ? allSubsDone : t.done;
-        return { ...t, subtasks: newSubtasks, done: parentDone };
+        const updated = { ...t, subtasks: newSubtasks, done: parentDone };
+        if (t.isRecurringInstance && t.seriesId) {
+          setRecurringSeries((prevSeries) => prevSeries.map((s) => {
+            if (s.id !== t.seriesId) return s;
+            const ov = { ...(s.overrides || {}) };
+            ov[t.due] = {
+              ...(ov[t.due] || {}),
+              subtasks: updated.subtasks,
+              done: updated.done,
+            };
+            return { ...s, overrides: ov };
+          }));
+        }
+        return updated;
       });
 
       const prevAllDone = taskList.length > 0 && taskList.every((t) => t.done);
@@ -984,7 +1279,11 @@ export default function App() {
       const fullFromList = mergeDayList(sortedFromTasks, fromNote);
       const toList = prev[toKey] || [];
       const { taskList: toTasks, noteItem: toNote } = splitDayList(toList);
-      const movedTask = { ...task, due: toKey };
+      let movedTask = { ...task, due: toKey };
+      // If moving a recurring instance, convert to a normal one-off task to avoid series conflicts
+      if (movedTask.isRecurringInstance) {
+        movedTask = { ...movedTask, isRecurringInstance: false, seriesId: undefined, occurrenceDateKey: undefined, id: generateId() };
+      }
       const newToTasks = sortTasksByCreatedDesc([movedTask, ...toTasks]);
       const fullToList = mergeDayList(newToTasks, toNote);
       const updated = { ...prev, [toKey]: fullToList };
@@ -1142,6 +1441,27 @@ export default function App() {
     if (user) saveStreakToCloud(user.uid, { current: 0, longest: Number(streak?.longest) || 0, lastEarnedDateKey: null }).catch(() => {});
   }
 
+  async function deleteAllTasksFromCloud() {
+    if (!user || !taskRepoRef.current) return;
+    const ok = confirm('This will permanently delete all your tasks from the cloud. This cannot be undone. Continue?');
+    if (!ok) return;
+    try {
+      // Broad range
+      const start = new Date(1970, 0, 1);
+      const end = new Date(3000, 0, 1);
+      await taskRepoRef.current.deleteTasksInRange(start, end);
+      // Clear local tasks
+      setTasksMap({});
+      try { saveTasks({}); } catch {}
+      // Also clear recurring series so they don't rematerialize
+      setRecurringSeries([]);
+      try { saveRecurringSeries([]); } catch {}
+    } catch (e) {
+      console.error('Failed to delete all tasks from cloud', e);
+      alert('Failed to delete all tasks. Please try again.');
+    }
+  }
+
   // Keep streak valid across day changes: if last earned day is neither today nor yesterday, reset current to 0
   useEffect(() => {
     function checkAndResetIfBroken() {
@@ -1157,7 +1477,18 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200">
       <div className="max-w-6xl mx-auto">
-        <Header user={user} onSignInWithGoogle={signInWithGoogle} onSignOut={signOut} onExportJSON={exportJSON} onImportJSON={importJSON} onOpenHelp={() => setShowHelp(true)} onOpenSearch={() => setShowSearch(true)} currentStreak={streak?.current || 0} />
+        <Header
+          user={user}
+          onSignInWithGoogle={signInWithGoogle}
+          onSignOut={signOut}
+          onExportJSON={exportJSON}
+          onImportJSON={importJSON}
+          onOpenHelp={() => setShowHelp(true)}
+          onOpenSearch={() => setShowSearch(true)}
+          currentStreak={streak?.current || 0}
+          deleteAllTasksEnabled={!!deleteAllTasksEnabled}
+          onDeleteAllTasks={deleteAllTasksFromCloud}
+        />
         
 
         <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
@@ -1287,7 +1618,7 @@ export default function App() {
           </div>
         )}
 
-        <AddTaskDrawer open={showAdd} selectedDate={selectedDate} form={form} setForm={setForm} onSubmit={addTask} onClose={() => setShowAdd(false)} />
+        <AddTaskDrawer open={showAdd} selectedDate={selectedDate} form={form} setForm={setForm} onSubmit={addTask} onClose={() => setShowAdd(false)} recurringEnabled={recurringEnabled} />
         <EditTaskDrawer open={showEdit} editForm={editForm} setEditForm={setEditForm} onSubmit={saveEdit} onClose={() => setShowEdit(false)} />
         <MissedTasksDrawer
           open={showMissed}
@@ -1335,6 +1666,13 @@ export default function App() {
           onNavigateToItem={navigateToSearchResult}
           query={searchQuery}
           onQueryChange={setSearchQuery}
+        />
+
+        <ScopeDialog
+          open={scopeDialogOpen}
+          onClose={() => { setScopeDialogOpen(false); scopeActionRef.current = null; }}
+          onOnlyThis={handleScopeOnlyThis}
+          onEntireSeries={handleScopeEntireSeries}
         />
 
         <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>

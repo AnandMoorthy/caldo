@@ -21,7 +21,7 @@ function Avatar({ user }) {
   return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
-export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, currentStreak = 0 }) {
+export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const [canInstall, setCanInstall] = useState(false);
@@ -217,6 +217,17 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
                 <button onClick={onSignOut} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
                   <UserIcon size={16} /> Sign out
                 </button>
+              )}
+              {user && deleteAllTasksEnabled && (
+                <>
+                  <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
+                  <button
+                    onClick={() => { onDeleteAllTasks && onDeleteAllTasks(); setShowProfileMenu(false); }}
+                    className="w-full text-left px-3 py-2 rounded bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/40 text-red-700 dark:text-red-300 inline-flex items-center gap-2"
+                  >
+                    Delete ALL tasks (cloud)
+                  </button>
+                </>
               )}
             </div>
           )}

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Check, RotateCcw, Trash, Clock, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { Pencil, Check, RotateCcw, Trash, Clock, ChevronDown, ChevronRight, Plus, RefreshCcw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { generateId } from "../utils/uid";
 
@@ -165,7 +165,12 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
             <Clock size={Math.max(10, iconSize - 2)} /> {format(parseISO(createdAt), "PP p")}
           </div>
         )}
-        <div className="flex gap-1.5">
+        <div className="flex gap-1.5 items-center">
+          {t.isRecurringInstance && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400" title="Recurring">
+              <RefreshCcw size={Math.max(10, iconSize - 2)} /> Recurring
+            </span>
+          )}
           <button onClick={() => onToggleDone(t)} className={`${actionPadCls} rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 ${isDone ? "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700" : "text-green-600 dark:text-green-400 border-slate-200 dark:border-slate-700"}`} title={isDone ? "Undo" : "Mark done"} aria-label={isDone ? "Undo" : "Mark done"}>
             {isDone ? <RotateCcw size={iconSize} /> : <Check size={iconSize} />}
           </button>

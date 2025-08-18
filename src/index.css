@@ -19,7 +19,7 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 
 /* App utility classes (moved from inline styles) */
 .btn{padding:.5rem .75rem;border-radius:.5rem;background:transparent;border:1px solid rgba(15,23,42,.06)}
 .btn.ghost{background:transparent}
-.input{padding:.6rem .75rem;border:1px solid #e6e9ee;border-radius:.5rem}
+.input{padding:.6rem .75rem;border:1px solid #e6e9ee;border-radius:.5rem;line-height:1.25rem}
 
 /* Dark mode adjustments */
 @media (prefers-color-scheme: dark) {

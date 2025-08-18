@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Trash } from "lucide-react";
 import { format } from "date-fns";
 
-export default function AddTaskDrawer({ open, selectedDate, form, setForm, onSubmit, onClose }) {
+export default function AddTaskDrawer({ open, selectedDate, form, setForm, onSubmit, onClose, recurringEnabled = true }) {
   const [newSubTitle, setNewSubTitle] = useState("");
   const [addAnother, setAddAnother] = useState(false);
   const inputRef = useRef(null);
@@ -166,6 +166,144 @@ export default function AddTaskDrawer({ open, selectedDate, form, setForm, onSub
                   </div>
                 </div>
               </details>
+
+              {recurringEnabled && (
+                <details className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3">
+                  <summary className="cursor-pointer text-sm text-slate-700 dark:text-slate-300">Repeat (optional)</summary>
+                  <div className="mt-2 pl-3 border-l-2 border-slate-200 dark:border-slate-700/60 rounded-md space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="text-sm text-slate-600 dark:text-slate-300">Frequency</label>
+                      <select
+                        value={form?.recurrence?.frequency || 'none'}
+                        onChange={(e) => setForm((f) => ({
+                          ...f,
+                          recurrence: {
+                            ...(f?.recurrence || {}),
+                            frequency: e.target.value,
+                            interval: Number(f?.recurrence?.interval) || 1,
+                          },
+                        }))}
+                        className="input"
+                      >
+                        <option value="none">None</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                      </select>
+                    </div>
+
+                    {(form?.recurrence?.frequency && form.recurrence.frequency !== 'none') && (
+                      <>
+                        <div className="grid grid-cols-2 gap-2 items-center">
+                          <label className="text-sm text-slate-600 dark:text-slate-300">Repeat every</label>
+                          <input
+                            type="number"
+                            min={1}
+                            value={Number(form?.recurrence?.interval) || 1}
+                            onChange={(e) => setForm((f) => ({
+                              ...f,
+                              recurrence: { ...(f?.recurrence || {}), interval: Math.max(1, Number(e.target.value) || 1) },
+                            }))}
+                            className="input"
+                          />
+                        </div>
+
+                        {form.recurrence.frequency === 'weekly' && (
+                          <div className="grid gap-1">
+                            <div className="text-sm text-slate-600 dark:text-slate-300">On days</div>
+                            <div className="grid grid-cols-7 gap-1">
+                              {[0,1,2,3,4,5,6].map((d) => {
+                                const labels = ['S','M','T','W','T','F','S'];
+                                const active = Array.isArray(form?.recurrence?.byWeekday) && form.recurrence.byWeekday.includes(d);
+                                return (
+                                  <button
+                                    key={d}
+                                    type="button"
+                                    onClick={() => setForm((f) => {
+                                      const cur = Array.isArray(f?.recurrence?.byWeekday) ? f.recurrence.byWeekday.slice() : [];
+                                      const idx = cur.indexOf(d);
+                                      if (idx >= 0) cur.splice(idx, 1); else cur.push(d);
+                                      return { ...f, recurrence: { ...(f?.recurrence || {}), byWeekday: cur } };
+                                    })}
+                                    className={`h-8 rounded ${active ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}
+                                    title={labels[d]}
+                                  >
+                                    {labels[d]}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {form.recurrence.frequency === 'monthly' && (
+                          <div className="grid grid-cols-2 gap-2 items-center">
+                            <label className="text-sm text-slate-600 dark:text-slate-300">Day of month</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={31}
+                              value={(Array.isArray(form?.recurrence?.byMonthday) && form.recurrence.byMonthday[0]) || new Date(selectedDate).getDate()}
+                              onChange={(e) => setForm((f) => ({
+                                ...f,
+                                recurrence: { ...(f?.recurrence || {}), byMonthday: [Math.min(31, Math.max(1, Number(e.target.value) || 1))] },
+                              }))}
+                              className="input"
+                            />
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2 items-center">
+                          <label className="text-sm text-slate-600 dark:text-slate-300">Ends</label>
+                          <select
+                            value={form?.recurrence?.ends?.type || 'never'}
+                            onChange={(e) => setForm((f) => ({
+                              ...f,
+                              recurrence: { ...(f?.recurrence || {}), ends: { ...(f?.recurrence?.ends || {}), type: e.target.value } },
+                            }))}
+                            className="input"
+                          >
+                            <option value="never">Never</option>
+                            <option value="onDate">On date</option>
+                            <option value="afterCount">After N occurrences</option>
+                          </select>
+                        </div>
+
+                        {form?.recurrence?.ends?.type === 'onDate' && (
+                          <div className="grid grid-cols-2 gap-2 items-center">
+                            <label className="text-sm text-slate-600 dark:text-slate-300">End date</label>
+                            <input
+                              type="date"
+                              value={form?.recurrence?.ends?.onDateKey || ''}
+                              onChange={(e) => setForm((f) => ({
+                                ...f,
+                                recurrence: { ...(f?.recurrence || {}), ends: { ...(f?.recurrence?.ends || {}), onDateKey: e.target.value } },
+                              }))}
+                              className="input"
+                            />
+                          </div>
+                        )}
+
+                        {form?.recurrence?.ends?.type === 'afterCount' && (
+                          <div className="grid grid-cols-2 gap-2 items-center">
+                            <label className="text-sm text-slate-600 dark:text-slate-300">Occurrences</label>
+                            <input
+                              type="number"
+                              min={1}
+                              value={Number(form?.recurrence?.ends?.count) || 1}
+                              onChange={(e) => setForm((f) => ({
+                                ...f,
+                                recurrence: { ...(f?.recurrence || {}), ends: { ...(f?.recurrence?.ends || {}), count: Math.max(1, Number(e.target.value) || 1) } },
+                              }))}
+                              className="input"
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </details>
+              )}
             </div>
 
             <div className="pt-4 border-t border-slate-200 dark:border-slate-800 mt-4 flex items-center justify-between gap-2">

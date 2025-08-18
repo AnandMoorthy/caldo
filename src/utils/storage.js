@@ -2,6 +2,7 @@ export const STORAGE_KEY = "caldo_v2_tasks";
 export const STREAK_KEY = "caldo_v2_streak";
 export const THEME_KEY = "caldo_v2_theme"; // 'light' | 'dark'
 export const DENSITY_KEY = "caldo_v2_density"; // 'normal' | 'compact' | 'minified'
+export const RECURRENCE_KEY = "caldo_v2_recurring_series";
 
 export function loadTasks() {
   try {
@@ -73,6 +74,25 @@ export function saveDensityPreference(density) {
     if (density === 'normal' || density === 'compact' || density === 'minified') {
       localStorage.setItem(DENSITY_KEY, density);
     }
+  } catch {}
+}
+
+
+export function loadRecurringSeries() {
+  try {
+    const raw = localStorage.getItem(RECURRENCE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveRecurringSeries(seriesList) {
+  try {
+    const safe = Array.isArray(seriesList) ? seriesList : [];
+    localStorage.setItem(RECURRENCE_KEY, JSON.stringify(safe));
   } catch {}
 }
 
