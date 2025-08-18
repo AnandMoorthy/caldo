@@ -74,6 +74,17 @@ export default function Calendar({
               ? "ring-2 ring-indigo-300"
               : "";
           const selectedBg = isSelected ? "bg-indigo-50 dark:bg-indigo-950/40" : "";
+          const totalCount = tasks.length;
+          const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+          const prioCount = tasks.reduce(
+            (acc, t) => {
+              const p = String(t.priority || 'medium');
+              if (p === 'high') acc.high += 1; else if (p === 'low') acc.low += 1; else acc.medium += 1;
+              return acc;
+            },
+            { high: 0, medium: 0, low: 0 }
+          );
+          const hasNote = !!(hasNoteFor && hasNoteFor(day));
           return (
             <motion.div
               key={key}
@@ -93,7 +104,7 @@ export default function Calendar({
               }}
               onDrop={(e) => onDropTaskOnDay(e, day)}
               aria-selected={isSelected}
-              className={`border border-slate-200 dark:border-slate-800 rounded-lg p-1 sm:p-2 min-h-[56px] sm:min-h-[88px] cursor-pointer relative ${baseBg} ${selectedBg} ${ringClass}`}
+              className={`group border border-slate-200 dark:border-slate-800 rounded-lg p-1 sm:p-2 min-h-[56px] sm:min-h-[88px] cursor-pointer relative ${baseBg} ${selectedBg} ${ringClass}`}
             >
               <div className="flex items-start justify-between">
                 <div className={isSelected ? "w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-indigo-600 text-white text-[11px] sm:text-xs flex items-center justify-center font-semibold" : "text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100"}>
@@ -101,10 +112,44 @@ export default function Calendar({
                 </div>
                 <div className="hidden sm:block text-xs text-slate-400 dark:text-slate-500 relative">{format(day, "MMM")}</div>
               </div>
+              {/* Hover card summary */}
+              <div className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-30">
+                <div className="opacity-0 translate-y-1 scale-95 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 transition-all duration-150 ease-out">
+                  <div className="w-56 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur p-3">
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400">{format(day, 'EEE, MMM d')}</div>
+                    <div className="mt-0.5 flex items-center justify-between">
+                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{doneCount}/{totalCount} done</div>
+                      {hasNote && (
+                        <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400" aria-label="Notes present">
+                          <span className="inline-block w-2 h-2 rounded-full bg-blue-500" />
+                          Notes present
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                      <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${percent}%` }} />
+                    </div>
+                    {totalCount > 0 ? (
+                      <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-600 dark:text-slate-400">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-red-500" /> {prioCount.high} high
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-amber-400" /> {prioCount.medium} med
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" /> {prioCount.low} low
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">No tasks</div>
+                    )}
+                  </div>
+                </div>
+              </div>
               {(tasks.length > 0 || (hasNoteFor && hasNoteFor(day))) && (
                 <div
                   className="absolute bottom-1 right-1 flex items-center gap-0.5"
-                  data-tip={`${doneCount}/${tasks.length} done${hasNoteFor && hasNoteFor(day) ? ' • Notes' : ''}`}
                 >
                   {hasNoteFor && hasNoteFor(day) && (
                     <span
