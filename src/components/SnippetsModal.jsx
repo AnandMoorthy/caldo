@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Plus, Search, Trash2, Copy } from "lucide-react";
+import { X, Plus, Search, Trash2, Copy, Pin, PinOff } from "lucide-react";
 
 export default function SnippetsModal({ open, onClose, repo, user, onSnippetsChanged }) {
   const [loading, setLoading] = useState(false);
@@ -55,8 +55,8 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     setLoading(true);
     try {
       const items = await repo.listSnippets({ includeArchived: false });
-      // Recent first
-      items.sort((a, b) => new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0) - new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0));
+      // Pinned first, then recent
+      items.sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || (new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0) - new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0)));
       setSnippets(items);
       try { onSnippetsChanged && onSnippetsChanged(items); } catch {}
     } catch (e) {
@@ -81,6 +81,23 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     setContent(snippet.content || '');
     setTimeout(() => { try { textareaRef.current?.focus(); } catch {} }, 0);
     lastSavedRef.current = { id: snippet.id, title: snippet.title || '', content: snippet.content || '' };
+  }
+
+  async function onTogglePin(snippet) {
+    if (!repo || !user) return;
+    const id = snippet?.id || selectedId;
+    if (!id || id === '__new__') return;
+    const current = snippet || snippets.find(s => s.id === id) || {};
+    const nextPinned = !current.pinned;
+    setSaving(true);
+    try {
+      await repo.updateSnippet(id, { pinned: nextPinned });
+      await refreshList();
+    } catch (e) {
+      console.error('Toggle pin failed', e);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function onCreateSnippet() {
@@ -223,8 +240,16 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
                       <ul>
                         {filtered.map((sn) => (
                           <li key={sn.id} className={`px-3 py-2 border-b border-slate-100 dark:border-slate-800 cursor-pointer ${selectedId === sn.id ? 'bg-blue-50 dark:bg-blue-900/30' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`} onClick={() => onSelectSnippet(sn)}>
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium truncate">{sn.title || 'Untitled'}</div>
+                            <div className="min-w-0 flex items-center gap-2">
+                              <div className="text-sm font-medium truncate flex-1">{sn.title || 'Untitled'}</div>
+                              <button
+                                type="button"
+                                className="shrink-0 w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-700"
+                                title={sn.pinned ? 'Unpin' : 'Pin'}
+                                onClick={(e) => { e.stopPropagation(); onTogglePin(sn); }}
+                              >
+                                {sn.pinned ? <Pin size={14} className="text-indigo-600" /> : <PinOff size={14} className="text-slate-400" />}
+                              </button>
                             </div>
                           </li>
                         ))}
@@ -261,6 +286,15 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
                         >
                           <Copy size={14} /> {justCopied ? 'Copied' : 'Copy'}
                         </motion.button>
+                        {!!selectedId && selectedId !== '__new__' && (
+                          <button
+                            type="button"
+                            onClick={() => onTogglePin()}
+                            className="px-2 py-1 text-xs rounded bg-slate-100 dark:bg-slate-800 inline-flex items-center gap-1"
+                          >
+                            {selected?.pinned ? (<><Pin size={14} /> Unpin</>) : (<><PinOff size={14} /> Pin</>)}
+                          </button>
+                        )}
                         <button type="button" onClick={() => onDeleteSnippet(selectedId)} className="ml-auto px-2 py-1 text-xs rounded bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 inline-flex items-center gap-1">
                           <Trash2 size={14} /> Delete
                         </button>
