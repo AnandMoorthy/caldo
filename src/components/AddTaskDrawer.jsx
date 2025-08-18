@@ -80,7 +80,7 @@ export default function AddTaskDrawer({ open, selectedDate, form, setForm, onSub
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                 placeholder="Notes (optional)"
-                className="input resize-none"
+                className="input resize-none h-24 overflow-auto"
               />
 
               <div className="flex items-center gap-2">

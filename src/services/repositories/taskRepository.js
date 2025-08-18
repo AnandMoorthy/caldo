@@ -40,7 +40,9 @@ export class TaskRepository {
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       createdAt: task?.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
     };
-    await this.tasksRef().doc(task.id).set(data, { merge: true });
+    // Strip undefined values to satisfy Firestore constraints
+    const sanitized = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+    await this.tasksRef().doc(task.id).set(sanitized, { merge: true });
     return task.id;
   }
 

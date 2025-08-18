@@ -828,12 +828,14 @@ export default function App() {
       if (user && taskRepoRef.current) {
         const updatedTask = list.find(t => t.id === editTask.id);
         if (updatedTask) {
-          const safeTask = {
+          const safeTaskBase = {
             ...updatedTask,
             subtasks: Array.isArray(updatedTask.subtasks) ? updatedTask.subtasks : [],
             isRecurringInstance: !!updatedTask.isRecurringInstance,
-            seriesId: updatedTask.isRecurringInstance ? updatedTask.seriesId || null : undefined,
           };
+          const safeTask = updatedTask.isRecurringInstance
+            ? { ...safeTaskBase, seriesId: updatedTask.seriesId || null }
+            : { ...safeTaskBase };
           taskRepoRef.current.saveTask(editTask.due, safeTask).catch((err) => console.error('Cloud saveEdit failed', err));
         }
       }
@@ -909,12 +911,14 @@ export default function App() {
         const updatedTask = list.find(t => t.id === task.id);
         if (updatedTask) {
           // Ensure no undefined fields before saving
-          const safeTask = {
+          const safeTaskBase = {
             ...updatedTask,
             subtasks: Array.isArray(updatedTask.subtasks) ? updatedTask.subtasks : [],
             isRecurringInstance: !!updatedTask.isRecurringInstance,
-            seriesId: updatedTask.isRecurringInstance ? updatedTask.seriesId || null : undefined,
           };
+          const safeTask = updatedTask.isRecurringInstance
+            ? { ...safeTaskBase, seriesId: updatedTask.seriesId || null }
+            : { ...safeTaskBase };
           taskRepoRef.current.saveTask(task.due, safeTask).catch((err) => console.error('Cloud toggleDone failed', err));
         }
       }
@@ -1282,7 +1286,8 @@ export default function App() {
       let movedTask = { ...task, due: toKey };
       // If moving a recurring instance, convert to a normal one-off task to avoid series conflicts
       if (movedTask.isRecurringInstance) {
-        movedTask = { ...movedTask, isRecurringInstance: false, seriesId: undefined, occurrenceDateKey: undefined, id: generateId() };
+        const { seriesId, occurrenceDateKey, ...rest } = movedTask;
+        movedTask = { ...rest, isRecurringInstance: false, id: generateId() };
       }
       const newToTasks = sortTasksByCreatedDesc([movedTask, ...toTasks]);
       const fullToList = mergeDayList(newToTasks, toNote);

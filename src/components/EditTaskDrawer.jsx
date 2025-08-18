@@ -70,7 +70,7 @@ export default function EditTaskDrawer({ open, editForm, setEditForm, onSubmit, 
                 value={editForm.notes}
                 onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
                 placeholder="Notes (optional)"
-                className="input resize-none"
+                className="input resize-none h-24 overflow-auto"
               />
 
               <label className="text-sm text-slate-600 dark:text-slate-300">Priority</label>

@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Keyboard, HelpCircle } from "lucide-react";
+import { X, Keyboard, HelpCircle, Search, RefreshCcw } from "lucide-react";
 
 export default function HelpPage({ open, onClose }) {
   return (
@@ -75,7 +75,9 @@ export default function HelpPage({ open, onClose }) {
               </div>
             </section>
             <section className="mb-6">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Search</h2>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2 inline-flex items-center gap-2">
+                <Search size={18} /> Search
+              </h2>
               <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
                 <p>Quickly find tasks and notes across all your data:</p>
                 <ul className="list-disc pl-5 space-y-1">
@@ -83,6 +85,22 @@ export default function HelpPage({ open, onClose }) {
                   <li>Search by task title, notes, or subtasks</li>
                   <li>Use arrow keys to navigate results, Enter to select</li>
                   <li>Click any result to jump to that date and item</li>
+                </ul>
+              </div>
+            </section>
+
+            <section className="mb-6">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2 inline-flex items-center gap-2">
+                <RefreshCcw size={18} /> Recurring tasks
+              </h2>
+              <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+                <p>Create repeating tasks from the Add Task drawer using <strong>Repeat (optional)</strong>:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><strong>Frequency</strong>: choose Daily, Weekly, or Monthly.</li>
+                  <li><strong>Interval</strong>: repeat every <em>N</em> days/weeks/months (e.g., every 2 weeks).</li>
+                  <li><strong>Weekly</strong>: pick the days of the week the task should occur.</li>
+                  <li><strong>Monthly</strong>: select the day of the month.</li>
+                  <li><strong>Ends</strong>: Never, on a specific date, or after a number of occurrences.</li>
                 </ul>
               </div>
             </section>
