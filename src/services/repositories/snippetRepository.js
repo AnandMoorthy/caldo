@@ -44,7 +44,14 @@ export class SnippetRepository {
   }
 
   async deleteSnippet(snippetId) {
-    await this.snippetsRef().doc(snippetId).delete();
+    console.log('Repository: Deleting snippet', snippetId);
+    try {
+      await this.snippetsRef().doc(snippetId).delete();
+      console.log('Repository: Snippet deleted successfully', snippetId);
+    } catch (error) {
+      console.error('Repository: Failed to delete snippet', snippetId, error);
+      throw error;
+    }
   }
 
   async incrementCopyCount(snippetId) {

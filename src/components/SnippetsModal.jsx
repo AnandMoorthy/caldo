@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Plus, Search, Trash2, Copy, Pin, PinOff } from "lucide-react";
+import { X, Plus, Search, Trash2, Copy, Pin, PinOff, RotateCcw } from "lucide-react";
 
-export default function SnippetsModal({ open, onClose, repo, user, onSnippetsChanged }) {
+export default function SnippetsModal({ open, onClose, repo, user, onSnippetsChanged, initialSnippets = [] }) {
   const [loading, setLoading] = useState(false);
-  const [snippets, setSnippets] = useState([]);
+  const [snippets, setSnippets] = useState(initialSnippets);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState(null);
   const [title, setTitle] = useState("");
@@ -15,10 +15,15 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
 
   const textareaRef = useRef(null);
   const lastSavedRef = useRef({ id: null, title: '', content: '' });
+  const deletedSnippetsRef = useRef(new Set()); // Track recently deleted snippets
+  const isDeletingRef = useRef(false); // Track if we're in the middle of a delete operation
 
   useEffect(() => {
     if (!open) return;
-    refreshList();
+    // Initialize from existing cache if available, only refresh if empty
+    if (snippets.length === 0 && repo && user) {
+      refreshList();
+    }
     // Default to a new draft on open
     setSelectedId('__new__');
     setTitle('Untitled snippet');
@@ -26,13 +31,27 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     setQuery("");
     setTimeout(() => { try { textareaRef.current?.focus(); } catch {} }, 0);
     lastSavedRef.current = { id: '__new__', title: 'Untitled snippet', content: '' };
-  }, [open]);
+  }, [open, repo, user]);
+
+  // Update local snippets when initialSnippets changes
+  useEffect(() => {
+    if (initialSnippets.length > 0) {
+      setSnippets(initialSnippets);
+    }
+  }, [initialSnippets]);
 
   // Allow external selection via custom event (from global search)
   useEffect(() => {
     function onSelectEvent(e) {
       const id = e?.detail?.id;
       if (!id) return;
+      
+      // Don't try to find recently deleted snippets
+      if (deletedSnippetsRef.current.has(id)) {
+        console.log('Snippet was recently deleted, ignoring selection event:', id);
+        return;
+      }
+      
       const sn = snippets.find(s => s.id === id);
       if (sn) onSelectSnippet(sn);
       else {
@@ -55,10 +74,15 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     setLoading(true);
     try {
       const items = await repo.listSnippets({ includeArchived: false });
+      console.log('Fetched snippets from Firestore:', items.length, 'items');
+      // Filter out recently deleted snippets
+      const filteredItems = items.filter(item => !deletedSnippetsRef.current.has(item.id));
+      console.log('After filtering deleted snippets:', filteredItems.length, 'items');
       // Pinned first, then recent
-      items.sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || (new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0) - new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0)));
-      setSnippets(items);
-      try { onSnippetsChanged && onSnippetsChanged(items); } catch {}
+      filteredItems.sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || (new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0) - new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0)));
+      setSnippets(filteredItems);
+      // Only update App.jsx cache when refreshing from server, not when updating local state
+      try { onSnippetsChanged && onSnippetsChanged(filteredItems); } catch {}
     } catch (e) {
       console.error('Failed to load snippets', e);
     } finally {
@@ -99,11 +123,13 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
   }, [query, snippets]);
 
   function onSelectSnippet(snippet) {
+    // Update last saved reference first to prevent autosave from triggering
+    lastSavedRef.current = { id: snippet.id, title: snippet.title || '', content: snippet.content || '' };
+    
     setSelectedId(snippet.id);
     setTitle(snippet.title || '');
     setContent(snippet.content || '');
     setTimeout(() => { try { textareaRef.current?.focus(); } catch {} }, 0);
-    lastSavedRef.current = { id: snippet.id, title: snippet.title || '', content: snippet.content || '' };
   }
 
   async function onTogglePin(snippet) {
@@ -117,6 +143,8 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
       await repo.updateSnippet(id, { pinned: nextPinned });
       // Update in list without reloading
       updateSnippetInList(id, { pinned: nextPinned });
+      // Update the App.jsx cache to reflect the pin change
+      try { onSnippetsChanged && onSnippetsChanged(snippets.map(s => s.id === id ? { ...s, pinned: nextPinned } : s)); } catch {}
     } catch (e) {
       console.error('Toggle pin failed', e);
     } finally {
@@ -126,6 +154,9 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
 
   async function onCreateSnippet() {
     // Create a local draft; persist only on Save
+    // Update last saved reference first to prevent autosave from triggering
+    lastSavedRef.current = { id: '__new__', title: 'Untitled snippet', content: '' };
+    
     setSelectedId('__new__');
     setTitle('Untitled snippet');
     setContent('');
@@ -134,6 +165,19 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
 
   async function onSaveSnippet() {
     if (!repo || !user) return;
+    
+    // Don't save during delete operations
+    if (isDeletingRef.current) {
+      console.log('Save skipped - delete operation in progress');
+      return;
+    }
+    
+    // Don't save if there's no valid selectedId
+    if (!selectedId) {
+      console.log('Save skipped - no valid selectedId');
+      return;
+    }
+    
     setSaving(true);
     try {
       const payload = { title: (title || 'Untitled snippet').trim(), content: String(content || '') };
@@ -143,6 +187,8 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
         addSnippetToList(created);
         setSelectedId(created?.id || null);
         lastSavedRef.current = { id: created?.id || null, title: payload.title, content: payload.content };
+        // Update the App.jsx cache to reflect the creation
+        try { onSnippetsChanged && onSnippetsChanged([...snippets, created]); } catch {}
       } else {
         await repo.updateSnippet(selectedId, payload);
         // Update in list without reloading
@@ -152,6 +198,8 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
           updatedAt: new Date()
         });
         lastSavedRef.current = { id: selectedId, title: payload.title, content: payload.content };
+        // Update the App.jsx cache to reflect the update
+        try { onSnippetsChanged && onSnippetsChanged(snippets.map(s => s.id === selectedId ? { ...s, title: payload.title, content: payload.content, updatedAt: new Date() } : s)); } catch {}
       }
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 900);
@@ -172,16 +220,57 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     }
     const ok = confirm('Delete this snippet?');
     if (!ok) return;
+    
+    // Set deleting flag to prevent autosave
+    isDeletingRef.current = true;
     setSaving(true);
+    
     try {
+      console.log('Deleting snippet:', id);
+      
+      // Track this snippet as deleted BEFORE the delete operation
+      // This prevents any race conditions
+      deletedSnippetsRef.current.add(id);
+      
       await repo.deleteSnippet(id);
-      setSelectedId(prev => (prev === id ? null : prev));
+      console.log('Snippet deleted successfully:', id);
+      
+      // Wait a bit for Firestore to propagate the deletion
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Clean up deleted snippets tracking after 30 seconds
+      setTimeout(() => {
+        deletedSnippetsRef.current.delete(id);
+      }, 30000);
+      
+      // Clear form state without triggering autosave
+      const wasSelected = selectedId === id;
+      if (wasSelected) {
+        console.log('Clearing form state after deletion');
+        // Update last saved reference first to prevent autosave
+        lastSavedRef.current = { id: null, title: '', content: '' };
+        setSelectedId(null);
+        setTitle('');
+        setContent('');
+      }
+      
+      // Calculate the new snippets list without the deleted item
+      const newSnippets = snippets.filter(s => s.id !== id);
       // Remove from list without reloading
       removeSnippetFromList(id);
+      // Update the App.jsx cache to reflect the deletion
+      try { onSnippetsChanged && onSnippetsChanged(newSnippets); } catch {}
     } catch (e) {
       console.error('Delete snippet failed', e);
+      // Remove from tracking if delete failed
+      deletedSnippetsRef.current.delete(id);
+      alert('Failed to delete snippet. Please try again.');
     } finally {
       setSaving(false);
+      // Clear deleting flag after a short delay to allow state updates to complete
+      setTimeout(() => {
+        isDeletingRef.current = false;
+      }, 100);
     }
   }
 
@@ -189,7 +278,12 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     try {
       const text = (snippet?.content ?? content ?? '') || '';
       await navigator.clipboard.writeText(text);
-      if (repo && user && snippet?.id && snippet?.id !== '__new__') repo.incrementCopyCount(snippet.id).catch(() => {});
+      if (repo && user && snippet?.id && snippet?.id !== '__new__') {
+        repo.incrementCopyCount(snippet.id).then(() => {
+          // Update the App.jsx cache to reflect the copy count change
+          try { onSnippetsChanged && onSnippetsChanged(snippets.map(s => s.id === snippet.id ? { ...s, copyCount: (s.copyCount || 0) + 1, lastCopiedAt: new Date() } : s)); } catch {}
+        }).catch(() => {});
+      }
       setJustCopied(true);
       setTimeout(() => setJustCopied(false), 900);
     } catch (e) {
@@ -200,18 +294,37 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
   // Autosave: debounce on title/content changes
   useEffect(() => {
     if (!open || !repo || !user) return;
+    
+    // Don't autosave during delete operations
+    if (isDeletingRef.current) {
+      console.log('Autosave skipped - delete operation in progress');
+      return;
+    }
+    
     const trimmedTitle = (title || '').trim();
     const trimmedContent = String(content || '');
+    
     // Avoid creating empty snippets automatically
     if (selectedId === '__new__' && trimmedTitle.length === 0 && trimmedContent.trim().length === 0) return;
+    
     // Skip if no change since last save
-    if (lastSavedRef.current.id === selectedId && lastSavedRef.current.title === trimmedTitle && lastSavedRef.current.content === trimmedContent) return;
-    const handle = setTimeout(() => {
-      onSaveSnippet();
-    }, 800);
-    return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, content, selectedId, open]);
+    if (lastSavedRef.current.id === selectedId && lastSavedRef.current.title === trimmedTitle && lastSavedRef.current.content === trimmedContent) {
+      console.log('Autosave skipped - no changes detected');
+      return;
+    }
+    
+    // Only autosave for actual user edits, not programmatic state changes
+    if (selectedId && (selectedId === '__new__' || snippets.find(s => s.id === selectedId))) {
+      console.log('Autosave scheduled for snippet:', selectedId, 'in 800ms');
+      const handle = setTimeout(() => {
+        console.log('Autosave triggered for snippet:', selectedId);
+        onSaveSnippet();
+      }, 800);
+      return () => clearTimeout(handle);
+    } else {
+      console.log('Autosave skipped - invalid selectedId:', selectedId);
+    }
+  }, [title, content, selectedId, open, snippets]);
 
   // Handle escape key to close modal
   useEffect(() => {
@@ -252,8 +365,11 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
               <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-800">
                 <div className="font-semibold">Snippets</div>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={onCreateSnippet} className="bg-indigo-600 text-white px-3 py-1.5 rounded inline-flex items-center gap-2" disabled={saving || !repo}>
-                    <Plus size={16} /> New
+                  <button type="button" onClick={onCreateSnippet} className="w-8 h-8 bg-indigo-600 text-white rounded inline-flex items-center justify-center" disabled={saving || !repo} data-tip="New Snippet">
+                    <Plus size={16} />
+                  </button>
+                  <button type="button" onClick={refreshList} className="w-8 h-8 rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center justify-center" disabled={loading || !repo} data-tip="Refresh">
+                    <RotateCcw size={16} />
                   </button>
                   <button type="button" onClick={onClose} className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Close">
                     <X size={18} />

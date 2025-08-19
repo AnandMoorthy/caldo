@@ -64,20 +64,27 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
       onDragStart={(e) => onDragStartTask(e, t)}
       data-tip={`${title}${notes ? "\n" + notes : ""}`}
     >
-      <div className={`flex items-start justify-between ${topGapCls}`}>
-        <div className={`min-w-0 ${titleLeftMarginCls}`}>
-          <div className={`font-medium ${titleSizeCls} ${isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate`}>{title}</div>
-        </div>
-        <div className="shrink-0 flex flex-col items-end gap-1">
-          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
-            <span className={`${priority === "high" ? "bg-red-600" : priority === "low" ? "bg-green-600" : "bg-amber-600"} w-1.5 h-1.5 rounded-full`} />
-            {priority.charAt(0).toUpperCase() + priority.slice(1)}
+              <div className={`flex items-start justify-between ${topGapCls}`}>
+          <div className={`min-w-0 ${titleLeftMarginCls}`}>
+            <div className={`font-medium ${titleSizeCls} ${isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate flex items-center gap-1.5`}>
+              {t.isRecurringInstance && (
+                <span className="inline-flex items-center justify-center text-purple-600 dark:text-purple-400 flex-shrink-0" data-tip="Recurring Task">
+                  <RefreshCcw size={Math.max(10, iconSize - 2)} />
+                </span>
+              )}
+              <span className="truncate">{title}</span>
+            </div>
           </div>
-          {showDueDate && dueDate && (
-            <div className="text-[10px] text-slate-500 dark:text-slate-400">Due on {format(parseISO(dueDate), "EEE, MMM d")}</div>
-          )}
+          <div className="shrink-0 flex flex-col items-end gap-1">
+            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
+              <span className={`${priority === "high" ? "bg-red-600" : priority === "low" ? "bg-green-600" : "bg-amber-600"} w-1.5 h-1.5 rounded-full`} />
+              {priority.charAt(0).toUpperCase() + priority.slice(1)}
+            </div>
+            {showDueDate && dueDate && (
+              <div className="text-[10px] text-slate-500 dark:text-slate-400">Due on {format(parseISO(dueDate), "EEE, MMM d")}</div>
+            )}
+          </div>
         </div>
-      </div>
       {showNotesPreview && <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 break-words clamp-2">{notes}</div>}
       <div className={`${metaMarginTopCls} flex items-center justify-between`}>
         <div className="flex items-center gap-2">
@@ -166,11 +173,6 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
           </div>
         )}
         <div className="flex gap-1.5 items-center">
-          {t.isRecurringInstance && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-indigo-600 dark:text-indigo-400" data-tip="Recurring">
-              <RefreshCcw size={Math.max(10, iconSize - 2)} /> Recurring
-            </span>
-          )}
           <button onClick={() => onToggleDone(t)} className={`${actionPadCls} rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 ${isDone ? "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700" : "text-green-600 dark:text-green-400 border-slate-200 dark:border-slate-700"}`} data-tip={isDone ? "Undo" : "Mark done"} aria-label={isDone ? "Undo" : "Mark done"}>
             {isDone ? <RotateCcw size={iconSize} /> : <Check size={iconSize} />}
           </button>

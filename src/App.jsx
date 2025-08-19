@@ -423,9 +423,11 @@ export default function App() {
         taskRepoRef.current = createTaskRepository(u.uid);
         noteRepoRef.current = createDayNoteRepository(u.uid);
         snippetRepoRef.current = createSnippetRepository(u.uid);
-        // Warm snippet cache (non-blocking)
+        // Warm snippet cache (non-blocking) - only if we don't already have snippets
         try {
-          snippetRepoRef.current.listSnippets({ includeArchived: false, limit: 500 }).then((items) => setSnippetsCache(items)).catch(() => {});
+          if (snippetsCache.length === 0) {
+            snippetRepoRef.current.listSnippets({ includeArchived: false, limit: 500 }).then((items) => setSnippetsCache(items)).catch(() => {});
+          }
         } catch {}
         
         // Load current month from Firestore and merge with local
@@ -1644,7 +1646,6 @@ export default function App() {
                         type="button"
                         onClick={() => { setDensity('normal'); setShowDensityMenu(false); }}
                         className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'normal' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                        data-tip="Normal"
                         aria-label="Normal density"
                       >
                         <List size={16} />
@@ -1654,7 +1655,6 @@ export default function App() {
                         type="button"
                         onClick={() => { setDensity('compact'); setShowDensityMenu(false); }}
                         className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'compact' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                        data-tip="Compact"
                         aria-label="Compact density"
                       >
                         <Grip size={16} />
@@ -1664,7 +1664,6 @@ export default function App() {
                         type="button"
                         onClick={() => { setDensity('minified'); setShowDensityMenu(false); }}
                         className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'minified' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                        data-tip="Minified"
                         aria-label="Minified density"
                       >
                         <Minimize2 size={16} />
@@ -1787,7 +1786,11 @@ export default function App() {
           onClose={() => setShowSnippets(false)}
           repo={snippetRepoRef.current}
           user={user}
-          onSnippetsChanged={(items) => setSnippetsCache(items || [])}
+          initialSnippets={snippetsCache}
+          onSnippetsChanged={(items) => {
+            console.log('App.jsx: onSnippetsChanged called with', (items || []).length, 'items');
+            setSnippetsCache(items || []);
+          }}
         />
 
         <ScopeDialog
