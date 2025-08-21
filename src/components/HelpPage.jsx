@@ -334,10 +334,7 @@ export default function HelpPage({ open, onClose }) {
             {navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘⇧S' : 'Ctrl+Shift+S'}
           </kbd>
         </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Toggle density menu</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">Y</kbd>
-        </div>
+        
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <span className="text-slate-700 dark:text-slate-200">Switch to Month view</span>
           <div className="space-x-1">
@@ -359,7 +356,7 @@ export default function HelpPage({ open, onClose }) {
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <span className="text-slate-700 dark:text-slate-200">Switch to Year view</span>
           <div className="space-x-1">
-            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">4</kbd>
+            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">Y</kbd>
           </div>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">

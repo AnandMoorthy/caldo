@@ -215,7 +215,7 @@ export default function App() {
         setCurrentView('day');
       } else if (key === 'y') {
         e.preventDefault();
-        setShowDensityMenu((v) => !v);
+        setCurrentView('year');
       } else if (key === 'o') {
         e.preventDefault();
         setShowMissed(true);
@@ -1958,58 +1958,20 @@ export default function App() {
             </aside>
           </main>
         ) : currentView === 'year' ? (
-          <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            <div className="md:col-span-2">
-              <YearView
-                anchorDate={cursor}
-                onPrevYear={prevYear}
-                onNextYear={nextYear}
-                onToday={() => { const today = new Date(); setCursor(today); setSelectedDate(today); }}
-                tasksFor={tasksFor}
-                hasNoteFor={hasNoteForDay}
-                onSelectMonth={(monthDate) => {
-                  setCursor(monthDate);
-                  setCurrentView('month');
-                }}
-              />
-            </div>
-            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400">Selected</div>
-                  <div className="font-semibold text-slate-900 dark:text-slate-100">{format(selectedDate, 'EEEE, MMM d')}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowNotes(true)}
-                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
-                    aria-label="Open notes (N)"
-                    data-tip="Open notes (N)"
-                  >
-                    <StickyNote size={16} />
-                  </button>
-                  <button
-                    onClick={() => openAddModal(selectedDate)}
-                    className="bg-indigo-600 text-white p-2 rounded-lg inline-flex items-center justify-center"
-                    aria-label="Add task (T)"
-                    data-tip="Add task (T)"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              </div>
-              <TaskList
-                tasks={tasksFor(selectedDate)}
-                onDragStartTask={onDragStartTask}
-                onToggleDone={toggleDone}
-                onOpenEditModal={openEditModal}
-                onDeleteTask={deleteTask}
-                onAddSubtask={addSubtask}
-                onToggleSubtask={toggleSubtask}
-                onDeleteSubtask={deleteSubtask}
-                density={density}
-              />
-            </aside>
+          <main className="grid grid-cols-1 gap-4 sm:gap-6">
+            <YearView
+              anchorDate={cursor}
+              onPrevYear={prevYear}
+              onNextYear={nextYear}
+              onToday={() => { const today = new Date(); setCursor(today); setSelectedDate(today); }}
+              tasksFor={tasksFor}
+              hasNoteFor={hasNoteForDay}
+              snippets={snippetsCache}
+              onSelectMonth={(monthDate) => {
+                setCursor(monthDate);
+                setCurrentView('month');
+              }}
+            />
           </main>
         ) : (
           <main className="grid grid-cols-1 gap-4 sm:gap-6">
