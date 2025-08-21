@@ -4,6 +4,7 @@ const VIEWS = [
   { key: 'day', label: 'Day' },
   { key: 'week', label: 'Week' },
   { key: 'month', label: 'Month' },
+  { key: 'year', label: 'Year' },
 ];
 
 export default function ViewDropdown({ value = 'month', onChange }) {

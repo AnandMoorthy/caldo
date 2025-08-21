@@ -6,6 +6,7 @@ import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Calendar from "./components/Calendar.jsx";
 import WeekView from "./components/WeekView.jsx";
+import YearView from "./components/YearView.jsx";
 import DayView from "./components/DayView.jsx";
 import TaskList from "./components/TaskList.jsx";
 import AddTaskDrawer from "./components/AddTaskDrawer.jsx";
@@ -212,12 +213,12 @@ export default function App() {
       } else if (key === 'd') {
         e.preventDefault();
         setCurrentView('day');
-      } else if (key === 'o') {
-        e.preventDefault();
-        setShowMissed(true);
       } else if (key === 'y') {
         e.preventDefault();
         setShowDensityMenu((v) => !v);
+      } else if (key === 'o') {
+        e.preventDefault();
+        setShowMissed(true);
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         prevDay();
@@ -247,6 +248,9 @@ export default function App() {
       } else if (key === '3') {
         e.preventDefault();
         setCurrentView('month');
+      } else if (key === '4') {
+        e.preventDefault();
+        setCurrentView('year');
       } else if (e.key === '?') {
         e.preventDefault();
         setShowHelp(true);
@@ -647,6 +651,14 @@ export default function App() {
   function prevWeek() {
     setCursor((prev) => addDays(prev, -7));
     setSelectedDate((prev) => addDays(prev, -7));
+  }
+  function nextYear() {
+    setCursor((prev) => addMonths(prev, 12));
+    setSelectedDate((prev) => addMonths(prev, 12));
+  }
+  function prevYear() {
+    setCursor((prev) => addMonths(prev, -12));
+    setSelectedDate((prev) => addMonths(prev, -12));
   }
   function nextDay() {
     setCursor((prev) => addDays(prev, 1));
@@ -1914,6 +1926,60 @@ export default function App() {
                       </div>
                     )}
                   </div>
+                  <button
+                    onClick={() => setShowNotes(true)}
+                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
+                    aria-label="Open notes (N)"
+                    data-tip="Open notes (N)"
+                  >
+                    <StickyNote size={16} />
+                  </button>
+                  <button
+                    onClick={() => openAddModal(selectedDate)}
+                    className="bg-indigo-600 text-white p-2 rounded-lg inline-flex items-center justify-center"
+                    aria-label="Add task (T)"
+                    data-tip="Add task (T)"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+              <TaskList
+                tasks={tasksFor(selectedDate)}
+                onDragStartTask={onDragStartTask}
+                onToggleDone={toggleDone}
+                onOpenEditModal={openEditModal}
+                onDeleteTask={deleteTask}
+                onAddSubtask={addSubtask}
+                onToggleSubtask={toggleSubtask}
+                onDeleteSubtask={deleteSubtask}
+                density={density}
+              />
+            </aside>
+          </main>
+        ) : currentView === 'year' ? (
+          <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="md:col-span-2">
+              <YearView
+                anchorDate={cursor}
+                onPrevYear={prevYear}
+                onNextYear={nextYear}
+                onToday={() => { const today = new Date(); setCursor(today); setSelectedDate(today); }}
+                tasksFor={tasksFor}
+                hasNoteFor={hasNoteForDay}
+                onSelectMonth={(monthDate) => {
+                  setCursor(monthDate);
+                  setCurrentView('month');
+                }}
+              />
+            </div>
+            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">Selected</div>
+                  <div className="font-semibold text-slate-900 dark:text-slate-100">{format(selectedDate, 'EEEE, MMM d')}</div>
+                </div>
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowNotes(true)}
                     className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
