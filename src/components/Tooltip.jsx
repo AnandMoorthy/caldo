@@ -48,13 +48,15 @@ export default function TooltipProvider() {
       setPos({ x, y });
     }
 
+    let showTimer = 0;
     function onMouseOver(e) {
       const el = findTipElement(e.target);
       if (!el) return;
       usingMouseRef.current = false;
       updateFromElement(el);
       computePosFromRect(el, el.getAttribute('data-tip-pos') || 'bottom');
-      setVisible(true);
+      if (showTimer) clearTimeout(showTimer);
+      showTimer = setTimeout(() => setVisible(true), 200);
     }
 
     function onMouseMove(e) {
@@ -68,6 +70,7 @@ export default function TooltipProvider() {
       const stillInside = !!(toEl && anchorRef.current.contains && anchorRef.current.contains(toEl));
       if (!stillInside) {
         setVisible(false);
+        if (showTimer) clearTimeout(showTimer);
         anchorRef.current = null;
       }
     }
@@ -111,6 +114,7 @@ export default function TooltipProvider() {
       window.removeEventListener('scroll', onScrollOrResize, true);
       window.removeEventListener('resize', onScrollOrResize, true);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (showTimer) clearTimeout(showTimer);
     };
   }, [visible, placement]);
 

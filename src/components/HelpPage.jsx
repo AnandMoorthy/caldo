@@ -326,7 +326,7 @@ export default function HelpPage({ open, onClose }) {
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <span className="text-slate-700 dark:text-slate-200">Open missed tasks</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">M</kbd>
+          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">O</kbd>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <span className="text-slate-700 dark:text-slate-700">Open snippets</span>
@@ -336,7 +336,25 @@ export default function HelpPage({ open, onClose }) {
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <span className="text-slate-700 dark:text-slate-200">Toggle density menu</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">D</kbd>
+          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">Y</kbd>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <span className="text-slate-700 dark:text-slate-200">Switch to Month view</span>
+          <div className="space-x-1">
+            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">M</kbd>
+          </div>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <span className="text-slate-700 dark:text-slate-200">Switch to Week view</span>
+          <div className="space-x-1">
+            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">W</kbd>
+          </div>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <span className="text-slate-700 dark:text-slate-200">Switch to Day view</span>
+          <div className="space-x-1">
+            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">D</kbd>
+          </div>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <span className="text-slate-700 dark:text-slate-200">Search tasks & notes</span>

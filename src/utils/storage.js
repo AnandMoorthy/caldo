@@ -43,6 +43,14 @@ export function saveStreak(streak) {
   localStorage.setItem(STREAK_KEY, JSON.stringify(safe));
 }
 
+export function saveViewPreference(view) {
+  try { localStorage.setItem('caldo_v2_view', String(view || 'month')); } catch {}
+}
+
+export function loadViewPreference() {
+  try { return localStorage.getItem('caldo_v2_view') || 'month'; } catch { return 'month'; }
+}
+
 export function loadThemePreference() {
   try {
     const stored = localStorage.getItem(THEME_KEY);

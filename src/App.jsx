@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO } from "date-fns";
 import { motion } from "framer-motion";
-import { Plus, Check, StickyNote, List, Grip, Minimize2 } from "lucide-react";
+import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX } from "lucide-react";
 import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Calendar from "./components/Calendar.jsx";
+import WeekView from "./components/WeekView.jsx";
+import DayView from "./components/DayView.jsx";
 import TaskList from "./components/TaskList.jsx";
 import AddTaskDrawer from "./components/AddTaskDrawer.jsx";
 import EditTaskDrawer from "./components/EditTaskDrawer.jsx";
@@ -16,7 +18,7 @@ import SearchModal from "./components/SearchModal.jsx";
 import ScopeDialog from "./components/ScopeDialog.jsx";
 import SnippetsModal from "./components/SnippetsModal.jsx";
 import TooltipProvider from "./components/Tooltip.jsx";
-import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries } from "./utils/storage";
+import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
 import { buildSearchIndex, searchTasks } from "./utils/search.js";
@@ -33,6 +35,7 @@ import { materializeSeries } from "./utils/recurrence";
 // Storage helpers moved to utils/storage.js
 
 export default function App() {
+  const [currentView, setCurrentView] = useState(() => (typeof window === 'undefined' ? 'month' : loadViewPreference()));
   const [cursor, setCursor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksMap, setTasksMap] = useState(() => loadTasks());
@@ -106,6 +109,9 @@ export default function App() {
   useEffect(() => {
     saveTasks(tasksMap);
   }, [tasksMap]);
+  useEffect(() => {
+    try { saveViewPreference(currentView); } catch {}
+  }, [currentView]);
 
   useEffect(() => {
     try { saveRecurringSeries(recurringSeries); } catch {}
@@ -134,7 +140,7 @@ export default function App() {
     } catch {}
   }, [tasksMap, selectedDate]);
 
-  // Global keyboard shortcuts: T add task, N open notes, M missed tasks, D density menu, ArrowLeft prev month, ArrowRight next month, 0 today, ? help, CMD+K/Ctrl+K search, Esc close
+  // Global keyboard shortcuts: T add task, N open notes, M missed tasks, D density menu, arrows navigate by view, 0 today, 1/2/3 switch views, ? help, CMD+K/Ctrl+K search, Esc close
   useEffect(() => {
     function stopNavRepeat() {
       const r = navRepeatRef.current;
@@ -153,7 +159,7 @@ export default function App() {
       r.dir = direction;
       r.timeoutId = setTimeout(() => {
         r.intervalId = setInterval(() => {
-          if (r.dir === 'prev') prevMonth(); else nextMonth();
+          if (r.dir === 'prev') prevDay(); else nextDay();
         }, 120);
       }, 350);
     }
@@ -199,17 +205,26 @@ export default function App() {
         setShowNotes(true);
       } else if (key === 'm') {
         e.preventDefault();
-        setShowMissed(true);
+        setCurrentView('month');
+      } else if (key === 'w') {
+        e.preventDefault();
+        setCurrentView('week');
       } else if (key === 'd') {
+        e.preventDefault();
+        setCurrentView('day');
+      } else if (key === 'o') {
+        e.preventDefault();
+        setShowMissed(true);
+      } else if (key === 'y') {
         e.preventDefault();
         setShowDensityMenu((v) => !v);
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        prevMonth();
+        prevDay();
         if (!e.repeat) startNavRepeat('prev');
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        nextMonth();
+        nextDay();
         if (!e.repeat) startNavRepeat('next');
       } else if (key === '0') {
         e.preventDefault();
@@ -223,6 +238,15 @@ export default function App() {
           const dk = keyFor(today);
           refreshDayFromCloud(user.uid, dk);
         }
+      } else if (key === '1') {
+        e.preventDefault();
+        setCurrentView('day');
+      } else if (key === '2') {
+        e.preventDefault();
+        setCurrentView('week');
+      } else if (key === '3') {
+        e.preventDefault();
+        setCurrentView('month');
       } else if (e.key === '?') {
         e.preventDefault();
         setShowHelp(true);
@@ -244,7 +268,7 @@ export default function App() {
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlurWindow);
     };
-  }, [selectedDate, showAdd, showEdit, showNotes, showMissed, showHelp, showSearch]);
+  }, [selectedDate, showAdd, showEdit, showNotes, showMissed, showHelp, showSearch, currentView]);
 
   useEffect(() => {
     saveStreak(streak);
@@ -616,6 +640,23 @@ export default function App() {
     setCursor((prev) => subMonths(prev, 1));
   }
 
+  function nextWeek() {
+    setCursor((prev) => addDays(prev, 7));
+    setSelectedDate((prev) => addDays(prev, 7));
+  }
+  function prevWeek() {
+    setCursor((prev) => addDays(prev, -7));
+    setSelectedDate((prev) => addDays(prev, -7));
+  }
+  function nextDay() {
+    setCursor((prev) => addDays(prev, 1));
+    setSelectedDate((prev) => addDays(prev, 1));
+  }
+  function prevDay() {
+    setCursor((prev) => addDays(prev, -1));
+    setSelectedDate((prev) => addDays(prev, -1));
+  }
+
   function isNoteItem(item) {
     return item && item.id === 'day_note';
   }
@@ -779,6 +820,26 @@ export default function App() {
     // newest first like the rest of the app
     return sortTasksByCreatedDesc(items);
   }, [tasksMap, monthStart]);
+
+  // Build missed tasks for the current week window (Mon-Sun) for Week view aside
+  const missedTasksThisWeek = useMemo(() => {
+    const start = startOfWeek(cursor, { weekStartsOn: 1 });
+    const end = endOfWeek(cursor, { weekStartsOn: 1 });
+    const items = [];
+    for (const [dateKey, list] of Object.entries(tasksMap || {})) {
+      const dateObj = parseISO(dateKey);
+      if (dateObj < start || dateObj > end) continue;
+      // only past dates strictly before today
+      const todayStart = new Date();
+      const clampToday = new Date(todayStart.getFullYear(), todayStart.getMonth(), todayStart.getDate());
+      if (dateObj >= clampToday) continue;
+      for (const t of list) {
+        if (isNoteItem(t)) continue;
+        if (!t.done) items.push(t);
+      }
+    }
+    return sortTasksByCreatedDesc(items);
+  }, [tasksMap, cursor]);
 
   function openAddModal(date) {
     setSelectedDate(date);
@@ -1648,7 +1709,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <Header
           user={user}
           onSignInWithGoogle={signInWithGoogle}
@@ -1661,108 +1722,236 @@ export default function App() {
           currentStreak={streak?.current || 0}
           deleteAllTasksEnabled={!!deleteAllTasksEnabled}
           onDeleteAllTasks={deleteAllTasksFromCloud}
+          currentView={currentView}
+          onChangeView={(v) => setCurrentView(v)}
         />
-        
+        {currentView === 'month' ? (
+          <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <Calendar
+              monthStart={monthStart}
+              monthDays={monthDays}
+              selectedDate={selectedDate}
+              onSelectDate={(d) => {
+                setCursor(d);
+                setSelectedDate(d);
+                if (user) {
+                  const dk = keyFor(d);
+                  refreshDayFromCloud(user.uid, dk);
+                }
+                try {
+                  setDraftDayNote(getDayNoteByKey(keyFor(d)));
+                } catch {}
+              }}
+              onPrevMonth={prevMonth}
+              onNextMonth={nextMonth}
+              tasksFor={tasksFor}
+              hasNoteFor={hasNoteForDay}
+              onOpenAddModal={openAddModal}
+              dragOverDayKey={dragOverDayKey}
+              setDragOverDayKey={setDragOverDayKey}
+              onDropTaskOnDay={onDropTaskOnDay}
+              missedCount={missedTasksThisMonth.length}
+              onOpenMissed={() => setShowMissed(true)}
+            />
 
-        <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          <Calendar
-            monthStart={monthStart}
-            monthDays={monthDays}
-            selectedDate={selectedDate}
-            onSelectDate={(d) => {
-              setCursor(d);
-              setSelectedDate(d);
-              if (user) {
-                const dk = keyFor(d);
-                // Fetch the clicked day's tasks in the background and merge
-                refreshDayFromCloud(user.uid, dk);
-              }
-              try {
-                setDraftDayNote(getDayNoteByKey(keyFor(d)));
-              } catch {}
-            }}
-            onPrevMonth={prevMonth}
-            onNextMonth={nextMonth}
-            tasksFor={tasksFor}
-            hasNoteFor={hasNoteForDay}
-            onOpenAddModal={openAddModal}
-            dragOverDayKey={dragOverDayKey}
-            setDragOverDayKey={setDragOverDayKey}
-            onDropTaskOnDay={onDropTaskOnDay}
-            missedCount={missedTasksThisMonth.length}
-            onOpenMissed={() => setShowMissed(true)}
-          />
-
-          <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
-                <div className="font-semibold text-slate-900 dark:text-slate-100">{format(selectedDate, 'EEEE, MMM d')}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="relative" ref={densityMenuRef}>
-                  <button
-                    type="button"
-                    onClick={() => setShowDensityMenu((v) => !v)}
-                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
-                    aria-label="Task card density"
-                    data-tip="Task card density"
-                  >
-                    {density === 'minified' ? <Minimize2 size={16} /> : density === 'compact' ? <Grip size={16} /> : <List size={16} />}
-                  </button>
-                  {showDensityMenu && (
-                    <div className="absolute right-0 z-10 mt-2 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1">
-                      <button
-                        type="button"
-                        onClick={() => { setDensity('normal'); setShowDensityMenu(false); }}
-                        className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'normal' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                        aria-label="Normal density"
-                      >
-                        <List size={16} />
-                        <span className="text-sm">Normal</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setDensity('compact'); setShowDensityMenu(false); }}
-                        className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'compact' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                        aria-label="Compact density"
-                      >
-                        <Grip size={16} />
-                        <span className="text-sm">Compact</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setDensity('minified'); setShowDensityMenu(false); }}
-                        className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'minified' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                        aria-label="Minified density"
-                      >
-                        <Minimize2 size={16} />
-                        <span className="text-sm">Minified</span>
-                      </button>
-                    </div>
-                  )}
+            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
+                  <div className="font-semibold text-slate-900 dark:text-slate-100">{format(selectedDate, 'EEEE, MMM d')}</div>
                 </div>
-                <button
-                  onClick={() => setShowNotes(true)}
-                  className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
-                  aria-label="Open notes (N)"
-                  data-tip="Open notes (N)"
-                >
-                  <StickyNote size={16} />
-                </button>
-                <button
-                  onClick={() => openAddModal(selectedDate)}
-                  className="bg-indigo-600 text-white p-2 rounded-lg inline-flex items-center justify-center"
-                  aria-label="Add task (T)"
-                  data-tip="Add task (T)"
-                >
-                  <Plus size={16} />
-                </button>
+                <div className="flex items-center gap-2">
+                  <div className="relative" ref={densityMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowDensityMenu((v) => !v)}
+                      className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
+                      aria-label="Task card density"
+                      data-tip="Task card density"
+                    >
+                      {density === 'minified' ? <Minimize2 size={16} /> : density === 'compact' ? <Grip size={16} /> : <List size={16} />}
+                    </button>
+                    {showDensityMenu && (
+                      <div className="absolute right-0 z-10 mt-2 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1">
+                        <button
+                          type="button"
+                          onClick={() => { setDensity('normal'); setShowDensityMenu(false); }}
+                          className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'normal' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                          aria-label="Normal density"
+                        >
+                          <List size={16} />
+                          <span className="text-sm">Normal</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setDensity('compact'); setShowDensityMenu(false); }}
+                          className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'compact' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                          aria-label="Compact density"
+                        >
+                          <Grip size={16} />
+                          <span className="text-sm">Compact</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setDensity('minified'); setShowDensityMenu(false); }}
+                          className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'minified' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                          aria-label="Minified density"
+                        >
+                          <Minimize2 size={16} />
+                          <span className="text-sm">Minified</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowNotes(true)}
+                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
+                    aria-label="Open notes (N)"
+                    data-tip="Open notes (N)"
+                  >
+                    <StickyNote size={16} />
+                  </button>
+                  {/* <button
+                    onClick={() => setShowMissed(true)}
+                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
+                    aria-label="Show missed tasks this week"
+                    data-tip="Show missed tasks this week"
+                  >
+                    <ListX size={16} />
+                  </button> */}
+                  <button
+                    onClick={() => openAddModal(selectedDate)}
+                    className="bg-indigo-600 text-white p-2 rounded-lg inline-flex items-center justify-center"
+                    aria-label="Add task (T)"
+                    data-tip="Add task (T)"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
               </div>
+
+              <TaskList
+                tasks={tasksFor(selectedDate)}
+                onDragStartTask={onDragStartTask}
+                onToggleDone={toggleDone}
+                onOpenEditModal={openEditModal}
+                onDeleteTask={deleteTask}
+                onAddSubtask={addSubtask}
+                onToggleSubtask={toggleSubtask}
+                onDeleteSubtask={deleteSubtask}
+                density={density}
+                emptyMessage="No tasks. Add a new task to view."
+              />
+            </aside>
+          </main>
+        ) : currentView === 'week' ? (
+          <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="md:col-span-2">
+              <WeekView
+                anchorDate={cursor}
+                onPrevWeek={prevWeek}
+                onNextWeek={nextWeek}
+                onToday={() => { const today = new Date(); setCursor(today); setSelectedDate(today); }}
+                tasksFor={tasksFor}
+                selectedDate={selectedDate}
+                onOpenAddForDate={(d) => openAddModal(d)}
+                hasNoteFor={hasNoteForDay}
+                missedCount={missedTasksThisWeek.length}
+                onOpenMissed={() => setShowMissed(true)}
+                onSelectDate={(d) => {
+                  setSelectedDate(d);
+                  setCursor(d);
+                  if (user) refreshDayFromCloud(user.uid, keyFor(d));
+                }}
+              />
             </div>
-
-
-            <TaskList
+            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
+                  <div className="font-semibold text-slate-900 dark:text-slate-100">{format(selectedDate, 'EEEE, MMM d')}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative" ref={densityMenuRef}>
+                    <button
+                      type="button"
+                      onClick={() => setShowDensityMenu((v) => !v)}
+                      className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
+                      aria-label="Task card density"
+                      data-tip="Task card density"
+                    >
+                      {density === 'minified' ? <Minimize2 size={16} /> : density === 'compact' ? <Grip size={16} /> : <List size={16} />}
+                    </button>
+                    {showDensityMenu && (
+                      <div className="absolute right-0 z-10 mt-2 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1">
+                        <button
+                          type="button"
+                          onClick={() => { setDensity('normal'); setShowDensityMenu(false); }}
+                          className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'normal' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                          aria-label="Normal density"
+                        >
+                          <List size={16} />
+                          <span className="text-sm">Normal</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setDensity('compact'); setShowDensityMenu(false); }}
+                          className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'compact' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                          aria-label="Compact density"
+                        >
+                          <Grip size={16} />
+                          <span className="text-sm">Compact</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setDensity('minified'); setShowDensityMenu(false); }}
+                          className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'minified' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                          aria-label="Minified density"
+                        >
+                          <Minimize2 size={16} />
+                          <span className="text-sm">Minified</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowNotes(true)}
+                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
+                    aria-label="Open notes (N)"
+                    data-tip="Open notes (N)"
+                  >
+                    <StickyNote size={16} />
+                  </button>
+                  <button
+                    onClick={() => openAddModal(selectedDate)}
+                    className="bg-indigo-600 text-white p-2 rounded-lg inline-flex items-center justify-center"
+                    aria-label="Add task (T)"
+                    data-tip="Add task (T)"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+              <TaskList
+                tasks={tasksFor(selectedDate)}
+                onDragStartTask={onDragStartTask}
+                onToggleDone={toggleDone}
+                onOpenEditModal={openEditModal}
+                onDeleteTask={deleteTask}
+                onAddSubtask={addSubtask}
+                onToggleSubtask={toggleSubtask}
+                onDeleteSubtask={deleteSubtask}
+                density={density}
+              />
+            </aside>
+          </main>
+        ) : (
+          <main className="grid grid-cols-1 gap-4 sm:gap-6">
+            <DayView
+              date={selectedDate}
+              onPrevDay={() => prevDay()}
+              onNextDay={() => nextDay()}
+              onToday={() => { const today = new Date(); setCursor(today); setSelectedDate(today); }}
               tasks={tasksFor(selectedDate)}
               onDragStartTask={onDragStartTask}
               onToggleDone={toggleDone}
@@ -1772,9 +1961,15 @@ export default function App() {
               onToggleSubtask={toggleSubtask}
               onDeleteSubtask={deleteSubtask}
               density={density}
+              onAddTask={() => openAddModal(selectedDate)}
+              onOpenNotes={() => setShowNotes(true)}
+              showDensityMenu={showDensityMenu}
+              setShowDensityMenu={setShowDensityMenu}
+              onChangeDensity={(d) => setDensity(d)}
+              densityMenuRef={densityMenuRef}
             />
-          </aside>
-        </main>
+          </main>
+        )}
 
         {showCelebration && (
           <div className="pointer-events-none fixed inset-0 z-[60]">
@@ -1792,8 +1987,8 @@ export default function App() {
         <EditTaskDrawer open={showEdit} editForm={editForm} setEditForm={setEditForm} onSubmit={saveEdit} onClose={() => setShowEdit(false)} />
         <MissedTasksDrawer
           open={showMissed}
-          count={missedTasksThisMonth.length}
-          tasks={missedTasksThisMonth}
+          count={currentView === 'week' ? missedTasksThisWeek.length : missedTasksThisMonth.length}
+          tasks={currentView === 'week' ? missedTasksThisWeek : missedTasksThisMonth}
           onClose={() => setShowMissed(false)}
           onDragStartTask={onDragStartTask}
           onToggleDone={toggleDone}
@@ -1803,6 +1998,7 @@ export default function App() {
           onToggleSubtask={toggleSubtask}
           onDeleteSubtask={deleteSubtask}
           density={density}
+          scope={currentView === 'week' ? 'week' : 'month'}
         />
 
         <DayNotesDrawer
