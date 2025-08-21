@@ -1764,6 +1764,7 @@ export default function App() {
               onDropTaskOnDay={onDropTaskOnDay}
               missedCount={missedTasksThisMonth.length}
               onOpenMissed={() => setShowMissed(true)}
+              snippets={snippetsCache}
             />
 
             <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
@@ -1870,6 +1871,7 @@ export default function App() {
                 hasNoteFor={hasNoteForDay}
                 missedCount={missedTasksThisWeek.length}
                 onOpenMissed={() => setShowMissed(true)}
+                snippets={snippetsCache}
                 onSelectDate={(d) => {
                   setSelectedDate(d);
                   setCursor(d);

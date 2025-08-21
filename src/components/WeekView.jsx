@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Calendar, ListX } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, ListX, List, CheckCircle, FileText, Code as CodeIcon } from "lucide-react";
 
 export default function WeekView({
   anchorDate,
@@ -14,11 +14,40 @@ export default function WeekView({
   hasNoteFor,
   missedCount = 0,
   onOpenMissed,
+  snippets = [],
 }) {
   const days = useMemo(() => {
     const start = startOfWeek(anchorDate, { weekStartsOn: 1 });
     return Array.from({ length: 7 }).map((_, i) => addDays(start, i));
   }, [anchorDate]);
+
+  // Weekly summary
+  const totalTasks = useMemo(() => days.reduce((acc, d) => acc + (tasksFor ? tasksFor(d).length : 0), 0), [days, tasksFor]);
+  const totalDone = useMemo(() => days.reduce((acc, d) => acc + (tasksFor ? tasksFor(d).filter(t => t.done).length : 0), 0), [days, tasksFor]);
+  const notesCount = useMemo(() => days.reduce((acc, d) => acc + (hasNoteFor && hasNoteFor(d) ? 1 : 0), 0), [days, hasNoteFor]);
+  const snippetsCount = useMemo(() => {
+    try {
+      const start = days[0];
+      const end = days[6];
+      return Array.isArray(snippets)
+        ? snippets.reduce((acc, s) => {
+            const raw = s?.createdAt;
+            let created;
+            try {
+              if (typeof raw?.toDate === 'function') created = raw.toDate();
+              else if (typeof raw === 'string') created = new Date(raw);
+              else if (raw instanceof Date) created = raw;
+              else if (typeof raw?.seconds === 'number') created = new Date(raw.seconds * 1000);
+            } catch {}
+            if (!created || isNaN(created.getTime())) return acc;
+            if (created >= start && created <= end) return acc + 1;
+            return acc;
+          }, 0)
+        : 0;
+    } catch {
+      return 0;
+    }
+  }, [days, snippets]);
 
   return (
     <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
@@ -44,6 +73,13 @@ export default function WeekView({
           <button onClick={onToday} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="This week" data-tip="This week"><Calendar size={16} /></button>
           <button onClick={onNextWeek} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="Next week" data-tip="Next week"><ChevronRight size={16} /></button>
         </div>
+      </div>
+      {/* Weekly summary chips */}
+      <div className="flex items-center gap-2 mb-3">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300"><List size={12} /> {totalTasks}</span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle size={12} /> {totalDone}</span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-[11px] text-blue-700 dark:text-blue-300"><FileText size={12} /> {notesCount}</span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-[11px] text-purple-700 dark:text-purple-300"><CodeIcon size={12} /> {snippetsCount}</span>
       </div>
       <div className="grid grid-cols-7 gap-2">
         {days.map((day) => {
