@@ -1872,6 +1872,9 @@ export default function App() {
                 missedCount={missedTasksThisWeek.length}
                 onOpenMissed={() => setShowMissed(true)}
                 snippets={snippetsCache}
+                dragOverDayKey={dragOverDayKey}
+                setDragOverDayKey={setDragOverDayKey}
+                onDropTaskOnDay={onDropTaskOnDay}
                 onSelectDate={(d) => {
                   setSelectedDate(d);
                   setCursor(d);

@@ -15,6 +15,9 @@ export default function WeekView({
   missedCount = 0,
   onOpenMissed,
   snippets = [],
+  dragOverDayKey,
+  setDragOverDayKey,
+  onDropTaskOnDay,
 }) {
   const days = useMemo(() => {
     const start = startOfWeek(anchorDate, { weekStartsOn: 1 });
@@ -97,12 +100,23 @@ export default function WeekView({
             },
             { high: 0, medium: 0, low: 0 }
           );
+          const key = format(day, 'yyyy-MM-dd');
+          const ringClass =
+            dragOverDayKey === key
+              ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-white dark:ring-offset-slate-900'
+              : isSelected
+              ? 'ring-2 ring-indigo-500'
+              : '';
           return (
             <div
               key={String(day)}
-              className={`group relative border border-slate-200 dark:border-slate-800 rounded-lg p-2 min-h-[96px] cursor-pointer ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}
+              className={`group relative border border-slate-200 dark:border-slate-800 rounded-lg p-2 min-h-[96px] cursor-pointer ${ringClass}`}
               onClick={() => onSelectDate && onSelectDate(day)}
               onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); onSelectDate && onSelectDate(day); onOpenAddForDate && onOpenAddForDate(day); }}
+              onDragOver={(e) => { e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch {} setDragOverDayKey && setDragOverDayKey(key); }}
+              onDragEnter={() => setDragOverDayKey && setDragOverDayKey(key)}
+              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayKey && setDragOverDayKey((k) => (k === key ? null : k)); }}
+              onDrop={(e) => { onDropTaskOnDay && onDropTaskOnDay(e, day); setDragOverDayKey && setDragOverDayKey(null); }}
               role="button"
               tabIndex={0}
             >
