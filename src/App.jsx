@@ -430,7 +430,7 @@ export default function App() {
           }
         } catch {}
         
-        // Load current month from Firestore and merge with local
+                // Load current month from Firestore and merge with local
         try {
           const currentMonthKey = monthKeyFromDate(new Date());
           let monthMap = {};
@@ -1548,21 +1548,91 @@ export default function App() {
     const ok = confirm('This will permanently delete all your tasks from the cloud. This cannot be undone. Continue?');
     if (!ok) return;
     try {
-      // Broad range
+      // Broad range - delete from cloud
       const start = new Date(1970, 0, 1);
       const end = new Date(3000, 0, 1);
+      console.log('Deleting tasks from cloud with range:', start, 'to', end);
       await taskRepoRef.current.deleteTasksInRange(start, end);
-      // Clear local tasks
+      console.log('Cloud deletion completed');
+      
+      // Also clear any notes that might contain task-related data
+      try {
+        if (noteRepoRef.current) {
+          // Clear notes for the same broad range
+          const notes = await noteRepoRef.current.fetchMonthNotes('1970-01');
+          for (const note of notes) {
+            await noteRepoRef.current.deleteDayNote(note.dateKey);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to clear notes:', e);
+      }
+      
+      // Clear local tasks state
       setTasksMap({});
-      try { saveTasks({}); } catch {}
+      
+      // Clear all task-related localStorage data
+      try { 
+        saveTasks({}); 
+        console.log('Cleared tasks from localStorage');
+      } catch (e) {
+        console.error('Failed to clear tasks from localStorage:', e);
+      }
+      
       // Also clear recurring series so they don't rematerialize
       setRecurringSeries([]);
-      try { saveRecurringSeries([]); } catch {}
+      try { 
+        saveRecurringSeries([]); 
+        console.log('Cleared recurring series from localStorage');
+      } catch (e) {
+        console.error('Failed to clear recurring series from localStorage:', e);
+      }
+      
+      // Clear any other task-related localStorage keys
+      try {
+        // Clear all caldo_v2 related keys
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith('caldo_v2_')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+          console.log('Removed localStorage key:', key);
+        });
+      } catch (e) {
+        console.error('Failed to clear additional localStorage keys:', e);
+      }
+      
+      // Reset streak as well since tasks are gone
+      setStreak({ current: 0, longest: 0, lastEarnedDateKey: null });
+      try {
+        saveStreak({ current: 0, longest: 0, lastEarnedDateKey: null });
+        console.log('Reset streak data');
+      } catch (e) {
+        console.error('Failed to reset streak:', e);
+      }
+      
+      // Clear cloud streak data
+      try {
+        await saveStreakToCloud(user.uid, { current: 0, longest: 0, lastEarnedDateKey: null });
+        console.log('Cleared cloud streak data');
+      } catch (e) {
+        console.error('Failed to clear cloud streak:', e);
+      }
+      
+      console.log('All task data cleared successfully');
+      alert('All tasks have been deleted from both cloud and local storage.');
+      
     } catch (e) {
       console.error('Failed to delete all tasks from cloud', e);
       alert('Failed to delete all tasks. Please try again.');
     }
   }
+
+
 
   // Keep streak valid across day changes: if last earned day is neither today nor yesterday, reset current to 0
   useEffect(() => {

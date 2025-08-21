@@ -112,41 +112,43 @@ export default function Calendar({
                 </div>
                 <div className="hidden sm:block text-xs text-slate-400 dark:text-slate-500 relative">{format(day, "MMM")}</div>
               </div>
-              {/* Hover card summary */}
-              <div className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-30">
-                <div className="opacity-0 translate-y-1 scale-95 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 transition-all duration-150 ease-out">
-                  <div className="w-56 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur p-3">
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400">{format(day, 'EEE, MMM d')}</div>
-                    <div className="mt-0.5 flex items-center justify-between">
-                      <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{doneCount}/{totalCount} done</div>
-                      {hasNote && (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400" aria-label="Notes present">
-                          <span className="inline-block w-2 h-2 rounded-full bg-blue-500" />
-                          Notes present
-                        </span>
+              {/* Hover card summary - only show if there are tasks or notes */}
+              {(tasks.length > 0 || hasNote) && (
+                <div className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-30">
+                  <div className="opacity-0 translate-y-1 scale-95 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 transition-all duration-150 ease-out">
+                    <div className="w-56 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur p-3">
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">{format(day, 'EEE, MMM d')}</div>
+                      <div className="mt-0.5 flex items-center justify-between">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{doneCount}/{totalCount} done</div>
+                        {hasNote && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400" aria-label="Notes present">
+                            <span className="inline-block w-2 h-2 rounded-full bg-blue-500" />
+                            Notes present
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${percent}%` }} />
+                      </div>
+                      {totalCount > 0 ? (
+                        <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-600 dark:text-slate-400">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-red-500" /> {prioCount.high} high
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-amber-400" /> {prioCount.medium} med
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" /> {prioCount.low} low
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">No tasks</div>
                       )}
                     </div>
-                    <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                      <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${percent}%` }} />
-                    </div>
-                    {totalCount > 0 ? (
-                      <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-600 dark:text-slate-400">
-                        <span className="inline-flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full bg-red-500" /> {prioCount.high} high
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full bg-amber-400" /> {prioCount.medium} med
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500" /> {prioCount.low} low
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">No tasks</div>
-                    )}
                   </div>
                 </div>
-              </div>
+              )}
               {(tasks.length > 0 || (hasNoteFor && hasNoteFor(day))) && (
                 <div
                   className="absolute bottom-1 right-1 flex items-center gap-0.5"

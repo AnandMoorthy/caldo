@@ -94,7 +94,6 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
               onClick={() => setExpanded((v) => !v)}
               className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
               aria-expanded={expanded}
-              data-tip={expanded ? "Hide subtasks" : "Show subtasks"}
             >
               {expanded ? <ChevronDown size={iconSize - 0} /> : <ChevronRight size={iconSize - 0} />}
               <span className="tabular-nums">

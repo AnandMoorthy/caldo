@@ -13,6 +13,24 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
   const [justSaved, setJustSaved] = useState(false);
   const [justCopied, setJustCopied] = useState(false);
 
+  // Helper function for consistent sorting logic
+  const sortSnippets = (snippetsList) => {
+    return [...snippetsList].sort((a, b) => {
+      const aPinned = Number(a.pinned);
+      const bPinned = Number(b.pinned);
+      
+      // If pinned status is different, pinned items go first
+      if (aPinned !== bPinned) {
+        return bPinned - aPinned;
+      }
+      
+      // If both have same pinned status, sort by last updated (most recent first)
+      const aTime = new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0);
+      const bTime = new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0);
+      return bTime - aTime;
+    });
+  };
+
   const textareaRef = useRef(null);
   const lastSavedRef = useRef({ id: null, title: '', content: '' });
   const deletedSnippetsRef = useRef(new Set()); // Track recently deleted snippets
@@ -76,10 +94,10 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
       const items = await repo.listSnippets({ includeArchived: false });
       console.log('Fetched snippets from Firestore:', items.length, 'items');
       // Filter out recently deleted snippets
-      const filteredItems = items.filter(item => !deletedSnippetsRef.current.has(item.id));
+      let filteredItems = items.filter(item => !deletedSnippetsRef.current.has(item.id));
       console.log('After filtering deleted snippets:', filteredItems.length, 'items');
-      // Pinned first, then recent
-      filteredItems.sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || (new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0) - new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0)));
+      // Sort: pinned first (sorted by last updated), then unpinned (sorted by last updated)
+      filteredItems = sortSnippets(filteredItems);
       setSnippets(filteredItems);
       // Only update App.jsx cache when refreshing from server, not when updating local state
       try { onSnippetsChanged && onSnippetsChanged(filteredItems); } catch {}
@@ -94,8 +112,11 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
   function updateSnippetInList(id, updates) {
     setSnippets(prev => {
       const updated = prev.map(s => s.id === id ? { ...s, ...updates } : s);
-      // Re-sort to maintain pinned order
-      return updated.sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || (new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0) - new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0)));
+      // Re-sort to maintain pinned order and last updated sorting
+      const sortedList = sortSnippets(updated);
+      // Update the App.jsx cache with the properly sorted list
+      try { onSnippetsChanged && onSnippetsChanged(sortedList); } catch {}
+      return sortedList;
     });
   }
 
@@ -103,14 +124,22 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
   function addSnippetToList(snippet) {
     setSnippets(prev => {
       const newList = [...prev, snippet];
-      // Re-sort to maintain pinned order
-      return newList.sort((a, b) => (Number(b.pinned) - Number(a.pinned)) || (new Date(b.updatedAt?.toDate?.() || b.updatedAt || 0) - new Date(a.updatedAt?.toDate?.() || a.updatedAt || 0)));
+      // Re-sort to maintain pinned order and last updated sorting
+      const sortedList = sortSnippets(newList);
+      // Update the App.jsx cache with the properly sorted list
+      try { onSnippetsChanged && onSnippetsChanged(sortedList); } catch {}
+      return sortedList;
     });
   }
 
   // Remove snippet from list without reloading
   function removeSnippetFromList(id) {
-    setSnippets(prev => prev.filter(s => s.id !== id));
+    setSnippets(prev => {
+      const filteredList = prev.filter(s => s.id !== id);
+      // Update the App.jsx cache with the filtered list
+      try { onSnippetsChanged && onSnippetsChanged(filteredList); } catch {}
+      return filteredList;
+    });
   }
 
   const filtered = useMemo(() => {
@@ -138,18 +167,28 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     if (!id || id === '__new__') return;
     const current = snippet || snippets.find(s => s.id === id) || {};
     const nextPinned = !current.pinned;
-    setSaving(true);
-    try {
-      await repo.updateSnippet(id, { pinned: nextPinned });
-      // Update in list without reloading
-      updateSnippetInList(id, { pinned: nextPinned });
-      // Update the App.jsx cache to reflect the pin change
-      try { onSnippetsChanged && onSnippetsChanged(snippets.map(s => s.id === id ? { ...s, pinned: nextPinned } : s)); } catch {}
-    } catch (e) {
+    
+    // Calculate the updated and sorted list
+    const updatedSnippets = sortSnippets(
+      snippets.map(s => s.id === id ? { ...s, pinned: nextPinned } : s)
+    );
+    
+    // Optimistically update the UI immediately
+    setSnippets(updatedSnippets);
+    
+    // Update the App.jsx cache with the properly sorted list
+    try { onSnippetsChanged && onSnippetsChanged(updatedSnippets); } catch {}
+    
+    // Make the API call in parallel
+    repo.updateSnippet(id, { pinned: nextPinned }).catch((e) => {
       console.error('Toggle pin failed', e);
-    } finally {
-      setSaving(false);
-    }
+      // Revert the optimistic update on error
+      const revertedSnippets = sortSnippets(
+        snippets.map(s => s.id === id ? { ...s, pinned: current.pinned } : s)
+      );
+      setSnippets(revertedSnippets);
+      try { onSnippetsChanged && onSnippetsChanged(revertedSnippets); } catch {}
+    });
   }
 
   async function onCreateSnippet() {
@@ -187,8 +226,6 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
         addSnippetToList(created);
         setSelectedId(created?.id || null);
         lastSavedRef.current = { id: created?.id || null, title: payload.title, content: payload.content };
-        // Update the App.jsx cache to reflect the creation
-        try { onSnippetsChanged && onSnippetsChanged([...snippets, created]); } catch {}
       } else {
         await repo.updateSnippet(selectedId, payload);
         // Update in list without reloading
@@ -198,8 +235,6 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
           updatedAt: new Date()
         });
         lastSavedRef.current = { id: selectedId, title: payload.title, content: payload.content };
-        // Update the App.jsx cache to reflect the update
-        try { onSnippetsChanged && onSnippetsChanged(snippets.map(s => s.id === selectedId ? { ...s, title: payload.title, content: payload.content, updatedAt: new Date() } : s)); } catch {}
       }
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 900);
@@ -254,12 +289,8 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
         setContent('');
       }
       
-      // Calculate the new snippets list without the deleted item
-      const newSnippets = snippets.filter(s => s.id !== id);
       // Remove from list without reloading
       removeSnippetFromList(id);
-      // Update the App.jsx cache to reflect the deletion
-      try { onSnippetsChanged && onSnippetsChanged(newSnippets); } catch {}
     } catch (e) {
       console.error('Delete snippet failed', e);
       // Remove from tracking if delete failed
@@ -280,8 +311,11 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
       await navigator.clipboard.writeText(text);
       if (repo && user && snippet?.id && snippet?.id !== '__new__') {
         repo.incrementCopyCount(snippet.id).then(() => {
-          // Update the App.jsx cache to reflect the copy count change
-          try { onSnippetsChanged && onSnippetsChanged(snippets.map(s => s.id === snippet.id ? { ...s, copyCount: (s.copyCount || 0) + 1, lastCopiedAt: new Date() } : s)); } catch {}
+          // Update the copy count in the local list
+          updateSnippetInList(snippet.id, { 
+            copyCount: (snippets.find(s => s.id === snippet.id)?.copyCount || 0) + 1, 
+            lastCopiedAt: new Date() 
+          });
         }).catch(() => {});
       }
       setJustCopied(true);
