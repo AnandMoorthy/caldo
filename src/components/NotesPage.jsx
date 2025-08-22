@@ -8,6 +8,8 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
   const [items, setItems] = useState([]); // [{ type: 'note'|'snippet', data }]
   const [loading, setLoading] = useState(false);
   const sentinelRef = useRef(null);
+  const loadingRef = useRef(false);
+  const triggeredWhileVisibleRef = useRef(false);
   const [filterMode, setFilterMode] = useState('all'); // 'all' | 'pinned' | 'notes' | 'snippets'
 
   // Canonical list of all loaded items (notes + snippets)
@@ -128,9 +130,23 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
     const el = sentinelRef.current;
     const io = new IntersectionObserver(async (entries) => {
       const first = entries[0];
-      if (!first?.isIntersecting) return;
-      if (loading) return;
+      // Reset one-shot trigger when sentinel leaves viewport
+      if (!first?.isIntersecting) {
+        triggeredWhileVisibleRef.current = false;
+        return;
+      }
+      // Only trigger once per continuous intersection until it leaves viewport
+      if (triggeredWhileVisibleRef.current) return;
+      triggeredWhileVisibleRef.current = true;
+
+      // Avoid fetching when no cursors are available
+      const noMoreNotes = !notesCursorRef.current;
+      const noMoreSnippets = !(pinnedSnippetCursorRef.current || unpinnedSnippetCursorRef.current);
+      if (noMoreNotes && noMoreSnippets) return;
+
+      if (loadingRef.current) return;
       setLoading(true);
+      loadingRef.current = true;
       try {
         // Fetch next pages for notes and snippets
         const promises = [];
@@ -168,11 +184,12 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
         console.error('Load more merged feed failed', e);
       } finally {
         setLoading(false);
+        loadingRef.current = false;
       }
     }, { rootMargin: '200px' });
     io.observe(el);
     return () => io.disconnect();
-  }, [loading, repo, snippetRepo, user]);
+  }, [repo, snippetRepo, user]);
 
   // (Removed legacy snippet-only effects; unified feed handles pagination for both)
 

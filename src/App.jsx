@@ -40,7 +40,10 @@ import { materializeSeries } from "./utils/recurrence";
 
 export default function App() {
   const [currentView, setCurrentView] = useState(() => (typeof window === 'undefined' ? 'month' : loadViewPreference()));
-  const [activeTab, setActiveTab] = useState('tasks'); // 'tasks' | 'notes' | 'snippets'
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === 'undefined') return 'tasks';
+    try { return localStorage.getItem('caldo_v2_active_tab') || 'tasks'; } catch { return 'tasks'; }
+  }); // 'tasks' | 'notes'
   const [cursor, setCursor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksMap, setTasksMap] = useState(() => loadTasks());
@@ -283,6 +286,10 @@ export default function App() {
   useEffect(() => {
     saveStreak(streak);
   }, [streak]);
+
+  useEffect(() => {
+    try { localStorage.setItem('caldo_v2_active_tab', activeTab); } catch {}
+  }, [activeTab]);
 
   useEffect(() => {
     try { saveDensityPreference(density); } catch {}
