@@ -29,6 +29,8 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
     return list;
   }
 
+
+
   useEffect(() => {
     // Hydrate instantly from cache
     try {
@@ -309,14 +311,14 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
               const n = it.data;
               const updated = new Date(n.updatedAt?.toDate?.() || n.updatedAt || 0);
               return (
-                <div key={`n_${n.id}_${idx}`} onClick={() => onOpenDayNotes && onOpenDayNotes(n)} className="mb-4 text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm hover:shadow-lg dark:hover:ring-1 dark:hover:ring-slate-600 transition-all cursor-pointer">
+                <div key={`n_${n.id}_${idx}`} onClick={() => onOpenDayNotes && onOpenDayNotes(n)} className="mb-4 text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm hover:shadow-lg dark:hover:ring-1 dark:hover:ring-slate-600 transition-all cursor-pointer group">
                   <div className="text-xs text-slate-500 flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-2">
                       <CalendarIcon size={14} />
                       {n.dateKey ? format(parseISO(n.dateKey), 'EEE, MMM d, yyyy') : 'Unknown date'}
                     </span>
                     <span className="shrink-0 flex items-center gap-2">
-                      <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleNotePin(n); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800" title={n.pinned ? 'Unpin' : 'Pin'}>
+                      <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleNotePin(n); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-opacity" title={n.pinned ? 'Unpin' : 'Pin'}>
                         {n.pinned ? <Pin size={14} className="text-amber-600" /> : <PinOff size={14} className="text-slate-400" />}
                       </button>
                       <span className="shrink-0 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Day Note</span>
@@ -365,17 +367,17 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
             const sn = it.data;
             const updated = new Date(sn.updatedAt?.toDate?.() || sn.updatedAt || 0);
             return (
-              <div key={`s_${sn.id}_${idx}`} onClick={() => onOpenSnippetEditor && onOpenSnippetEditor(sn.id)} className="mb-4 text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm hover:shadow-lg dark:hover:ring-1 dark:hover:ring-slate-600 transition-all cursor-pointer">
+              <div key={`s_${sn.id}_${idx}`} onClick={() => onOpenSnippetEditor && onOpenSnippetEditor(sn.id)} className="mb-4 text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm hover:shadow-lg dark:hover:ring-1 dark:hover:ring-slate-600 transition-all cursor-pointer group">
                 <div className="text-xs text-slate-500 flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-2">
                     <Code2 size={14} />
                     {isNaN(updated.getTime()) ? '—' : format(updated, 'PPp')}
                   </span>
                   <span className="shrink-0 flex items-center gap-2">
-                    <button type="button" onClick={(e) => { e.stopPropagation?.(); onOpenSnippetEditor && onOpenSnippetEditor(sn.id); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800" title="Edit">
+                    <button type="button" onClick={(e) => { e.stopPropagation?.(); onOpenSnippetEditor && onOpenSnippetEditor(sn.id); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-opacity" title="Edit">
                       <span className="sr-only">Edit</span>
                     </button>
-                    <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleSnippetPin(sn); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800" title={sn.pinned ? 'Unpin' : 'Pin'}>
+                    <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleSnippetPin(sn); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-opacity" title={sn.pinned ? 'Unpin' : 'Pin'}>
                       {sn.pinned ? <Pin size={14} className="text-indigo-600" /> : <PinOff size={14} className="text-slate-400" />}
                     </button>
                     <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">Snippet</span>

@@ -30,6 +30,9 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
   const [isStandalone, setIsStandalone] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [theme, setTheme] = useState(() => (typeof window === 'undefined' ? 'light' : loadThemePreference()));
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [streakGlow, setStreakGlow] = useState(false);
+  const prevStreakRef = useRef(Number(currentStreak) || 0);
 
   // Detect OS for keyboard shortcut display
   const [isMac, setIsMac] = useState(false);
@@ -58,6 +61,28 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
       saveThemePreference(theme);
     } catch {}
   }, [theme]);
+
+  // Header scroll divider
+  useEffect(() => {
+    function onScroll() {
+      try { setIsScrolled((window.scrollY || 0) > 2); } catch {}
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Gentle glow on streak increment
+  useEffect(() => {
+    const prev = Number(prevStreakRef.current) || 0;
+    const curr = Number(currentStreak) || 0;
+    if (curr > prev) {
+      setStreakGlow(true);
+      const t = setTimeout(() => setStreakGlow(false), 800);
+      return () => clearTimeout(t);
+    }
+    prevStreakRef.current = curr;
+  }, [currentStreak]);
 
   function toggleTheme() {
     setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
@@ -130,7 +155,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
   }
 
   return (
-    <header className="flex items-center justify-between mb-6">
+    <header className={`sticky top-0 z-40 mb-6 flex items-center justify-between ${isScrolled ? 'bg-white/60 dark:bg-slate-900/70 backdrop-blur-md' : 'bg-transparent'} transition-colors`}>
       <div className="flex items-center gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">CalDo</h1>
@@ -167,6 +192,15 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
           >
             <Search size={18} />
           </button>
+          {canInstall && (
+            <button 
+              onClick={onClickInstall} 
+              className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
+              data-tip="Install app"
+            >
+              <InstallIcon size={18} />
+            </button>
+          )}
           <button 
             onClick={onOpenSnippets}
             className="hidden text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
@@ -179,7 +213,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
             initial={{ scale: 0.9, opacity: 0.8 }}
             animate={{ scale: [1, 1.08, 1], opacity: 1 }}
             transition={{ duration: 0.6, type: 'spring', stiffness: 250, damping: 18 }}
-            className="inline-flex items-center gap-1.5 h-7 px-2 rounded-full text-s bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-900/50"
+            className={`inline-flex items-center gap-1.5 h-7 px-2 rounded-full text-s bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-900/50 ${streakGlow ? 'ring-2 ring-orange-300/50 dark:ring-orange-400/40 shadow-[0_0_0_6px_rgba(251,146,60,0.15)] transition-shadow' : ''}`}
             data-tip="Current streak"
             aria-live="polite"
           >
