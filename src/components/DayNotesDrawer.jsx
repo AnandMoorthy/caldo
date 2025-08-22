@@ -5,7 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { loadNotesModePreference, saveNotesModePreference } from "../utils/storage";
 
-export default function DayNotesDrawer({ open, dateLabel = "", value = "", onChange, onSave, onClose, saving = false, justSaved = false }) {
+export default function DayNotesDrawer({ open, dateLabel = "", value = "", onChange, onSave, onClose, onGoToDay, saving = false, justSaved = false }) {
   const textareaRef = useRef(null);
   const [mode, setMode] = useState(() => loadNotesModePreference()); // 'edit' | 'preview'
   const safeText = useMemo(() => String(value || ""), [value]);
@@ -216,7 +216,14 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
             </div>
           </div>
 
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+            <div>
+              {typeof onGoToDay === 'function' && (
+                <button type="button" onClick={onGoToDay} className="px-3 py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
+                  Go to day
+                </button>
+              )}
+            </div>
             <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
               Close
             </button>

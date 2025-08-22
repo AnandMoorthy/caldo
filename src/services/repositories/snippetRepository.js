@@ -10,10 +10,8 @@ export class SnippetRepository {
   }
 
   async listSnippets({ includeArchived = false, tag = null, limit = 200 } = {}) {
-    // Keep query index-free: filter by owner only; sort and filter client-side
-    const q = this.snippetsRef()
-      .where('ownerUid', '==', this.userId)
-      .limit(limit);
+    // Fetch and filter client-side; used for initial cache or small lists
+    const q = this.snippetsRef().where('ownerUid', '==', this.userId).limit(limit);
     const snap = await q.get();
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     return items.filter(s => (includeArchived ? true : !s.archived) && (tag ? Array.isArray(s.tags) && s.tags.includes(tag) : true));
@@ -61,6 +59,43 @@ export class SnippetRepository {
       lastCopiedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     }, { merge: true });
+  }
+
+  // Paginated listing with pinned-first ordering: we execute two queries for pinned/unpinned
+  async listSnippetsPage({ limit = 20, startAfterPinnedCursor = null, startAfterUnpinnedCursor = null } = {}) {
+    const pinnedQBase = this.snippetsRef()
+      .where('ownerUid', '==', this.userId)
+      .where('archived', '==', false)
+      .where('pinned', '==', true)
+      .orderBy('updatedAt', 'desc')
+      .orderBy(firebase.firestore.FieldPath.documentId())
+      .limit(limit);
+    const unpinnedQBase = this.snippetsRef()
+      .where('ownerUid', '==', this.userId)
+      .where('archived', '==', false)
+      .where('pinned', '==', false)
+      .orderBy('updatedAt', 'desc')
+      .orderBy(firebase.firestore.FieldPath.documentId())
+      .limit(limit);
+
+    const pinnedQ = startAfterPinnedCursor && startAfterPinnedCursor.updatedAt && startAfterPinnedCursor.id
+      ? pinnedQBase.startAfter(startAfterPinnedCursor.updatedAt, startAfterPinnedCursor.id)
+      : pinnedQBase;
+    const unpinnedQ = startAfterUnpinnedCursor && startAfterUnpinnedCursor.updatedAt && startAfterUnpinnedCursor.id
+      ? unpinnedQBase.startAfter(startAfterUnpinnedCursor.updatedAt, startAfterUnpinnedCursor.id)
+      : unpinnedQBase;
+
+    const [pSnap, uSnap] = await Promise.all([pinnedQ.get(), unpinnedQ.get()]);
+
+    const pinnedItems = pSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const unpinnedItems = uSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const nextPinned = pSnap.docs.length ? { updatedAt: pSnap.docs[pSnap.docs.length - 1].get('updatedAt') || null, id: pSnap.docs[pSnap.docs.length - 1].id } : null;
+    const nextUnpinned = uSnap.docs.length ? { updatedAt: uSnap.docs[uSnap.docs.length - 1].get('updatedAt') || null, id: uSnap.docs[uSnap.docs.length - 1].id } : null;
+
+    // Merge maintaining pinned first ordering
+    const items = [...pinnedItems, ...unpinnedItems];
+    return { items, nextPinnedCursor: nextPinned, nextUnpinnedCursor: nextUnpinned };
   }
 }
 

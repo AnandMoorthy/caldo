@@ -22,7 +22,7 @@ function Avatar({ user }) {
   return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
-export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, onOpenSnippets, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks, currentView = 'month', onChangeView }) {
+export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, onOpenSnippets, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks, currentView = 'month', onChangeView, activeTab = 'tasks', onChangeTab }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const [canInstall, setCanInstall] = useState(false);
@@ -136,16 +136,34 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">CalDo</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Minimalist calendar todo</p>
         </div>
+        <nav className="ml-3 inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-1 py-1">
+          <button
+            type="button"
+            onClick={() => onChangeTab && onChangeTab('tasks')}
+            className={`${activeTab === 'tasks' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'} px-3 py-1 rounded-lg text-sm font-medium`}
+          >
+            Tasks
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangeTab && onChangeTab('notes')}
+            className={`${activeTab === 'notes' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'} px-3 py-1 rounded-lg text-sm font-medium`}
+          >
+            Notes & Snippets
+          </button>
+        </nav>
       </div>
       <div className="flex items-center gap-2">
-        <div className="hidden sm:inline-block">
-          <ViewDropdown value={currentView} onChange={onChangeView} />
-        </div>
+        {activeTab === 'tasks' && (
+          <div className="hidden sm:inline-block">
+            <ViewDropdown value={currentView} onChange={onChangeView} />
+          </div>
+        )}
         <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-1.5 py-1">
           <button 
             onClick={onOpenSearch} 
             className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
-            data-tip={`Search tasks and notes (${isMac ? '⌘K' : 'Ctrl+K'})`}
+            data-tip={`Search tasks, notes, snippets (${isMac ? '⌘K' : 'Ctrl+K'})`}
           >
             <Search size={18} />
           </button>

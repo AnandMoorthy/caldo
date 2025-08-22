@@ -19,6 +19,9 @@ import SearchModal from "./components/SearchModal.jsx";
 import ScopeDialog from "./components/ScopeDialog.jsx";
 import SnippetsModal from "./components/SnippetsModal.jsx";
 import TooltipProvider from "./components/Tooltip.jsx";
+import NotesPage from "./components/NotesPage.jsx";
+import SnippetsPage from "./components/SnippetsPage.jsx";
+import SnippetsDrawer from "./components/SnippetsDrawer.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
@@ -37,6 +40,7 @@ import { materializeSeries } from "./utils/recurrence";
 
 export default function App() {
   const [currentView, setCurrentView] = useState(() => (typeof window === 'undefined' ? 'month' : loadViewPreference()));
+  const [activeTab, setActiveTab] = useState('tasks'); // 'tasks' | 'notes' | 'snippets'
   const [cursor, setCursor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksMap, setTasksMap] = useState(() => loadTasks());
@@ -68,6 +72,8 @@ export default function App() {
   const [notesJustSaved, setNotesJustSaved] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showSnippets, setShowSnippets] = useState(false);
+  const [snippetsDrawerOpen, setSnippetsDrawerOpen] = useState(false);
+  const [snippetsDrawerId, setSnippetsDrawerId] = useState(null);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const scopeActionRef = useRef(null); // { type: 'delete'|'edit', task }
   const [density, setDensity] = useState(() => (typeof window === 'undefined' ? 'normal' : loadDensityPreference()));
@@ -1736,8 +1742,10 @@ export default function App() {
           onDeleteAllTasks={deleteAllTasksFromCloud}
           currentView={currentView}
           onChangeView={(v) => setCurrentView(v)}
+          activeTab={activeTab}
+          onChangeTab={setActiveTab}
         />
-        {currentView === 'month' ? (
+        {activeTab === 'tasks' && currentView === 'month' ? (
           <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <Calendar
               monthStart={monthStart}
@@ -1857,7 +1865,7 @@ export default function App() {
               />
             </aside>
           </main>
-        ) : currentView === 'week' ? (
+        ) : activeTab === 'tasks' && currentView === 'week' ? (
           <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <div className="md:col-span-2">
               <WeekView
@@ -1962,7 +1970,7 @@ export default function App() {
               />
             </aside>
           </main>
-        ) : currentView === 'year' ? (
+        ) : activeTab === 'tasks' && currentView === 'year' ? (
           <main className="grid grid-cols-1 gap-4 sm:gap-6">
             <YearView
               anchorDate={cursor}
@@ -1978,7 +1986,7 @@ export default function App() {
               }}
             />
           </main>
-        ) : (
+        ) : activeTab === 'tasks' ? (
           <main className="grid grid-cols-1 gap-4 sm:gap-6">
             <DayView
               date={selectedDate}
@@ -2002,6 +2010,36 @@ export default function App() {
               densityMenuRef={densityMenuRef}
             />
           </main>
+        ) : null}
+
+        {activeTab === 'notes' && (
+          <NotesPage
+            repo={noteRepoRef.current}
+            user={user}
+            snippetRepo={snippetRepoRef.current}
+            onOpenDayNotes={(n) => {
+              try {
+                const d = parseISO(n?.dateKey);
+                setSelectedDate(d);
+                setCursor(d);
+                setDraftDayNote(n?.content || '');
+                setShowNotes(true);
+              } catch {
+                setShowNotes(true);
+              }
+            }}
+            onOpenSnippetEditor={(id) => { setSnippetsDrawerId(id || '__new__'); setSnippetsDrawerOpen(true); }}
+          />
+        )}
+
+        {false && activeTab === 'snippets' && (
+          <SnippetsPage
+            repo={snippetRepoRef.current}
+            user={user}
+            initialSnippets={snippetsCache}
+            onOpenEditor={(id) => { setSnippetsDrawerId(id || '__new__'); setSnippetsDrawerOpen(true); }}
+            onSnippetsChanged={(items) => setSnippetsCache(items)}
+          />
         )}
 
         {showCelebration && (
@@ -2051,6 +2089,10 @@ export default function App() {
           }}
           saving={notesSaving}
           justSaved={notesJustSaved}
+          onGoToDay={() => {
+            setActiveTab('tasks');
+            setCurrentView('day');
+          }}
           onClose={() => {
             setShowNotes(false);
           }}
@@ -2089,6 +2131,22 @@ export default function App() {
           onSnippetsChanged={(items) => {
             console.log('App.jsx: onSnippetsChanged called with', (items || []).length, 'items');
             setSnippetsCache(items || []);
+          }}
+        />
+
+        <SnippetsDrawer
+          open={snippetsDrawerOpen}
+          onClose={() => setSnippetsDrawerOpen(false)}
+          repo={snippetRepoRef.current}
+          user={user}
+          snippetId={snippetsDrawerId}
+          onSnippetsChanged={(/* _ */) => {
+            // Refresh cache lightly via repo
+            try {
+              if (snippetRepoRef.current && user) {
+                snippetRepoRef.current.listSnippets({ includeArchived: false, limit: 500 }).then((items) => setSnippetsCache(items)).catch(() => {});
+              }
+            } catch {}
           }}
         />
 
