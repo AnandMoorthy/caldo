@@ -22,7 +22,7 @@ import TooltipProvider from "./components/Tooltip.jsx";
 import NotesPage from "./components/NotesPage.jsx";
 import SnippetsPage from "./components/SnippetsPage.jsx";
 import SnippetsDrawer from "./components/SnippetsDrawer.jsx";
-import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference } from "./utils/storage";
+import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference, loadSnippetsCache, saveSnippetsCache } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
 import { buildSearchIndex, searchTasks } from "./utils/search.js";
@@ -63,7 +63,7 @@ export default function App() {
   const taskRepoRef = useRef(null);
   const noteRepoRef = useRef(null);
   const snippetRepoRef = useRef(null);
-  const [snippetsCache, setSnippetsCache] = useState([]);
+  const [snippetsCache, setSnippetsCache] = useState(() => loadSnippetsCache());
   // profile menu moved into Header component
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(monthStart);
@@ -132,6 +132,19 @@ export default function App() {
     const newIndex = buildSearchIndex(tasksMap, snippetsCache);
     setSearchIndex(newIndex);
   }, [tasksMap, snippetsCache]);
+
+  // Persist snippets cache to localStorage
+  useEffect(() => {
+    try { saveSnippetsCache(snippetsCache); } catch {}
+  }, [snippetsCache]);
+
+  // Notify other views (e.g., NotesPage) when snippets cache changes
+  useEffect(() => {
+    try {
+      const event = new CustomEvent('snippets:updated', { detail: { items: snippetsCache } });
+      window.dispatchEvent(event);
+    } catch {}
+  }, [snippetsCache]);
 
   // Update search results when query changes
   useEffect(() => {
@@ -464,11 +477,9 @@ export default function App() {
         taskRepoRef.current = createTaskRepository(u.uid);
         noteRepoRef.current = createDayNoteRepository(u.uid);
         snippetRepoRef.current = createSnippetRepository(u.uid);
-        // Warm snippet cache (non-blocking) - only if we don't already have snippets
+        // Warm snippet cache from cloud (non-blocking) and refresh local cache
         try {
-          if (snippetsCache.length === 0) {
-            snippetRepoRef.current.listSnippets({ includeArchived: false, limit: 500 }).then((items) => setSnippetsCache(items)).catch(() => {});
-          }
+          snippetRepoRef.current.listSnippets({ includeArchived: false, limit: 500 }).then((items) => setSnippetsCache(items)).catch(() => {});
         } catch {}
         
                 // Load current month from Firestore and merge with local
@@ -770,6 +781,11 @@ export default function App() {
       if (fullList.length) updated[dateKey] = fullList; else delete updated[dateKey];
       return updated;
     });
+    // Inform NotesPage feed immediately
+    try {
+      const event = new CustomEvent('daynote:saved', { detail: { dateKey, content: text } });
+      window.dispatchEvent(event);
+    } catch {}
     // Persist to cloud using flat schema
     try {
       if (user && noteRepoRef.current) {
@@ -799,14 +815,8 @@ export default function App() {
       if (result.type === 'snippet') {
         setShowSearch(false);
         setSearchQuery("");
-        setShowSnippets(true);
-        // Defer selection to the modal via custom event
-        setTimeout(() => {
-          try {
-            const event = new CustomEvent('snippets:select', { detail: { id: result.id } });
-            window.dispatchEvent(event);
-          } catch {}
-        }, 0);
+        setSnippetsDrawerId(result.id);
+        setSnippetsDrawerOpen(true);
         return;
       }
 

@@ -105,7 +105,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
         <button
           type="button"
           onClick={onClickAddSubtask}
-          className={`inline-flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline ${density === 'minified' ? 'mr-0.5' : ''}`}
+          className={`ml-auto inline-flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline ${density === 'minified' ? 'mr-0.5' : ''}`}
         >
           <Plus size={Math.max(10, iconSize - 2)} /> Subtask
         </button>

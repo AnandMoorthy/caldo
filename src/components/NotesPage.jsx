@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { loadNotesFeedCache, saveNotesFeedCache } from "../utils/storage";
 import Masonry from "react-masonry-css";
-import { StickyNote, Calendar as CalendarIcon, Code2, Pin, PinOff, Plus } from "lucide-react";
+import { StickyNote, Calendar as CalendarIcon, Code2, Pin, PinOff, Plus, Loader2 } from "lucide-react";
 import { parseISO, format } from "date-fns";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onOpenSnippetEditor }) {
   // Unified feed state (notes + snippets)
@@ -27,10 +30,82 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
   }
 
   useEffect(() => {
+    // Hydrate instantly from cache
+    try {
+      const cached = loadNotesFeedCache();
+      if (Array.isArray(cached) && cached.length > 0) {
+        itemsRef.current = cached;
+        setItems(applyFilter(itemsRef.current, filterMode));
+      }
+    } catch {}
+
+    // Listen for immediate updates when a day note is saved elsewhere
+    function onDayNoteSaved(e) {
+      try {
+        const { dateKey, content } = e?.detail || {};
+        if (!dateKey) return;
+        const now = new Date();
+        // Update or insert note item
+        const existsIdx = itemsRef.current.findIndex(it => it.type === 'note' && (it.data.id === dateKey || it.data.dateKey === dateKey));
+        if (existsIdx >= 0) {
+          const current = itemsRef.current[existsIdx];
+          const updated = { ...current, data: { ...current.data, dateKey, id: dateKey, content, updatedAt: now } };
+          const next = itemsRef.current.slice();
+          next[existsIdx] = updated;
+          itemsRef.current = next.sort((a, b) => {
+            const ap = a?.data?.pinned ? 1 : 0;
+            const bp = b?.data?.pinned ? 1 : 0;
+            if (bp !== ap) return bp - ap;
+            const am = new Date((a?.data?.updatedAt?.toDate?.() || a?.data?.updatedAt || 0)).getTime() || 0;
+            const bm = new Date((b?.data?.updatedAt?.toDate?.() || b?.data?.updatedAt || 0)).getTime() || 0;
+            return bm - am;
+          });
+        } else {
+          const newItem = { type: 'note', data: { id: dateKey, dateKey, content, updatedAt: now, pinned: false } };
+          itemsRef.current = [newItem, ...itemsRef.current].sort((a, b) => {
+            const ap = a?.data?.pinned ? 1 : 0;
+            const bp = b?.data?.pinned ? 1 : 0;
+            if (bp !== ap) return bp - ap;
+            const am = new Date((a?.data?.updatedAt?.toDate?.() || a?.data?.updatedAt || 0)).getTime() || 0;
+            const bm = new Date((b?.data?.updatedAt?.toDate?.() || b?.data?.updatedAt || 0)).getTime() || 0;
+            return bm - am;
+          });
+        }
+        setItems(applyFilter(itemsRef.current, filterMode));
+        try { saveNotesFeedCache(itemsRef.current); } catch {}
+      } catch {}
+    }
+    window.addEventListener('daynote:saved', onDayNoteSaved);
+    
+    // Listen for snippet list updates from App.jsx
+    function onSnippetsUpdated(e) {
+      try {
+        const list = (e?.detail?.items || []).filter(s => !s.archived);
+        // Build fresh snippet items
+        const snippetItems = list.map(s => ({ type: 'snippet', data: s }));
+        // Keep existing notes as-is; replace all snippets with new snapshot
+        const noteItems = itemsRef.current.filter(it => it.type === 'note');
+        const combined = [...noteItems, ...snippetItems];
+        // Sort: pinned first, then updated desc
+        itemsRef.current = combined.sort((a, b) => {
+          const ap = a?.data?.pinned ? 1 : 0;
+          const bp = b?.data?.pinned ? 1 : 0;
+          if (bp !== ap) return bp - ap;
+          const am = new Date((a?.data?.updatedAt?.toDate?.() || a?.data?.updatedAt || 0)).getTime() || 0;
+          const bm = new Date((b?.data?.updatedAt?.toDate?.() || b?.data?.updatedAt || 0)).getTime() || 0;
+          return bm - am;
+        });
+        setItems(applyFilter(itemsRef.current, filterMode));
+        try { saveNotesFeedCache(itemsRef.current); } catch {}
+      } catch {}
+    }
+    window.addEventListener('snippets:updated', onSnippetsUpdated);
+
     if (!repo || !user) return;
     let mounted = true;
     (async () => {
       try {
+        setLoading(true);
         // Fetch first page for notes and snippets
         const [notesPage, snippetPage] = await Promise.all([
           repo.listNotesPage({ limit: 20 }),
@@ -60,11 +135,15 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
         pinnedSnippetCursorRef.current = snippetPage?.nextPinnedCursor || null;
         unpinnedSnippetCursorRef.current = snippetPage?.nextUnpinnedCursor || null;
         setItems(applyFilter(itemsRef.current, filterMode));
+        // Persist fresh feed to cache
+        try { saveNotesFeedCache(itemsRef.current); } catch {}
       } catch (e) {
         console.error('Failed to load merged feed', e);
+      } finally {
+        if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => { mounted = false; window.removeEventListener('daynote:saved', onDayNoteSaved); window.removeEventListener('snippets:updated', onSnippetsUpdated); };
   }, [repo, snippetRepo, user]);
 
   async function handleToggleNotePin(note) {
@@ -179,6 +258,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
             return bm - am;
           });
           setItems(applyFilter(itemsRef.current, filterMode));
+          try { saveNotesFeedCache(itemsRef.current); } catch {}
         }
       } catch (e) {
         console.error('Load more merged feed failed', e);
@@ -197,7 +277,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
         <div className="flex items-center justify-between mb-3">
-          <div className="font-semibold flex items-center gap-2"><StickyNote size={18} /> Notes & Snippets</div>
+          <div className="font-semibold flex items-center gap-2">{loading ? <Loader2 size={18} className="animate-spin" /> : <StickyNote size={18} />} Notes & Snippets</div>
           <div className="flex items-center gap-2">
             <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
               <button type="button" onClick={() => setFilterMode('all')} className={`px-3 py-1.5 text-xs ${filterMode==='all' ? 'bg-slate-200 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>All</button>
@@ -242,7 +322,40 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                       <span className="shrink-0 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Day Note</span>
                     </span>
                   </div>
-                  <div className="mt-2 whitespace-pre-wrap text-sm line-clamp-6">{n.content || ''}</div>
+                  <div className="mt-2 text-sm line-clamp-6">
+                    {String(n.content || '').trim().length === 0 ? null : (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({node, ...props}) => <p className="my-2 leading-relaxed" {...props} />,
+                          ul: ({node, className, ...props}) => <ul className={`list-disc ml-5 my-2 space-y-1 ${className || ''}`} {...props} />,
+                          ol: ({node, className, ...props}) => <ol className={`list-decimal ml-5 my-2 space-y-1 ${className || ''}`} {...props} />,
+                          li: ({node, className, ...props}) => <li className={`my-1 ${className || ''} ${className?.includes?.('task-list-item') ? 'list-none' : ''}`} {...props} />,
+                          strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                          em: ({node, ...props}) => <em className="italic" {...props} />,
+                          blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-700 pl-3 italic text-slate-700 dark:text-slate-300 my-3" {...props} />,
+                          hr: (props) => <hr className="my-4 border-slate-200 dark:border-slate-700" {...props} />,
+                          code({node, inline, className, children, ...props}) {
+                            if (inline) {
+                              return <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800" {...props}>{children}</code>;
+                            }
+                            return (
+                              <pre className="p-3 rounded bg-slate-950 text-slate-100 overflow-auto">
+                                <code {...props}>{children}</code>
+                              </pre>
+                            );
+                          },
+                          a: ({node, ...props}) => <a className="text-indigo-600 dark:text-indigo-400 underline" target="_blank" rel="noreferrer" {...props} />,
+                          table: ({node, ...props}) => <table className="my-3 w-full border-collapse text-sm" {...props} />,
+                          th: ({node, ...props}) => <th className="border border-slate-200 dark:border-slate-700 px-2 py-1 text-left" {...props} />,
+                          td: ({node, ...props}) => <td className="border border-slate-200 dark:border-slate-700 px-2 py-1" {...props} />,
+                          input: ({node, ...props}) => <input {...props} disabled className="align-middle mr-2 accent-indigo-600" />,
+                        }}
+                      >
+                        {String(n.content || '')}
+                      </ReactMarkdown>
+                    )}
+                  </div>
                   <div className="mt-2 text-[11px] text-slate-500" title={updated.toString()}>
                     Updated {isNaN(updated.getTime()) ? '—' : format(updated, 'PPp')}
                   </div>
@@ -280,7 +393,11 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
           })}
         </Masonry>
         <div ref={sentinelRef} className="h-8" />
-        {loading && <div className="p-3 text-sm text-slate-500">Loading…</div>}
+        {loading && (
+          <div className="p-3 text-sm text-slate-500 inline-flex items-center gap-2">
+            <Loader2 size={16} className="animate-spin" /> Loading…
+          </div>
+        )}
       </div>
     </main>
   );

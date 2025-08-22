@@ -4,6 +4,8 @@ export const THEME_KEY = "caldo_v2_theme"; // 'light' | 'dark'
 export const DENSITY_KEY = "caldo_v2_density"; // 'normal' | 'compact' | 'minified'
 export const RECURRENCE_KEY = "caldo_v2_recurring_series";
 export const NOTES_MODE_KEY = "caldo_v2_notes_mode"; // 'edit' | 'preview'
+export const SNIPPETS_CACHE_KEY = "caldo_v2_snippets_cache";
+export const NOTES_FEED_CACHE_KEY = "caldo_v2_notes_feed_cache"; // merged notes+snippets feed
 
 export function loadTasks() {
   try {
@@ -120,4 +122,40 @@ export function saveNotesModePreference(mode) {
   } catch {}
 }
 
+
+export function loadSnippetsCache() {
+  try {
+    const raw = localStorage.getItem(SNIPPETS_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveSnippetsCache(items) {
+  try {
+    const safe = Array.isArray(items) ? items : [];
+    localStorage.setItem(SNIPPETS_CACHE_KEY, JSON.stringify(safe));
+  } catch {}
+}
+
+export function loadNotesFeedCache() {
+  try {
+    const raw = localStorage.getItem(NOTES_FEED_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveNotesFeedCache(items) {
+  try {
+    const safe = Array.isArray(items) ? items : [];
+    localStorage.setItem(NOTES_FEED_CACHE_KEY, JSON.stringify(safe));
+  } catch {}
+}
 

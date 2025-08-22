@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Plus, Pin, PinOff, Code2 } from "lucide-react";
+import { Plus, Pin, PinOff, Code2, Loader2 } from "lucide-react";
 
 function sortSnippets(list) {
   return [...(list || [])].sort((a, b) => {
@@ -18,6 +18,8 @@ export default function SnippetsPage({ repo, user, initialSnippets = [], onOpenE
   const [pinnedCursor, setPinnedCursor] = useState(null);
   const [unpinnedCursor, setUnpinnedCursor] = useState(null);
   const sentinelRef = useRef(null);
+  const loadingRef = useRef(false);
+  const triggeredWhileVisibleRef = useRef(false);
 
   useEffect(() => {
     setSnippets(sortSnippets(initialSnippets));
@@ -49,11 +51,22 @@ export default function SnippetsPage({ repo, user, initialSnippets = [], onOpenE
     const el = sentinelRef.current;
     const io = new IntersectionObserver(async (entries) => {
       const first = entries[0];
-      if (!first?.isIntersecting) return;
-      if (loading) return;
+      // Reset one-shot trigger when sentinel leaves viewport
+      if (!first?.isIntersecting) {
+        triggeredWhileVisibleRef.current = false;
+        return;
+      }
+      // Only trigger once per intersection until it leaves viewport
+      if (triggeredWhileVisibleRef.current) return;
+      triggeredWhileVisibleRef.current = true;
+
+      // Avoid fetching when both cursors are exhausted
       if (!pinnedCursor && !unpinnedCursor) return;
+
+      if (loadingRef.current) return;
       try {
         setLoading(true);
+        loadingRef.current = true;
         const { items, nextPinnedCursor, nextUnpinnedCursor } = await repo.listSnippetsPage({ limit: 20, startAfterPinnedCursor: pinnedCursor, startAfterUnpinnedCursor: unpinnedCursor });
         setSnippets(prev => sortSnippets([...(prev || []), ...(items || [])]));
         setPinnedCursor(nextPinnedCursor || null);
@@ -63,11 +76,12 @@ export default function SnippetsPage({ repo, user, initialSnippets = [], onOpenE
         console.error('Load more snippets failed', e);
       } finally {
         setLoading(false);
+        loadingRef.current = false;
       }
     }, { rootMargin: '200px' });
     io.observe(el);
     return () => io.disconnect();
-  }, [pinnedCursor, unpinnedCursor, loading, repo]);
+  }, [pinnedCursor, unpinnedCursor, repo]);
 
   function onClickSnippet(snippet) {
     try {
@@ -102,7 +116,7 @@ export default function SnippetsPage({ repo, user, initialSnippets = [], onOpenE
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
         <div className="flex items-center justify-between mb-3">
-          <div className="font-semibold flex items-center gap-2"><Code2 size={18} /> Snippets</div>
+          <div className="font-semibold flex items-center gap-2">{loading ? <Loader2 size={18} className="animate-spin" /> : <Code2 size={18} />} Snippets</div>
           <button type="button" onClick={onCreateSnippet} className="w-9 h-9 bg-indigo-600 text-white rounded inline-flex items-center justify-center" disabled={!user} title="New snippet">
             <Plus size={16} />
           </button>
@@ -131,7 +145,11 @@ export default function SnippetsPage({ repo, user, initialSnippets = [], onOpenE
           ))}
         </div>
         <div ref={sentinelRef} className="h-8" />
-        {loading && <div className="p-3 text-sm text-slate-500">Loading…</div>}
+        {loading && (
+          <div className="p-3 text-sm text-slate-500 inline-flex items-center gap-2">
+            <Loader2 size={16} className="animate-spin" /> Loading…
+          </div>
+        )}
       </div>
     </main>
   );

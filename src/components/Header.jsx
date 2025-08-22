@@ -169,7 +169,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
           </button>
           <button 
             onClick={onOpenSnippets}
-            className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
+            className="hidden text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
             data-tip={`Snippets (${isMac ? '⌘⇧S' : 'Ctrl+Shift+S'})`}
           >
             <Code2 size={18} />
