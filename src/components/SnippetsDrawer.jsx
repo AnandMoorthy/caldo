@@ -54,14 +54,21 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     try {
       if (!selectedId || selectedId === '__new__') {
         const created = await repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') });
-        setSelectedId(created?.id || null);
-        try { onSnippetsChanged && onSnippetsChanged(null); } catch {}
+        try { onSnippetsChanged && onSnippetsChanged(); } catch {}
       } else {
         await repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') });
-        try { onSnippetsChanged && onSnippetsChanged(null); } catch {}
+        try { onSnippetsChanged && onSnippetsChanged(); } catch {}
       }
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 900);
+      
+      // Clear fields and close sidebar after successful save
+      setTimeout(() => {
+        setTitle('');
+        setContent('');
+        setSelectedId(null);
+        onClose && onClose();
+      }, 950); // Close immediately after "Saved" message disappears
     } catch (e) {
       console.error('Save snippet failed', e);
     } finally {

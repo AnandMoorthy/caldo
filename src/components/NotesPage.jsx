@@ -29,6 +29,18 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
     return list;
   }
 
+  // Consistent sorting function for notes and snippets
+  function sortItems(items) {
+    if (!Array.isArray(items)) return [];
+    return [...items].sort((a, b) => {
+      const ap = a?.data?.pinned ? 1 : 0;
+      const bp = b?.data?.pinned ? 1 : 0;
+      if (bp !== ap) return bp - ap;
+      const am = new Date((a?.data?.updatedAt?.toDate?.() || a?.data?.updatedAt || 0)).getTime() || 0;
+      const bm = new Date((b?.data?.updatedAt?.toDate?.() || b?.data?.updatedAt || 0)).getTime() || 0;
+      return bm - am;
+    });
+  }
 
 
   useEffect(() => {
@@ -37,9 +49,12 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
       const cached = loadNotesFeedCache();
       if (Array.isArray(cached) && cached.length > 0) {
         itemsRef.current = cached;
-        setItems(applyFilter(itemsRef.current, filterMode));
+        const filtered = applyFilter(itemsRef.current, filterMode);
+        setItems(filtered);
       }
-    } catch {}
+    } catch (e) {
+      console.error('Failed to load from cache:', e);
+    }
 
     // Listen for immediate updates when a day note is saved elsewhere
     function onDayNoteSaved(e) {
@@ -54,28 +69,16 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
           const updated = { ...current, data: { ...current.data, dateKey, id: dateKey, content, updatedAt: now } };
           const next = itemsRef.current.slice();
           next[existsIdx] = updated;
-          itemsRef.current = next.sort((a, b) => {
-            const ap = a?.data?.pinned ? 1 : 0;
-            const bp = b?.data?.pinned ? 1 : 0;
-            if (bp !== ap) return bp - ap;
-            const am = new Date((a?.data?.updatedAt?.toDate?.() || a?.data?.updatedAt || 0)).getTime() || 0;
-            const bm = new Date((b?.data?.updatedAt?.toDate?.() || b?.data?.updatedAt || 0)).getTime() || 0;
-            return bm - am;
-          });
+          itemsRef.current = sortItems(next);
         } else {
           const newItem = { type: 'note', data: { id: dateKey, dateKey, content, updatedAt: now, pinned: false } };
-          itemsRef.current = [newItem, ...itemsRef.current].sort((a, b) => {
-            const ap = a?.data?.pinned ? 1 : 0;
-            const bp = b?.data?.pinned ? 1 : 0;
-            if (bp !== ap) return bp - ap;
-            const am = new Date((a?.data?.updatedAt?.toDate?.() || a?.data?.updatedAt || 0)).getTime() || 0;
-            const bm = new Date((b?.data?.updatedAt?.toDate?.() || b?.data?.updatedAt || 0)).getTime() || 0;
-            return bm - am;
-          });
+          itemsRef.current = sortItems([newItem, ...itemsRef.current]);
         }
         setItems(applyFilter(itemsRef.current, filterMode));
         try { saveNotesFeedCache(itemsRef.current); } catch {}
-      } catch {}
+      } catch (e) {
+        console.error('Error in day note saved handler:', e);
+      }
     }
     window.addEventListener('daynote:saved', onDayNoteSaved);
     
@@ -89,14 +92,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
         const noteItems = itemsRef.current.filter(it => it.type === 'note');
         const combined = [...noteItems, ...snippetItems];
         // Sort: pinned first, then updated desc
-        itemsRef.current = combined.sort((a, b) => {
-          const ap = a?.data?.pinned ? 1 : 0;
-          const bp = b?.data?.pinned ? 1 : 0;
-          if (bp !== ap) return bp - ap;
-          const am = new Date((a?.data?.updatedAt?.toDate?.() || a?.data?.updatedAt || 0)).getTime() || 0;
-          const bm = new Date((b?.data?.updatedAt?.toDate?.() || b?.data?.updatedAt || 0)).getTime() || 0;
-          return bm - am;
-        });
+        itemsRef.current = sortItems(combined);
         setItems(applyFilter(itemsRef.current, filterMode));
         try { saveNotesFeedCache(itemsRef.current); } catch {}
       } catch {}
@@ -126,17 +122,14 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
         const snUnpinned = snItems.filter(s => !s.pinned).map(s => ({ type: 'snippet', data: s }));
 
         // Combine and sort: pinned first, then updated desc
-        itemsRef.current = [ ...notePinned, ...snPinned, ...noteUnpinned, ...snUnpinned ]
-          .sort((a, b) => {
-            const ap = a?.data?.pinned ? 1 : 0;
-            const bp = b?.data?.pinned ? 1 : 0;
-            if (bp !== ap) return bp - ap;
-            return getMs(b.data) - getMs(a.data);
-          });
+        itemsRef.current = sortItems([ ...notePinned, ...snPinned, ...noteUnpinned, ...snUnpinned ]);
+        
         notesCursorRef.current = notesPage?.nextCursor || null;
         pinnedSnippetCursorRef.current = snippetPage?.nextPinnedCursor || null;
         unpinnedSnippetCursorRef.current = snippetPage?.nextUnpinnedCursor || null;
+        
         setItems(applyFilter(itemsRef.current, filterMode));
+        
         // Persist fresh feed to cache
         try { saveNotesFeedCache(itemsRef.current); } catch {}
       } catch (e) {
@@ -151,29 +144,37 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
   async function handleToggleNotePin(note) {
     if (!repo || !user || !note) return;
     const newPinned = !note.pinned;
+    
     // Optimistic update in itemsRef
     itemsRef.current = itemsRef.current.map((it) =>
       it.type === 'note' && (it.data.id === note.id || it.data.dateKey === note.dateKey)
         ? { ...it, data: { ...it.data, pinned: newPinned, updatedAt: new Date() } }
         : it
-    ).sort((a, b) => {
-      const ap = a?.data?.pinned ? 1 : 0;
-      const bp = b?.data?.pinned ? 1 : 0;
-      if (bp !== ap) return bp - ap;
-      const am = new Date((a?.data?.updatedAt?.toDate?.() || a?.data?.updatedAt || 0)).getTime() || 0;
-      const bm = new Date((b?.data?.updatedAt?.toDate?.() || b?.data?.updatedAt || 0)).getTime() || 0;
-      return bm - am;
-    });
+    );
+    
+    // Sort using consistent function
+    itemsRef.current = sortItems(itemsRef.current);
+    
+    // Update localStorage immediately
+    try { saveNotesFeedCache(itemsRef.current); } catch {}
+    
+    // Update filtered view
     setItems(applyFilter(itemsRef.current, filterMode));
+    
     try {
       await repo.setDayNotePinned(note.dateKey || note.id, newPinned);
     } catch (e) {
+      console.error('Failed to update note pin status in Firestore:', e);
       // Revert on failure
       itemsRef.current = itemsRef.current.map((it) =>
         it.type === 'note' && (it.data.id === note.id || it.data.dateKey === note.dateKey)
           ? { ...it, data: { ...it.data, pinned: !newPinned } }
           : it
       );
+      // Resort after revert using consistent function
+      itemsRef.current = sortItems(itemsRef.current);
+      // Update localStorage and filtered view after revert
+      try { saveNotesFeedCache(itemsRef.current); } catch {}
       setItems(applyFilter(itemsRef.current, filterMode));
     }
   }
@@ -181,27 +182,37 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
   async function handleToggleSnippetPin(snippet) {
     if (!snippetRepo || !user || !snippet) return;
     const newPinned = !snippet.pinned;
+    
+    // Optimistic update in itemsRef
     itemsRef.current = itemsRef.current.map((it) =>
       it.type === 'snippet' && it.data.id === snippet.id
         ? { ...it, data: { ...it.data, pinned: newPinned, updatedAt: new Date() } }
         : it
-    ).sort((a, b) => {
-      const ap = a?.data?.pinned ? 1 : 0;
-      const bp = b?.data?.pinned ? 1 : 0;
-      if (bp !== ap) return bp - ap;
-      const am = new Date((a?.data?.updatedAt?.toDate?.() || a?.data?.updatedAt || 0)).getTime() || 0;
-      const bm = new Date((b?.data?.updatedAt?.toDate?.() || b?.data?.updatedAt || 0)).getTime() || 0;
-      return bm - am;
-    });
+    );
+    
+    // Sort using consistent function
+    itemsRef.current = sortItems(itemsRef.current);
+    
+    // Update localStorage immediately
+    try { saveNotesFeedCache(itemsRef.current); } catch {}
+    
+    // Update filtered view
     setItems(applyFilter(itemsRef.current, filterMode));
+    
     try {
       await snippetRepo.updateSnippet(snippet.id, { pinned: newPinned });
     } catch (e) {
+      console.error('Failed to update snippet pin status in Firestore:', e);
+      // Revert on failure
       itemsRef.current = itemsRef.current.map((it) =>
         it.type === 'snippet' && it.data.id === snippet.id
           ? { ...it, data: { ...it.data, pinned: !newPinned } }
           : it
       );
+      // Resort after revert using consistent function
+      itemsRef.current = sortItems(itemsRef.current);
+      // Update localStorage and filtered view after revert
+      try { saveNotesFeedCache(itemsRef.current); } catch {}
       setItems(applyFilter(itemsRef.current, filterMode));
     }
   }
@@ -251,14 +262,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
         if (Array.isArray(notePage?.items)) append.push(...notePage.items.map(n => ({ type: 'note', data: n })));
         if (Array.isArray(snPage?.items)) append.push(...snPage.items.map(s => ({ type: 'snippet', data: s })));
         if (append.length) {
-          itemsRef.current = [...itemsRef.current, ...append].sort((a, b) => {
-            const ap = a?.data?.pinned ? 1 : 0;
-            const bp = b?.data?.pinned ? 1 : 0;
-            if (bp !== ap) return bp - ap;
-            const am = new Date((a?.data?.updatedAt?.toDate?.() || a?.data?.updatedAt || 0)).getTime() || 0;
-            const bm = new Date((b?.data?.updatedAt?.toDate?.() || b?.data?.updatedAt || 0)).getTime() || 0;
-            return bm - am;
-          });
+          itemsRef.current = sortItems([...itemsRef.current, ...append]);
           setItems(applyFilter(itemsRef.current, filterMode));
           try { saveNotesFeedCache(itemsRef.current); } catch {}
         }
@@ -274,6 +278,12 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
   }, [repo, snippetRepo, user]);
 
   // (Removed legacy snippet-only effects; unified feed handles pagination for both)
+
+  // Handle filter mode changes
+  useEffect(() => {
+    // Update filtered items when filter mode changes
+    setItems(applyFilter(itemsRef.current, filterMode));
+  }, [filterMode]);
 
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
@@ -301,12 +311,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
           className="-ml-4 flex w-auto"
           columnClassName="pl-4 bg-clip-padding"
         >
-          {(useMemo(() => {
-            if (filterMode === 'pinned') return items.filter(it => !!it?.data?.pinned);
-            if (filterMode === 'notes') return items.filter(it => it.type === 'note');
-            if (filterMode === 'snippets') return items.filter(it => it.type === 'snippet');
-            return items;
-          }, [items, filterMode])).map((it, idx) => {
+          {items.map((it, idx) => {
             if (it.type === 'note') {
               const n = it.data;
               const updated = new Date(n.updatedAt?.toDate?.() || n.updatedAt || 0);
@@ -318,14 +323,16 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                       {n.dateKey ? format(parseISO(n.dateKey), 'EEE, MMM d, yyyy') : 'Unknown date'}
                     </span>
                     <span className="shrink-0 flex items-center gap-2">
-                      <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleNotePin(n); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-opacity" title={n.pinned ? 'Unpin' : 'Pin'}>
+                      <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleNotePin(n); }} className={`w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity ${n.pinned ? '' : 'opacity-0 group-hover:opacity-100'}`} title={n.pinned ? 'Unpin' : 'Pin'}>
                         {n.pinned ? <Pin size={14} className="text-amber-600" /> : <PinOff size={14} className="text-slate-400" />}
                       </button>
                       <span className="shrink-0 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Day Note</span>
                     </span>
                   </div>
                   <div className="mt-2 text-sm line-clamp-6">
-                    {String(n.content || '').trim().length === 0 ? null : (
+                    {String(n.content || '').trim().length === 0 ? (
+                      <div className="text-slate-400 italic">No content</div>
+                    ) : (
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
@@ -335,7 +342,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                           li: ({node, className, ...props}) => <li className={`my-1 ${className || ''} ${className?.includes?.('task-list-item') ? 'list-none' : ''}`} {...props} />,
                           strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
                           em: ({node, ...props}) => <em className="italic" {...props} />,
-                          blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-700 pl-3 italic text-slate-700 dark:text-slate-300 my-3" {...props} />,
+                          blockquote: ({node, className, ...props}) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-700 pl-3 italic text-slate-700 dark:text-slate-300 my-3" {...props} />,
                           hr: (props) => <hr className="my-4 border-slate-200 dark:border-slate-700" {...props} />,
                           code({node, inline, className, children, ...props}) {
                             if (inline) {
@@ -350,7 +357,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                           a: ({node, ...props}) => <a className="text-indigo-600 dark:text-indigo-400 underline" target="_blank" rel="noreferrer" {...props} />,
                           table: ({node, ...props}) => <table className="my-3 w-full border-collapse text-sm" {...props} />,
                           th: ({node, ...props}) => <th className="border border-slate-200 dark:border-slate-700 px-2 py-1 text-left" {...props} />,
-                          td: ({node, ...props}) => <td className="border border-slate-200 dark:border-slate-700 px-2 py-1" {...props} />,
+                          td: ({node, className, ...props}) => <td className="border border-slate-200 dark:border-slate-700 px-2 py-1" {...props} />,
                           input: ({node, ...props}) => <input {...props} disabled className="align-middle mr-2 accent-indigo-600" />,
                         }}
                       >
@@ -377,8 +384,8 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                     <button type="button" onClick={(e) => { e.stopPropagation?.(); onOpenSnippetEditor && onOpenSnippetEditor(sn.id); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-opacity" title="Edit">
                       <span className="sr-only">Edit</span>
                     </button>
-                    <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleSnippetPin(sn); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-opacity" title={sn.pinned ? 'Unpin' : 'Pin'}>
-                      {sn.pinned ? <Pin size={14} className="text-indigo-600" /> : <PinOff size={14} className="text-slate-400" />}
+                    <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleSnippetPin(sn); }} className={`w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity ${sn.pinned ? '' : 'opacity-0 group-hover:opacity-100'}`} title={sn.pinned ? 'Unpin' : 'Pin'}>
+                      {sn.pinned ? <Pin size={14} className="text-indigo-600" /> : <PinOff size={14} className="text-indigo-400" />}
                     </button>
                     <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">Snippet</span>
                   </span>
