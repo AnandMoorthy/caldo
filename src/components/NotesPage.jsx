@@ -20,13 +20,39 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
   const notesCursorRef = useRef(null);
   const pinnedSnippetCursorRef = useRef(null);
   const unpinnedSnippetCursorRef = useRef(null);
+  const filterModeRef = useRef(filterMode); // Track current filter mode
+
+  // Update the ref whenever filterMode changes
+  useEffect(() => {
+    filterModeRef.current = filterMode;
+  }, [filterMode]);
 
   function applyFilter(list, mode) {
     if (!Array.isArray(list)) return [];
-    if (mode === 'pinned') return list.filter((it) => !!it?.data?.pinned);
-    if (mode === 'notes') return list.filter((it) => it.type === 'note');
-    if (mode === 'snippets') return list.filter((it) => it.type === 'snippet');
-    return list;
+    
+    const filtered = (() => {
+      if (mode === 'pinned') {
+        return list.filter((it) => !!it?.data?.pinned);
+      } else if (mode === 'notes') {
+        return list.filter((it) => it.type === 'note');
+      } else if (mode === 'snippets') {
+        return list.filter((it) => it.type === 'snippet');
+      } else {
+        return list;
+      }
+    })();
+    
+    console.log('🔍 applyFilter called:', {
+      mode,
+      inputListLength: list.length,
+      inputNotesCount: list.filter(it => it.type === 'note').length,
+      inputSnippetsCount: list.filter(it => it.type === 'snippet').length,
+      outputLength: filtered.length,
+      outputNotesCount: filtered.filter(it => it.type === 'note').length,
+      outputSnippetsCount: filtered.filter(it => it.type === 'snippet').length
+    });
+    
+    return filtered;
   }
 
   // Consistent sorting function for notes and snippets
@@ -49,7 +75,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
       const cached = loadNotesFeedCache();
       if (Array.isArray(cached) && cached.length > 0) {
         itemsRef.current = cached;
-        const filtered = applyFilter(itemsRef.current, filterMode);
+        const filtered = applyFilter(itemsRef.current, filterModeRef.current);
         setItems(filtered);
       }
     } catch (e) {
@@ -74,7 +100,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
           const newItem = { type: 'note', data: { id: dateKey, dateKey, content, updatedAt: now, pinned: false } };
           itemsRef.current = sortItems([newItem, ...itemsRef.current]);
         }
-        setItems(applyFilter(itemsRef.current, filterMode));
+        setItems(applyFilter(itemsRef.current, filterModeRef.current));
         try { saveNotesFeedCache(itemsRef.current); } catch {}
       } catch (e) {
         console.error('Error in day note saved handler:', e);
@@ -86,6 +112,14 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
     function onSnippetsUpdated(e) {
       try {
         const list = (e?.detail?.items || []).filter(s => !s.archived);
+        console.log('📝 onSnippetsUpdated event received:', {
+          currentFilterMode: filterModeRef.current,
+          incomingSnippetCount: list.length,
+          currentTotalItems: itemsRef.current.length,
+          currentNotesCount: itemsRef.current.filter(it => it.type === 'note').length,
+          currentSnippetsCount: itemsRef.current.filter(it => it.type === 'snippet').length
+        });
+        
         // Build fresh snippet items
         const snippetItems = list.map(s => ({ type: 'snippet', data: s }));
         // Keep existing notes as-is; replace all snippets with new snapshot
@@ -93,9 +127,33 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
         const combined = [...noteItems, ...snippetItems];
         // Sort: pinned first, then updated desc
         itemsRef.current = sortItems(combined);
-        setItems(applyFilter(itemsRef.current, filterMode));
+        
+        console.log('🔄 After snippet update:', {
+          newTotalItems: itemsRef.current.length,
+          newNotesCount: itemsRef.current.filter(it => it.type === 'note').length,
+          newSnippetsCount: itemsRef.current.filter(it => it.type === 'snippet').length
+        });
+        
+        // Always update the cache to keep it in sync
         try { saveNotesFeedCache(itemsRef.current); } catch {}
-      } catch {}
+        
+        // Always reapply the current filter to ensure consistency
+        // This prevents showing snippets when user is in "Notes" filter mode
+        const newFilteredItems = applyFilter(itemsRef.current, filterModeRef.current);
+        
+        console.log('✅ Final filtered items:', {
+          filterMode: filterModeRef.current,
+          filteredCount: newFilteredItems.length,
+          notesCount: newFilteredItems.filter(it => it.type === 'note').length,
+          snippetsCount: newFilteredItems.filter(it => it.type === 'snippet').length
+        });
+        
+        // Only update the display if the filtered items have actually changed
+        // This prevents unnecessary re-renders while maintaining filter consistency
+        setItems(newFilteredItems);
+      } catch (e) {
+        console.error('❌ Error in onSnippetsUpdated:', e);
+      }
     }
     window.addEventListener('snippets:updated', onSnippetsUpdated);
 
@@ -128,7 +186,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
         pinnedSnippetCursorRef.current = snippetPage?.nextPinnedCursor || null;
         unpinnedSnippetCursorRef.current = snippetPage?.nextUnpinnedCursor || null;
         
-        setItems(applyFilter(itemsRef.current, filterMode));
+        setItems(applyFilter(itemsRef.current, filterModeRef.current));
         
         // Persist fresh feed to cache
         try { saveNotesFeedCache(itemsRef.current); } catch {}
@@ -139,7 +197,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
       }
     })();
     return () => { mounted = false; window.removeEventListener('daynote:saved', onDayNoteSaved); window.removeEventListener('snippets:updated', onSnippetsUpdated); };
-  }, [repo, snippetRepo, user]);
+  }, [repo, snippetRepo, user]); // Removed filterMode dependency
 
   async function handleToggleNotePin(note) {
     if (!repo || !user || !note) return;
@@ -159,7 +217,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
     try { saveNotesFeedCache(itemsRef.current); } catch {}
     
     // Update filtered view
-    setItems(applyFilter(itemsRef.current, filterMode));
+    setItems(applyFilter(itemsRef.current, filterModeRef.current));
     
     try {
       await repo.setDayNotePinned(note.dateKey || note.id, newPinned);
@@ -175,7 +233,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
       itemsRef.current = sortItems(itemsRef.current);
       // Update localStorage and filtered view after revert
       try { saveNotesFeedCache(itemsRef.current); } catch {}
-      setItems(applyFilter(itemsRef.current, filterMode));
+      setItems(applyFilter(itemsRef.current, filterModeRef.current));
     }
   }
 
@@ -197,7 +255,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
     try { saveNotesFeedCache(itemsRef.current); } catch {}
     
     // Update filtered view
-    setItems(applyFilter(itemsRef.current, filterMode));
+    setItems(applyFilter(itemsRef.current, filterModeRef.current));
     
     try {
       await snippetRepo.updateSnippet(snippet.id, { pinned: newPinned });
@@ -213,7 +271,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
       itemsRef.current = sortItems(itemsRef.current);
       // Update localStorage and filtered view after revert
       try { saveNotesFeedCache(itemsRef.current); } catch {}
-      setItems(applyFilter(itemsRef.current, filterMode));
+      setItems(applyFilter(itemsRef.current, filterModeRef.current));
     }
   }
 
@@ -263,7 +321,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
         if (Array.isArray(snPage?.items)) append.push(...snPage.items.map(s => ({ type: 'snippet', data: s })));
         if (append.length) {
           itemsRef.current = sortItems([...itemsRef.current, ...append]);
-          setItems(applyFilter(itemsRef.current, filterMode));
+          setItems(applyFilter(itemsRef.current, filterModeRef.current));
           try { saveNotesFeedCache(itemsRef.current); } catch {}
         }
       } catch (e) {
@@ -282,7 +340,16 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
   // Handle filter mode changes
   useEffect(() => {
     // Update filtered items when filter mode changes
-    setItems(applyFilter(itemsRef.current, filterMode));
+    console.log('🎯 Filter mode changed to:', filterMode, 'Total items in cache:', itemsRef.current.length);
+    const filtered = applyFilter(itemsRef.current, filterModeRef.current);
+    console.log('🎯 Filter applied after mode change:', {
+      filterMode,
+      totalItems: itemsRef.current.length,
+      filteredCount: filtered.length,
+      notesCount: filtered.filter(it => it.type === 'note').length,
+      snippetsCount: filtered.filter(it => it.type === 'snippet').length
+    });
+    setItems(filtered);
   }, [filterMode]);
 
   return (
@@ -311,95 +378,104 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
           className="-ml-4 flex w-auto"
           columnClassName="pl-4 bg-clip-padding"
         >
-          {items.map((it, idx) => {
-            if (it.type === 'note') {
-              const n = it.data;
-              const updated = new Date(n.updatedAt?.toDate?.() || n.updatedAt || 0);
+          {(() => {
+            console.log('🎨 Rendering items:', {
+              filterMode,
+              itemsLength: items.length,
+              itemsNotesCount: items.filter(it => it.type === 'note').length,
+              itemsSnippetsCount: items.filter(it => it.type === 'snippet').length,
+              itemsTypes: items.map(it => it.type)
+            });
+            return items.map((it, idx) => {
+              if (it.type === 'note') {
+                const n = it.data;
+                const updated = new Date(n.updatedAt?.toDate?.() || n.updatedAt || 0);
+                return (
+                  <div key={`n_${n.id}_${idx}`} onClick={() => onOpenDayNotes && onOpenDayNotes(n)} className="mb-4 text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm hover:shadow-lg dark:hover:ring-1 dark:hover:ring-slate-600 transition-all cursor-pointer group">
+                    <div className="text-xs text-slate-500 flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-2">
+                        <CalendarIcon size={14} />
+                        {n.dateKey ? format(parseISO(n.dateKey), 'EEE, MMM d, yyyy') : 'Unknown date'}
+                      </span>
+                      <span className="shrink-0 flex items-center gap-2">
+                        <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleNotePin(n); }} className={`w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity ${n.pinned ? '' : 'opacity-0 group-hover:opacity-100'}`} title={n.pinned ? 'Unpin' : 'Pin'}>
+                          {n.pinned ? <Pin size={14} className="text-amber-600" /> : <PinOff size={14} className="text-slate-400" />}
+                        </button>
+                        <span className="shrink-0 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Day Note</span>
+                      </span>
+                    </div>
+                    <div className="mt-2 text-sm line-clamp-6">
+                      {String(n.content || '').trim().length === 0 ? (
+                        <div className="text-slate-400 italic">No content</div>
+                      ) : (
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            p: ({node, ...props}) => <p className="my-2 leading-relaxed" {...props} />,
+                            ul: ({node, className, ...props}) => <ul className={`list-disc ml-5 my-2 space-y-1 ${className || ''}`} {...props} />,
+                            ol: ({node, className, ...props}) => <ol className={`list-decimal ml-5 my-2 space-y-1 ${className || ''}`} {...props} />,
+                            li: ({node, className, ...props}) => <li className={`my-1 ${className || ''} ${className?.includes?.('task-list-item') ? 'list-none' : ''}`} {...props} />,
+                            strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
+                            em: ({node, ...props}) => <em className="italic" {...props} />,
+                            blockquote: ({node, className, ...props}) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-700 pl-3 italic text-slate-700 dark:text-slate-300 my-3" {...props} />,
+                            hr: (props) => <hr className="my-4 border-slate-200 dark:border-slate-700" {...props} />,
+                            code({node, inline, className, children, ...props}) {
+                              if (inline) {
+                                return <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800" {...props}>{children}</code>;
+                              }
+                              return (
+                                <pre className="p-3 rounded bg-slate-950 text-slate-100 overflow-auto">
+                                  <code {...props}>{children}</code>
+                                </pre>
+                              );
+                            },
+                            a: ({node, ...props}) => <a className="text-indigo-600 dark:text-indigo-400 underline" target="_blank" rel="noreferrer" {...props} />,
+                            table: ({node, ...props}) => <table className="my-3 w-full border-collapse text-sm" {...props} />,
+                            th: ({node, ...props}) => <th className="border border-slate-200 dark:border-slate-700 px-2 py-1 text-left" {...props} />,
+                            td: ({node, className, ...props}) => <td className="border border-slate-200 dark:border-slate-700 px-2 py-1" {...props} />,
+                            input: ({node, ...props}) => <input {...props} disabled className="align-middle mr-2 accent-indigo-600" />,
+                          }}
+                        >
+                          {String(n.content || '')}
+                        </ReactMarkdown>
+                      )}
+                    </div>
+                    <div className="mt-2 text-[11px] text-slate-500" title={updated.toString()}>
+                      Updated {isNaN(updated.getTime()) ? '—' : format(updated, 'PPp')}
+                    </div>
+                  </div>
+                );
+              }
+              const sn = it.data;
+              const updated = new Date(sn.updatedAt?.toDate?.() || sn.updatedAt || 0);
               return (
-                <div key={`n_${n.id}_${idx}`} onClick={() => onOpenDayNotes && onOpenDayNotes(n)} className="mb-4 text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm hover:shadow-lg dark:hover:ring-1 dark:hover:ring-slate-600 transition-all cursor-pointer group">
+                <div key={`s_${sn.id}_${idx}`} onClick={() => onOpenSnippetEditor && onOpenSnippetEditor(sn.id)} className="mb-4 text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm hover:shadow-lg dark:hover:ring-1 dark:hover:ring-slate-600 transition-all cursor-pointer group">
                   <div className="text-xs text-slate-500 flex items-center justify-between gap-2">
                     <span className="inline-flex items-center gap-2">
-                      <CalendarIcon size={14} />
-                      {n.dateKey ? format(parseISO(n.dateKey), 'EEE, MMM d, yyyy') : 'Unknown date'}
+                      <Code2 size={14} />
+                      {isNaN(updated.getTime()) ? '—' : format(updated, 'PPp')}
                     </span>
                     <span className="shrink-0 flex items-center gap-2">
-                      <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleNotePin(n); }} className={`w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity ${n.pinned ? '' : 'opacity-0 group-hover:opacity-100'}`} title={n.pinned ? 'Unpin' : 'Pin'}>
-                        {n.pinned ? <Pin size={14} className="text-amber-600" /> : <PinOff size={14} className="text-slate-400" />}
+                      <button type="button" onClick={(e) => { e.stopPropagation?.(); onOpenSnippetEditor && onOpenSnippetEditor(sn.id); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-opacity" title="Edit">
+                        <span className="sr-only">Edit</span>
                       </button>
-                      <span className="shrink-0 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Day Note</span>
+                      <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleSnippetPin(sn); }} className={`w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity ${sn.pinned ? '' : 'opacity-0 group-hover:opacity-100'}`} title={sn.pinned ? 'Unpin' : 'Pin'}>
+                        {sn.pinned ? <Pin size={14} className="text-indigo-600" /> : <PinOff size={14} className="text-indigo-400" />}
+                      </button>
+                      <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">Snippet</span>
                     </span>
                   </div>
-                  <div className="mt-2 text-sm line-clamp-6">
-                    {String(n.content || '').trim().length === 0 ? (
-                      <div className="text-slate-400 italic">No content</div>
-                    ) : (
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          p: ({node, ...props}) => <p className="my-2 leading-relaxed" {...props} />,
-                          ul: ({node, className, ...props}) => <ul className={`list-disc ml-5 my-2 space-y-1 ${className || ''}`} {...props} />,
-                          ol: ({node, className, ...props}) => <ol className={`list-decimal ml-5 my-2 space-y-1 ${className || ''}`} {...props} />,
-                          li: ({node, className, ...props}) => <li className={`my-1 ${className || ''} ${className?.includes?.('task-list-item') ? 'list-none' : ''}`} {...props} />,
-                          strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
-                          em: ({node, ...props}) => <em className="italic" {...props} />,
-                          blockquote: ({node, className, ...props}) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-700 pl-3 italic text-slate-700 dark:text-slate-300 my-3" {...props} />,
-                          hr: (props) => <hr className="my-4 border-slate-200 dark:border-slate-700" {...props} />,
-                          code({node, inline, className, children, ...props}) {
-                            if (inline) {
-                              return <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800" {...props}>{children}</code>;
-                            }
-                            return (
-                              <pre className="p-3 rounded bg-slate-950 text-slate-100 overflow-auto">
-                                <code {...props}>{children}</code>
-                              </pre>
-                            );
-                          },
-                          a: ({node, ...props}) => <a className="text-indigo-600 dark:text-indigo-400 underline" target="_blank" rel="noreferrer" {...props} />,
-                          table: ({node, ...props}) => <table className="my-3 w-full border-collapse text-sm" {...props} />,
-                          th: ({node, ...props}) => <th className="border border-slate-200 dark:border-slate-700 px-2 py-1 text-left" {...props} />,
-                          td: ({node, className, ...props}) => <td className="border border-slate-200 dark:border-slate-700 px-2 py-1" {...props} />,
-                          input: ({node, ...props}) => <input {...props} disabled className="align-middle mr-2 accent-indigo-600" />,
-                        }}
-                      >
-                        {String(n.content || '')}
-                      </ReactMarkdown>
-                    )}
+                  <div className="mt-2 whitespace-pre-wrap text-sm line-clamp-6">
+                    <div className="font-medium truncate">{sn.title || 'Untitled snippet'}</div>
+                    {sn.content ? <div className="mt-1 text-slate-600 dark:text-slate-400">{sn.content}</div> : null}
                   </div>
                   <div className="mt-2 text-[11px] text-slate-500" title={updated.toString()}>
                     Updated {isNaN(updated.getTime()) ? '—' : format(updated, 'PPp')}
                   </div>
                 </div>
               );
-            }
-            const sn = it.data;
-            const updated = new Date(sn.updatedAt?.toDate?.() || sn.updatedAt || 0);
-            return (
-              <div key={`s_${sn.id}_${idx}`} onClick={() => onOpenSnippetEditor && onOpenSnippetEditor(sn.id)} className="mb-4 text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm hover:shadow-lg dark:hover:ring-1 dark:hover:ring-slate-600 transition-all cursor-pointer group">
-                <div className="text-xs text-slate-500 flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-2">
-                    <Code2 size={14} />
-                    {isNaN(updated.getTime()) ? '—' : format(updated, 'PPp')}
-                  </span>
-                  <span className="shrink-0 flex items-center gap-2">
-                    <button type="button" onClick={(e) => { e.stopPropagation?.(); onOpenSnippetEditor && onOpenSnippetEditor(sn.id); }} className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-opacity" title="Edit">
-                      <span className="sr-only">Edit</span>
-                    </button>
-                    <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleSnippetPin(sn); }} className={`w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity ${sn.pinned ? '' : 'opacity-0 group-hover:opacity-100'}`} title={sn.pinned ? 'Unpin' : 'Pin'}>
-                      {sn.pinned ? <Pin size={14} className="text-indigo-600" /> : <PinOff size={14} className="text-indigo-400" />}
-                    </button>
-                    <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">Snippet</span>
-                  </span>
-                </div>
-                <div className="mt-2 whitespace-pre-wrap text-sm line-clamp-6">
-                  <div className="font-medium truncate">{sn.title || 'Untitled snippet'}</div>
-                  {sn.content ? <div className="mt-1 text-slate-600 dark:text-slate-400">{sn.content}</div> : null}
-                </div>
-                <div className="mt-2 text-[11px] text-slate-500" title={updated.toString()}>
-                  Updated {isNaN(updated.getTime()) ? '—' : format(updated, 'PPp')}
-                </div>
-              </div>
-            );
-          })}
+            });
+          })()}
         </Masonry>
         <div ref={sentinelRef} className="h-8" />
         {loading && (
