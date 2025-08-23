@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Check, RotateCcw, Trash, Clock, ChevronDown, ChevronRight, Plus, RefreshCcw } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { generateId } from "../utils/uid";
 import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
 
@@ -16,6 +16,10 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   const title = t.title || "Untitled";
   const notes = t.notes || "";
   const taskId = t.id || generateId();
+  
+  // Check if task is for a future date
+  const isFutureTask = dueDate && isAfter(parseISO(dueDate), startOfDay(new Date()));
+  
   const priorityPill =
     priority === "high"
       ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
@@ -66,16 +70,16 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
       key={taskId}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative overflow-hidden ${paddingCls} border border-l-4 ${priorityBorder} bg-white dark:bg-slate-900 rounded-lg cursor-grab active:cursor-grabbing`}
-      draggable
-      onDragStart={(e) => onDragStartTask(e, t)}
+      className={`relative overflow-hidden ${paddingCls} border border-l-4 ${priorityBorder} bg-white dark:bg-slate-900 rounded-lg ${t.isRecurringInstance ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
+      draggable={!t.isRecurringInstance}
+      onDragStart={(e) => !t.isRecurringInstance && onDragStartTask(e, t)}
       data-tip={`${title}${notes ? "\n" + notes : ""}`}
     >
               <div className={`flex items-start justify-between ${topGapCls}`}>
           <div className={`min-w-0 ${titleLeftMarginCls}`}>
             <div className={`font-medium ${titleSizeCls} ${isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate flex items-center gap-1.5`}>
               {t.isRecurringInstance && (
-                <span className="inline-flex items-center justify-center text-purple-600 dark:text-purple-400 flex-shrink-0" data-tip={recurrenceInfo || "Recurring Task"}>
+                <span className="inline-flex items-center justify-center text-purple-600 dark:text-purple-400 flex-shrink-0" data-tip={`${recurrenceInfo || "Recurring Task"} - Cannot be moved`}>
                   {recurrenceIcon || <RefreshCcw size={Math.max(10, iconSize - 2)} />}
                 </span>
               )}
@@ -184,7 +188,19 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
           </div>
         )}
         <div className="flex gap-1.5 items-center ml-auto">
-          <button onClick={() => onToggleDone(t)} className={`${actionPadCls} rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 ${isDone ? "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700" : "text-green-600 dark:text-green-400 border-slate-200 dark:border-slate-700"}`} data-tip={isDone ? "Undo" : "Mark done"} aria-label={isDone ? "Undo" : "Mark done"}>
+          <button 
+            onClick={() => onToggleDone(t)} 
+            disabled={isFutureTask}
+            className={`${actionPadCls} rounded-lg border hover:bg-slate-50 dark:hover:bg-slate-800 ${
+              isDone 
+                ? "text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700" 
+                : isFutureTask
+                ? "text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-50"
+                : "text-green-600 dark:text-green-400 border-slate-200 dark:border-slate-700"
+            }`} 
+            data-tip={isDone ? "Undo" : isFutureTask ? "Cannot mark future tasks complete" : "Mark done"} 
+            aria-label={isDone ? "Undo" : isFutureTask ? "Cannot mark future tasks complete" : "Mark done"}
+          >
             {isDone ? <RotateCcw size={iconSize} /> : <Check size={iconSize} />}
           </button>
           <button onClick={() => onOpenEditModal(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400`} data-tip="Edit" aria-label="Edit">

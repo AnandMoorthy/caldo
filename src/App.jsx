@@ -1688,6 +1688,10 @@ export default function App() {
       const { taskList: fromTasks, noteItem: fromNote } = splitDayList(fromList);
       const task = fromTasks.find((t) => t.id === taskId);
       if (!task) return prev;
+      
+      // Prevent moving recurring tasks
+      if (task.isRecurringInstance) return prev;
+      
       const updatedFromTasks = fromTasks.filter((t) => t.id !== taskId);
       const sortedFromTasks = sortTasksByCreatedDesc(updatedFromTasks);
       const fullFromList = mergeDayList(sortedFromTasks, fromNote);
@@ -1769,6 +1773,12 @@ export default function App() {
   }
 
   function onDragStartTask(e, task) {
+    // Prevent dragging recurring tasks
+    if (task.isRecurringInstance) {
+      e.preventDefault();
+      return;
+    }
+    
     try {
       e.dataTransfer.effectAllowed = 'move';
       const payload = JSON.stringify({ taskId: task.id, fromKey: task.due });
@@ -1784,6 +1794,15 @@ export default function App() {
       const raw = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain');
       if (!raw) return;
       const { taskId, fromKey } = JSON.parse(raw || '{}');
+      
+      // Get the task to check if it's recurring
+      const fromList = tasksMap[fromKey] || [];
+      const { taskList: fromTasks } = splitDayList(fromList);
+      const task = fromTasks.find((t) => t.id === taskId);
+      
+      // Prevent dropping recurring tasks
+      if (task && task.isRecurringInstance) return;
+      
       const toKey = keyFor(day);
       moveTask(fromKey, taskId, toKey);
       setDragOverDayKey(null);

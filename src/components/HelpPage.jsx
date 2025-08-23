@@ -47,7 +47,8 @@ export default function HelpPage({ open, onClose }) {
     { id: 'tasks', label: 'Tasks', icon: List },
     { id: 'snippets', label: 'Snippets', icon: Code },
     { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
-    { id: 'features', label: 'Features', icon: Info }
+    { id: 'features', label: 'Features', icon: Info },
+    { id: 'faq', label: 'FAQ', icon: HelpCircle }
   ];
 
   const renderOverview = () => (
@@ -166,6 +167,9 @@ export default function HelpPage({ open, onClose }) {
               <div className="text-sm text-slate-600 dark:text-slate-300">
                 Reschedule tasks by dragging them to different days
               </div>
+              <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                Note: Recurring tasks cannot be moved
+              </div>
             </div>
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <div className="font-medium text-slate-900 dark:text-slate-100 mb-2">Navigation</div>
@@ -238,6 +242,22 @@ export default function HelpPage({ open, onClose }) {
           <p><strong>Weekly:</strong> Choose specific days of the week</p>
           <p><strong>Monthly:</strong> Select day of the month</p>
           <p><strong>Ends:</strong> Never, on date, or after occurrences</p>
+        </div>
+      </div>
+
+      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+        <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 flex items-center gap-2">
+          <AlertCircle size={20} />
+          Task Restrictions & Limitations
+        </h3>
+        <div className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
+          <p><strong>Important:</strong> CalDo has built-in restrictions to maintain data integrity:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Future tasks</strong> cannot be marked complete until their due date</li>
+            <li><strong>Recurring tasks</strong> cannot be moved between dates (drag & drop disabled)</li>
+            <li>These restrictions help maintain accurate progress tracking and series integrity</li>
+            <li>See the <button onClick={() => setActiveTab('faq')} className="text-amber-700 dark:text-amber-300 underline hover:no-underline">FAQ section</button> for detailed explanations</li>
+          </ul>
         </div>
       </div>
     </div>
@@ -468,6 +488,114 @@ export default function HelpPage({ open, onClose }) {
             </ul>
           </div>
         </div>
+
+        <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+          <div className="flex items-center gap-3 mb-3">
+            <AlertCircle size={20} className="text-amber-600" />
+            <h3 className="font-semibold text-amber-900 dark:text-amber-100">Data Integrity & Restrictions</h3>
+          </div>
+          <div className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
+            <p>CalDo includes intelligent restrictions to maintain data quality:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Future Task Protection:</strong> Prevents premature completion of tasks not yet due</li>
+              <li><strong>Recurring Task Protection:</strong> Maintains series integrity by preventing date changes</li>
+              <li><strong>Progress Accuracy:</strong> Ensures completion tracking reflects actual task status</li>
+              <li><strong>Series Consistency:</strong> Prevents recurring patterns from breaking</li>
+            </ul>
+            <p className="mt-2 text-xs">These restrictions help maintain accurate progress tracking and prevent data inconsistencies.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderFAQ = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Frequently Asked Questions</h2>
+        <p className="text-slate-600 dark:text-slate-300 mb-6">
+          Answers to common questions about CalDo's features and functionality.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+          <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 flex items-center gap-2">
+            <AlertCircle size={20} />
+            Why can't I mark future tasks as complete?
+          </h3>
+          <div className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
+            <p><strong>Future Task Restriction:</strong> Tasks with due dates in the future cannot be marked as complete. This prevents premature task completion and helps maintain accurate progress tracking.</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Future tasks show a disabled checkmark button</li>
+              <li>The button appears grayed out with reduced opacity</li>
+              <li>Hovering shows "Cannot mark future tasks complete" tooltip</li>
+              <li>This restriction applies to all tasks scheduled for future dates</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
+          <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2 flex items-center gap-2">
+            <RefreshCcw size={20} />
+            Why can't I drag and drop recurring tasks?
+          </h3>
+          <div className="text-sm text-purple-800 dark:text-purple-200 space-y-2">
+            <p><strong>Recurring Task Protection:</strong> Recurring tasks cannot be moved between dates to maintain the integrity of their series and prevent conflicts with the recurrence pattern.</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Recurring tasks show a default cursor instead of grab cursor</li>
+              <li>Drag and drop is completely disabled for recurring tasks</li>
+              <li>Tooltip shows "Cannot be moved" for recurring tasks</li>
+              <li>This protects the recurrence series from breaking</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+            <Info size={20} />
+            How do I identify restricted tasks?
+          </h3>
+          <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+            <p><strong>Visual Indicators:</strong> CalDo provides clear visual cues to help you identify which tasks have restrictions:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Future tasks:</strong> Checkmark button is disabled and grayed out</li>
+              <li><strong>Recurring tasks:</strong> Purple refresh icon with "Cannot be moved" tooltip</li>
+              <li><strong>Cursor changes:</strong> Recurring tasks show default cursor, others show grab cursor</li>
+              <li><strong>Tooltips:</strong> Hover over buttons to see restriction explanations</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+          <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2 flex items-center gap-2">
+            <CheckCircle size={20} />
+            What can I do with restricted tasks?
+          </h3>
+          <div className="text-sm text-green-800 dark:text-green-200 space-y-2">
+            <p><strong>Available Actions:</strong> Even with restrictions, you can still perform most task management operations:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Edit:</strong> Modify title, notes, priority, and subtasks</li>
+              <li><strong>Delete:</strong> Remove tasks completely</li>
+              <li><strong>Add subtasks:</strong> Create and manage subtasks</li>
+              <li><strong>View details:</strong> See all task information and recurrence patterns</li>
+              <li><strong>Future tasks:</strong> Mark complete once the due date arrives</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">General Task Management</h3>
+          <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
+            <p>For regular (non-recurring) tasks that are not in the future:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Full drag and drop functionality between dates</li>
+              <li>Complete task completion and editing capabilities</li>
+              <li>No restrictions on task management operations</li>
+              <li>Normal cursor and button behavior</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -480,6 +608,7 @@ export default function HelpPage({ open, onClose }) {
       case 'snippets': return renderSnippets();
       case 'shortcuts': return renderShortcuts();
       case 'features': return renderFeatures();
+      case 'faq': return renderFAQ();
       default: return renderOverview();
     }
   };
