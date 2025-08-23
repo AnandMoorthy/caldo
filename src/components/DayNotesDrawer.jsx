@@ -5,11 +5,40 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { loadNotesModePreference, saveNotesModePreference } from "../utils/storage";
 
-export default function DayNotesDrawer({ open, dateLabel = "", value = "", onChange, onSave, onClose, onGoToDay, saving = false, justSaved = false }) {
+export default function DayNotesDrawer({ open, dateLabel = "", value = "", onChange, onSave, onClose, onGoToDay, saving = false }) {
   const textareaRef = useRef(null);
   const [mode, setMode] = useState(() => loadNotesModePreference()); // 'edit' | 'preview'
   const safeText = useMemo(() => String(value || ""), [value]);
   const [autoJustSaved, setAutoJustSaved] = useState(false);
+  const [originalValue, setOriginalValue] = useState(""); // Track original value to detect changes
+  const [hasUserModified, setHasUserModified] = useState(false); // Track if user has actually modified content
+  const [isInitialized, setIsInitialized] = useState(false); // Track if component has fully initialized
+
+  // Set original value when opening drawer
+  useEffect(() => {
+    if (open) {
+      console.log('📝 DayNotesDrawer opened:', { value: value?.substring(0, 50) });
+      setOriginalValue(value || "");
+      setHasUserModified(false);
+      setIsInitialized(false);
+      // Set initialized after a short delay to ensure value is stable
+      setTimeout(() => setIsInitialized(true), 100);
+    }
+  }, [open, value]);
+
+  // Track value changes - only after component is initialized
+  useEffect(() => {
+    if (!isInitialized) return; // Don't track changes until fully initialized
+    
+    if (value !== originalValue) {
+      console.log('✏️ Day note content modified:', { 
+        value: value?.substring(0, 50), 
+        originalValue: originalValue?.substring(0, 50),
+        hasUserModified: true 
+      });
+      setHasUserModified(true);
+    }
+  }, [value, originalValue, isInitialized]);
 
   function goEdit() {
     setMode('edit');
@@ -98,20 +127,43 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
   function onOl() { formatLines((i) => `${i + 1}. `); }
   function onChecklist() { formatLines(() => '- [ ] '); }
 
-  // Autosave day note: debounce when in edit mode
+  // Handle close with unsaved changes warning
+  function handleClose() {
+    if (hasUserModified) {
+      const ok = confirm('You have unsaved changes. Are you sure you want to close?');
+      if (!ok) return;
+    }
+    // Reset modification flags when closing
+    setHasUserModified(false);
+    setOriginalValue('');
+    onClose && onClose();
+  }
+
+  // Autosave day note: debounce when in edit mode AND user has modified content
   useEffect(() => {
     if (!open) return;
     if (mode !== 'edit') return;
+    if (!hasUserModified) return; // Only auto-save if user has actually modified content
+    
+    console.log('🔄 Auto-save triggered:', { open, mode, hasUserModified, value: value?.substring(0, 50) });
+    
     const text = String(value || '');
     const handle = setTimeout(async () => {
       try {
+        console.log('💾 Executing auto-save...');
         if (onSave) await onSave();
         setAutoJustSaved(true);
         setTimeout(() => setAutoJustSaved(false), 900);
-      } catch {}
+        // Reset modification flag after successful save
+        setHasUserModified(false);
+        setOriginalValue(text);
+        console.log('✅ Auto-save completed');
+      } catch (e) {
+        console.error('❌ Auto-save failed:', e);
+      }
     }, 1200);
     return () => clearTimeout(handle);
-  }, [value, mode, open]);
+  }, [value, mode, open, hasUserModified, onSave]);
 
   return (
     <AnimatePresence>
@@ -129,14 +181,23 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
               <div className="text-sm text-slate-500 dark:text-slate-400">Notes for</div>
               <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{dateLabel}</div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-              aria-label="Close notes"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Auto-save indicator */}
+              {hasUserModified && mode === 'edit' && (
+                <div className="inline-flex items-center gap-2 px-2 py-1 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                  Auto-saving...
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleClose}
+                className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label="Close notes"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           <div className="p-4 flex-1 min-h-0 flex flex-col">
@@ -154,7 +215,7 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
               <button type="button" disabled={mode==='preview'} onClick={onItalic} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Italic (wrap with *)">
                 <Italic size={14} /> Italic
               </button>
-              <span className="inline-block w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
+              <span className="inline-block w-px h-4 bg-slate-200 dark:border-slate-700 mx-1" />
               <button type="button" disabled={mode==='preview'} onClick={onUl} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Bullet list (-)">
                 <List size={14} /> Bullets
               </button>
@@ -171,7 +232,7 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
                   ref={textareaRef}
                   rows={14}
                   value={value}
-                  onChange={(e) => onChange && onChange(e.target.value)}
+                  onChange={(e) => updateValue(e.target.value)}
                   placeholder="Write anything about your day..."
                   className="input w-full h-full resize-none overflow-auto"
                 />
@@ -224,19 +285,21 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
                 </button>
               )}
             </div>
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
-              Close
-            </button>
-            <motion.button
-              type="button"
-              onClick={onSave}
-              className={`px-4 py-2 rounded text-white inline-flex items-center gap-2 ${saving ? 'bg-indigo-500' : 'bg-indigo-600'}`}
-              animate={saving ? { scale: [1, 0.98, 1], opacity: [1, 0.8, 1] } : justSaved ? { scale: [1, 1.06, 1] } : {}}
-              transition={{ duration: 0.6, type: 'spring', stiffness: 250, damping: 20 }}
-              disabled={saving}
-            >
-              {saving ? 'Saving…' : justSaved ? 'Saved' : 'Save'}
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={handleClose} className="px-4 py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
+                Close
+              </button>
+              <motion.button
+                type="button"
+                onClick={onSave}
+                className={`px-4 py-2 rounded text-white inline-flex items-center gap-2 ${saving ? 'bg-indigo-500' : 'bg-indigo-600'}`}
+                animate={saving ? { scale: [1, 0.98, 1], opacity: [1, 0.8, 1] } : {}}
+                transition={{ duration: 0.6, type: 'spring', stiffness: 250, damping: 20 }}
+                disabled={saving}
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </motion.button>
+            </div>
           </div>
         </motion.aside>
       )}

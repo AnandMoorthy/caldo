@@ -221,20 +221,32 @@ export default function SnippetsModal({ open, onClose, repo, user, onSnippetsCha
     try {
       const payload = { title: (title || 'Untitled snippet').trim(), content: String(content || '') };
       if (selectedId === '__new__' || !snippets.find(s => s.id === selectedId)) {
-        const created = await repo.createSnippet(payload);
-        // Add to list without reloading
-        addSnippetToList(created);
-        setSelectedId(created?.id || null);
-        lastSavedRef.current = { id: created?.id || null, title: payload.title, content: payload.content };
+        // Create snippet in background (non-blocking)
+        repo.createSnippet(payload)
+          .then((created) => {
+            // Add to list without reloading
+            addSnippetToList(created);
+            setSelectedId(created?.id || null);
+            lastSavedRef.current = { id: created?.id || null, title: payload.title, content: payload.content };
+          })
+          .catch((err) => {
+            console.error('Failed to create snippet in cloud', err);
+          });
       } else {
-        await repo.updateSnippet(selectedId, payload);
-        // Update in list without reloading
-        updateSnippetInList(selectedId, { 
-          title: payload.title, 
-          content: payload.content,
-          updatedAt: new Date()
-        });
-        lastSavedRef.current = { id: selectedId, title: payload.title, content: payload.content };
+        // Update snippet in background (non-blocking)
+        repo.updateSnippet(selectedId, payload)
+          .then(() => {
+            // Update in list without reloading
+            updateSnippetInList(selectedId, { 
+              title: payload.title, 
+              content: payload.content,
+              updatedAt: new Date()
+            });
+            lastSavedRef.current = { id: selectedId, title: payload.title, content: payload.content };
+          })
+          .catch((err) => {
+            console.error('Failed to update snippet in cloud', err);
+          });
       }
       setJustSaved(true);
       setTimeout(() => setJustSaved(false), 900);

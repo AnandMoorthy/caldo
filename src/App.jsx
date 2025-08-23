@@ -69,10 +69,9 @@ export default function App() {
   const monthEnd = endOfMonth(monthStart);
   const [dragOverDayKey, setDragOverDayKey] = useState(null);
   const [showMissed, setShowMissed] = useState(false);
+  const [notesSaving, setNotesSaving] = useState(false);
   const [draftDayNote, setDraftDayNote] = useState("");
   const [showNotes, setShowNotes] = useState(false);
-  const [notesSaving, setNotesSaving] = useState(false);
-  const [notesJustSaved, setNotesJustSaved] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showSnippets, setShowSnippets] = useState(false);
   const [snippetsDrawerOpen, setSnippetsDrawerOpen] = useState(false);
@@ -218,6 +217,8 @@ export default function App() {
       // Handle Cmd/Ctrl+Shift+S for snippets
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && key === 's') {
         e.preventDefault();
+        // Close day notes drawer if open to avoid conflicts
+        setShowNotes(false);
         setShowSnippets(true);
         return;
       }
@@ -228,6 +229,8 @@ export default function App() {
         openAddModal(selectedDate);
       } else if (key === 'n') {
         e.preventDefault();
+        // Close snippets drawer if open to avoid conflicts
+        setSnippetsDrawerOpen(false);
         setShowNotes(true);
       } else if (key === 'm') {
         e.preventDefault();
@@ -850,6 +853,8 @@ export default function App() {
       if (result.type === 'snippet') {
         setShowSearch(false);
         setSearchQuery("");
+        // Close day notes drawer if open to avoid conflicts
+        setShowNotes(false);
         setSnippetsDrawerId(result.id);
         setSnippetsDrawerOpen(true);
         return;
@@ -864,7 +869,11 @@ export default function App() {
       setShowSearch(false);
       setSearchQuery("");
 
-      if (result.type === 'note') setShowNotes(true);
+      if (result.type === 'note') {
+        // Close snippets drawer if open to avoid conflicts
+        setSnippetsDrawerOpen(false);
+        setShowNotes(true);
+      }
       
       // TODO: In future phases, we can add highlighting and scrolling to specific tasks
     } catch (error) {
@@ -1950,6 +1959,17 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Close drawers when switching tabs to prevent conflicts
+  useEffect(() => {
+    if (activeTab === 'tasks') {
+      setSnippetsDrawerOpen(false);
+    } else if (activeTab === 'notes') {
+      setShowAdd(false);
+      setShowEdit(false);
+      setShowMissed(false);
+    }
+  }, [activeTab]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200">
       <div className="max-w-7xl mx-auto">
@@ -1961,7 +1981,11 @@ export default function App() {
           onImportJSON={importJSON}
           onOpenHelp={() => setShowHelp(true)}
           onOpenSearch={() => setShowSearch(true)}
-          onOpenSnippets={() => setShowSnippets(true)}
+          onOpenSnippets={() => {
+            // Close day notes drawer if open to avoid conflicts
+            setShowNotes(false);
+            setShowSnippets(true);
+          }}
           currentStreak={streak?.current || 0}
           deleteAllTasksEnabled={!!deleteAllTasksEnabled}
           onDeleteAllTasks={deleteAllTasksFromCloud}
@@ -2050,7 +2074,11 @@ export default function App() {
                     )}
                   </div>
                   <button
-                    onClick={() => setShowNotes(true)}
+                    onClick={() => {
+                      // Close snippets drawer if open to avoid conflicts
+                      setSnippetsDrawerOpen(false);
+                      setShowNotes(true);
+                    }}
                     className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
                     aria-label="Open notes (N)"
                     data-tip="Open notes (N)"
@@ -2166,7 +2194,11 @@ export default function App() {
                     )}
                   </div>
                   <button
-                    onClick={() => setShowNotes(true)}
+                    onClick={() => {
+                      // Close snippets drawer if open to avoid conflicts
+                      setSnippetsDrawerOpen(false);
+                      setShowNotes(true);
+                    }}
                     className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
                     aria-label="Open notes (N)"
                     data-tip="Open notes (N)"
@@ -2230,7 +2262,11 @@ export default function App() {
               onDeleteSubtask={deleteSubtask}
               density={density}
               onAddTask={() => openAddModal(selectedDate)}
-              onOpenNotes={() => setShowNotes(true)}
+              onOpenNotes={() => {
+                // Close snippets drawer if open to avoid conflicts
+                setSnippetsDrawerOpen(false);
+                setShowNotes(true);
+              }}
               showDensityMenu={showDensityMenu}
               setShowDensityMenu={setShowDensityMenu}
               onChangeDensity={(d) => setDensity(d)}
@@ -2251,12 +2287,21 @@ export default function App() {
                 setSelectedDate(d);
                 setCursor(d);
                 setDraftDayNote(n?.content || '');
+                // Close snippets drawer if open to avoid conflicts
+                setSnippetsDrawerOpen(false);
                 setShowNotes(true);
               } catch {
+                // Close snippets drawer if open to avoid conflicts
+                setSnippetsDrawerOpen(false);
                 setShowNotes(true);
               }
             }}
-            onOpenSnippetEditor={(id) => { setSnippetsDrawerId(id || '__new__'); setSnippetsDrawerOpen(true); }}
+            onOpenSnippetEditor={(id) => { 
+              // Close day notes drawer if open to avoid conflicts
+              setShowNotes(false);
+              setSnippetsDrawerId(id || '__new__'); 
+              setSnippetsDrawerOpen(true); 
+            }}
           />
         )}
 
@@ -2265,7 +2310,12 @@ export default function App() {
             repo={snippetRepoRef.current}
             user={user}
             initialSnippets={snippetsCache}
-            onOpenEditor={(id) => { setSnippetsDrawerId(id || '__new__'); setSnippetsDrawerOpen(true); }}
+            onOpenEditor={(id) => { 
+              // Close day notes drawer if open to avoid conflicts
+              setShowNotes(false);
+              setSnippetsDrawerId(id || '__new__'); 
+              setSnippetsDrawerOpen(true); 
+            }}
             onSnippetsChanged={(items) => setSnippetsCache(items)}
           />
         )}
@@ -2310,14 +2360,11 @@ export default function App() {
             try {
               setNotesSaving(true);
               await saveDayNoteForKey(keyFor(selectedDate), draftDayNote);
-              setNotesJustSaved(true);
-              setTimeout(() => setNotesJustSaved(false), 900);
             } finally {
               setNotesSaving(false);
             }
           }}
           saving={notesSaving}
-          justSaved={notesJustSaved}
           onGoToDay={() => {
             setActiveTab('tasks');
             setCurrentView('day');

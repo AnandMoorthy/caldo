@@ -5,12 +5,15 @@ import { X, Trash2, Copy, Pin, PinOff } from "lucide-react";
 export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = null, onSnippetsChanged }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [selectedId, setSelectedId] = useState(snippetId);
   const [pinned, setPinned] = useState(false);
   const textareaRef = useRef(null);
+  const [originalTitle, setOriginalTitle] = useState(""); // Track original title to detect changes
+  const [originalContent, setOriginalContent] = useState(""); // Track original content to detect changes
+  const [hasUserModified, setHasUserModified] = useState(false); // Track if user has actually modified content
+  const [isInitialized, setIsInitialized] = useState(false); // Track if component has fully initialized
 
   useEffect(() => {
     setSelectedId(snippetId);
@@ -28,7 +31,13 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           setTitle('Untitled snippet');
           setContent('');
           setPinned(false);
+          setOriginalTitle('Untitled snippet');
+          setOriginalContent('');
+          setHasUserModified(false);
+          setIsInitialized(false);
           setTimeout(() => { try { textareaRef.current?.focus(); } catch {} }, 0);
+          // Set initialized after a short delay
+          setTimeout(() => setIsInitialized(true), 100);
         } else {
           // Load single snippet by id via list then find; repo lacks get-by-id helper
           const list = await repo.listSnippets({ includeArchived: false, limit: 500 });
@@ -37,7 +46,13 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           setTitle(sn?.title || '');
           setContent(sn?.content || '');
           setPinned(!!sn?.pinned);
+          setOriginalTitle(sn?.title || '');
+          setOriginalContent(sn?.content || '');
+          setHasUserModified(false);
+          setIsInitialized(false);
           setTimeout(() => { try { textareaRef.current?.focus(); } catch {} }, 0);
+          // Set initialized after a short delay
+          setTimeout(() => setIsInitialized(true), 100);
         }
       } catch (e) {
         console.error('Failed to load snippet', e);
@@ -48,21 +63,111 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     return () => { mounted = false; };
   }, [open, repo, user, selectedId]);
 
+  // Auto-save snippet: debounce when user has modified content
+  useEffect(() => {
+    if (!open) return;
+    if (!hasUserModified) return; // Only auto-save if user has actually modified content
+    
+    console.log('🔄 Snippet auto-save triggered:', { open, hasUserModified, title, content: content?.substring(0, 50) });
+    
+    const handle = setTimeout(async () => {
+      try {
+        console.log('💾 Executing snippet auto-save...');
+        if (!repo || !user) return;
+        setSaving(true);
+        
+        if (!selectedId || selectedId === '__new__') {
+          // Create snippet in background (non-blocking)
+          repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+            .then((created) => {
+              try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+            })
+            .catch((err) => {
+              console.error('Failed to save snippet to cloud', err);
+            });
+        } else {
+          // Update snippet in background (non-blocking)
+          repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+            .then(() => {
+              try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+            })
+            .catch((err) => {
+              console.error('Failed to update snippet in cloud', err);
+            });
+        }
+        
+        // Reset modification flag after successful save
+        setHasUserModified(false);
+        setOriginalTitle(title);
+        setOriginalContent(content);
+        console.log('✅ Snippet auto-save completed');
+      } catch (e) {
+        console.error('❌ Snippet auto-save failed:', e);
+      } finally {
+        setSaving(false);
+      }
+    }, 1200);
+    
+    return () => clearTimeout(handle);
+  }, [title, content, open, hasUserModified, repo, user, selectedId, onSnippetsChanged]);
+
+  // Track title changes - only after component is initialized
+  useEffect(() => {
+    if (!isInitialized) return; // Don't track changes until fully initialized
+    
+    if (title !== originalTitle) {
+      setHasUserModified(true);
+    }
+  }, [title, originalTitle, isInitialized]);
+
+  // Track content changes - only after component is initialized
+  useEffect(() => {
+    if (!isInitialized) return; // Don't track changes until fully initialized
+    
+    if (content !== originalContent) {
+      setHasUserModified(true);
+    }
+  }, [content, originalContent, isInitialized]);
+
+  // Helper functions for consistent modification tracking
+  function updateTitle(newTitle) {
+    setTitle(newTitle);
+  }
+
+  function updateContent(newContent) {
+    setContent(newContent);
+  }
+
   async function onSave() {
     if (!repo || !user) return;
     setSaving(true);
     try {
       if (!selectedId || selectedId === '__new__') {
-        const created = await repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') });
-        try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+        // Create snippet in background (non-blocking)
+        repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+          .then((created) => {
+            try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+          })
+          .catch((err) => {
+            console.error('Failed to save snippet to cloud', err);
+          });
       } else {
-        await repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') });
-        try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+        // Update snippet in background (non-blocking)
+        repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+          .then(() => {
+            try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+          })
+          .catch((err) => {
+            console.error('Failed to update snippet in cloud', err);
+          });
       }
-      setJustSaved(true);
-      setTimeout(() => setJustSaved(false), 900);
       
-      // Clear fields and close sidebar after successful save
+      // Reset modification flag after successful save
+      setHasUserModified(false);
+      setOriginalTitle(title);
+      setOriginalContent(content);
+      
+      // Clear fields and close sidebar immediately after showing saved message
       setTimeout(() => {
         setTitle('');
         setContent('');
@@ -81,13 +186,32 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     if (!selectedId || selectedId === '__new__') { onClose && onClose(); return; }
     const ok = confirm('Delete this snippet?');
     if (!ok) return;
-    try {
-      await repo.deleteSnippet(selectedId);
-      try { onSnippetsChanged && onSnippetsChanged(null); } catch {}
-      onClose && onClose();
-    } catch (e) {
-      console.error('Delete snippet failed', e);
+    
+    // Close immediately and delete in background
+    onClose && onClose();
+    
+    // Delete snippet in background (non-blocking)
+    repo.deleteSnippet(selectedId)
+      .then(() => {
+        try { onSnippetsChanged && onSnippetsChanged(null); } catch {}
+      })
+      .catch((err) => {
+        console.error('Delete snippet failed', err);
+        // Could show a toast notification here if needed
+      });
+  }
+
+  // Handle close with unsaved changes warning
+  function handleClose() {
+    if (hasUserModified) {
+      const ok = confirm('You have unsaved changes. Are you sure you want to close?');
+      if (!ok) return;
     }
+    // Reset modification flags when closing
+    setHasUserModified(false);
+    setOriginalTitle('');
+    setOriginalContent('');
+    onClose && onClose();
   }
 
   async function onCopy() {
@@ -105,14 +229,20 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     if (!repo || !user) return;
     if (!selectedId || selectedId === '__new__') return;
     const next = !pinned;
+    
+    // Update UI immediately
     setPinned(next);
-    try {
-      await repo.updateSnippet(selectedId, { pinned: next });
-      try { onSnippetsChanged && onSnippetsChanged(null); } catch {}
-    } catch (e) {
-      setPinned(!next);
-      console.error('Toggle pin failed', e);
-    }
+    
+    // Update snippet in background (non-blocking)
+    repo.updateSnippet(selectedId, { pinned: next })
+      .then(() => {
+        try { onSnippetsChanged && onSnippetsChanged(null); } catch {}
+      })
+      .catch((err) => {
+        console.error('Toggle pin failed', err);
+        // Revert UI state on error
+        setPinned(!next);
+      });
   }
 
   const headerTitle = useMemo(() => (selectedId && selectedId !== '__new__' ? 'Edit Snippet' : 'New Snippet'), [selectedId]);
@@ -130,24 +260,35 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
         >
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{headerTitle}</div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-              aria-label="Close snippets"
-            >
-              <X size={18} />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Auto-save indicator */}
+              {hasUserModified && (
+                <div className="inline-flex items-center gap-2 px-2 py-1 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                  Auto-saving...
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={handleClose}
+                className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                aria-label="Close snippets"
+              >
+                <X size={18} />
+              </button>
+            </div>
           </div>
 
           <div className="p-4 flex-1 min-h-0 flex flex-col">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title"
-              className="mb-2 px-3 py-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-            />
+            <div className="flex items-center gap-2 mb-2">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => updateTitle(e.target.value)}
+                placeholder="Title"
+                className="flex-1 px-3 py-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+              />
+            </div>
             <div className="flex items-center gap-2 mb-2">
               <button type="button" onClick={onCopy} className="px-2 py-1 text-xs rounded bg-slate-100 dark:bg-slate-800 inline-flex items-center gap-1">
                 <Copy size={14} /> Copy
@@ -166,7 +307,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
                 ref={textareaRef}
                 rows={14}
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e) => updateContent(e.target.value)}
                 placeholder="Start typing your snippet…"
                 className="input w-full h-full resize-none overflow-auto"
               />
@@ -174,18 +315,18 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           </div>
 
           <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
+            <button type="button" onClick={handleClose} className="px-4 py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
               Close
             </button>
             <motion.button
               type="button"
               onClick={onSave}
               className={`px-4 py-2 rounded text-white inline-flex items-center gap-2 ${saving ? 'bg-indigo-500' : 'bg-indigo-600'}`}
-              animate={saving ? { scale: [1, 0.98, 1], opacity: [1, 0.8, 1] } : justSaved ? { scale: [1, 1.06, 1] } : {}}
+              animate={saving ? { scale: [1, 0.98, 1], opacity: [1, 0.8, 1] } : {}}
               transition={{ duration: 0.6, type: 'spring', stiffness: 250, damping: 20 }}
               disabled={saving}
             >
-              {saving ? 'Saving…' : justSaved ? 'Saved' : 'Save'}
+              {saving ? 'Saving…' : 'Save'}
             </motion.button>
           </div>
         </motion.aside>
