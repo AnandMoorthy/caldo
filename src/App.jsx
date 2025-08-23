@@ -123,9 +123,12 @@ export default function App() {
     try { saveViewPreference(currentView); } catch {}
   }, [currentView]);
 
+  // Load recurring series from localStorage on mount (only when not logged in)
   useEffect(() => {
-    try { saveRecurringSeries(recurringSeries); } catch {}
-  }, [recurringSeries]);
+    if (!user) {
+      try { saveRecurringSeries(recurringSeries); } catch {}
+    }
+  }, [recurringSeries, user]);
 
   // Build search index when tasks or snippets change
   useEffect(() => {
@@ -555,6 +558,20 @@ export default function App() {
             setDeleteAllTasksEnabled(false);
           }
 
+          // Load recurring series from cloud '/users/{uid}/meta/recurringTasks' collection
+          try {
+            const cloudRecurringSeries = await taskRepoRef.current.loadRecurringSeries();
+            // Database is source of truth - replace local with cloud data
+            setRecurringSeries(cloudRecurringSeries);
+            // Also save to local storage for offline access
+            try { saveRecurringSeries(cloudRecurringSeries); } catch {}
+          } catch (err) {
+            console.error('Failed to load recurring series from cloud', err);
+            // Fallback to local storage if cloud load fails
+            const localSeries = loadRecurringSeries();
+            setRecurringSeries(localSeries);
+          }
+
           // Load streak from cloud '/users/{uid}/meta/streakInfo' doc and merge
           try {
             const streakDoc = await db.collection('users').doc(u.uid).collection('meta').doc('streakInfo').get();
@@ -585,9 +602,13 @@ export default function App() {
         noteRepoRef.current = null;
         snippetRepoRef.current = null;
         setSnippetsCache([]);
-        setRecurringEnabled(true);
+        setRecurringEnabled(false); // Disable recurring tasks when not logged in
         setDeleteAllTasksEnabled(false);
         setStreak((s) => ensureStreakUpToDate(s));
+        
+        // Clear recurring tasks when user is not logged in
+        setRecurringSeries([]);
+        try { saveRecurringSeries([]); } catch {}
       }
     });
     return () => unsub();
@@ -733,7 +754,6 @@ export default function App() {
           const existing = byId.get(rt.id);
           // If this is a recurring instance, prefer the materialized version for series properties
           if (rt.isRecurringInstance) {
-            console.log('Merging recurring instance:', rt.id, 'existing title:', existing.title, 'new title:', rt.title);
             byId.set(rt.id, { 
               ...existing,           // Keep existing overrides and completion status
               title: rt.title,       // But use series title
@@ -760,25 +780,14 @@ export default function App() {
     if (!recurringEnabled) return;
     try {
       const { start, end } = getMaterializationWindow();
-      console.log('Materializing series:', recurringSeries.length, 'series, window:', start, 'to', end);
       const recMap = materializeSeries(recurringSeries, start, end);
-      console.log('Materialized map:', Object.keys(recMap).length, 'dates');
-      setTasksMap((prev) => {
-        console.log('Merging with recurring instances, prev map keys:', Object.keys(prev));
-        const merged = mergeWithRecurringInstances(prev, recMap);
-        console.log('After merge, map keys:', Object.keys(merged));
-        return merged;
-      });
+      setTasksMap((prev) => mergeWithRecurringInstances(prev, recMap));
     } catch (e) {
       console.error('Failed to materialize recurring series', e);
     }
   }, [cursor, recurringSeries, recurringEnabled]);
   
-  // Debug effect to see when materialization runs
-  useEffect(() => {
-    console.log('Materialization effect triggered, series count:', recurringSeries.length);
-    console.log('Series details:', recurringSeries.map(s => ({ id: s.id, title: s.title })));
-  }, [recurringSeries]);
+
 
   function getDayNoteByKey(dateKey) {
     const list = tasksMap[dateKey] || [];
@@ -908,7 +917,7 @@ export default function App() {
     setShowAdd(true);
   }
 
-  function addTask(e, options = {}) {
+  async function addTask(e, options = {}) {
     e.preventDefault();
     const key = keyFor(selectedDate);
     const subtasks = (Array.isArray(form.subtasks) ? form.subtasks : [])
@@ -935,6 +944,16 @@ export default function App() {
         overrides: {},
       };
       setRecurringSeries((prev) => [...prev, series]);
+      
+      // Save to Firestore if user is logged in
+      if (user && taskRepoRef.current) {
+        try {
+          await taskRepoRef.current.saveRecurringSeries(series);
+        } catch (err) {
+          console.error('Failed to save recurring series to cloud', err);
+        }
+      }
+      
       // Materialize immediately (effect will also run)
       try {
         const { start, end } = getMaterializationWindow();
@@ -1010,8 +1029,6 @@ export default function App() {
     
     // Handle series-wide edit
     if (editTask.isEditingSeries && editTask.series) {
-      console.log('Editing series:', editTask.series.id, editForm);
-      
       const sanitizedSubs = Array.isArray(editForm.subtasks)
         ? editForm.subtasks
             .map((st) => ({
@@ -1025,10 +1042,7 @@ export default function App() {
       
       // Update the series - the materialization effect will handle updating all instances
       setRecurringSeries((prevSeries) => {
-        console.log('Previous series:', prevSeries);
-        console.log('Looking for series with ID:', editTask.series.id);
         const updated = prevSeries.map((s) => {
-          console.log('Checking series:', s.id, 'against:', editTask.series.id);
           if (s.id !== editTask.series.id) return s;
           const newSeries = {
             ...s,
@@ -1037,13 +1051,21 @@ export default function App() {
             priority: editForm.priority || 'medium',
             subtasks: sanitizedSubs,
           };
-          console.log('Updated series item:', newSeries);
           return newSeries;
         });
-        console.log('Updated series array:', updated);
         // Force a new array reference to ensure React detects the change
         const result = [...updated];
-        console.log('Final result array:', result);
+        
+        // Save updated series to Firestore if user is logged in
+        if (user && taskRepoRef.current) {
+          const updatedSeries = result.find(s => s.id === editTask.series.id);
+          if (updatedSeries) {
+            taskRepoRef.current.saveRecurringSeries(updatedSeries).catch(err => {
+              console.error('Failed to save updated recurring series to cloud', err);
+            });
+          }
+        }
+        
         return result;
       });
       
@@ -1139,7 +1161,16 @@ export default function App() {
                 done: updated.done,
                 subtasks: Array.isArray(updated.subtasks) ? updated.subtasks : [],
               };
-              return { ...s, overrides: ov };
+              const updatedSeries = { ...s, overrides: ov };
+              
+              // Save updated series to Firestore if user is logged in
+              if (user && taskRepoRef.current) {
+                taskRepoRef.current.saveRecurringSeries(updatedSeries).catch(err => {
+                  console.error('Failed to save updated recurring series to cloud', err);
+                });
+              }
+              
+              return updatedSeries;
             });
             return next;
           });
@@ -1310,6 +1341,14 @@ export default function App() {
     if (payload.type === 'delete') {
       // Remove entire series
       setRecurringSeries((prev) => prev.filter((s) => s.id !== task.seriesId));
+      
+      // Delete from Firestore if user is logged in
+      if (user && taskRepoRef.current) {
+        taskRepoRef.current.deleteRecurringSeries(task.seriesId).catch(err => {
+          console.error('Failed to delete recurring series from cloud', err);
+        });
+      }
+      
       // Remove all materialized instances from local tasks
       setTasksMap((prev) => {
         const next = { ...prev };
@@ -1323,14 +1362,9 @@ export default function App() {
       });
     } else if (payload.type === 'edit') {
       // Edit entire series: find the series and open edit modal
-      console.log('Scope edit triggered for task:', task);
-      console.log('Task seriesId:', task.seriesId);
-      console.log('Available series:', recurringSeries.map(s => ({ id: s.id, title: s.title })));
       const series = recurringSeries.find(s => s.id === task.seriesId);
-      console.log('Found series:', series);
       if (series) {
         const editTaskWithSeries = { ...task, isEditingSeries: true, series };
-        console.log('Setting editTask with series:', editTaskWithSeries);
         setEditTask(editTaskWithSeries);
         setEditForm({
           title: series.title,
@@ -1348,7 +1382,6 @@ export default function App() {
         setShowEdit(true);
       } else {
         // Fallback: if series not found, edit just this occurrence
-        console.log('Series not found, editing single occurrence');
         setEditTask(task);
         setEditForm({
           title: task.title,
@@ -1396,7 +1429,16 @@ export default function App() {
               subtasks: updated.subtasks,
               done: updated.done,
             };
-            return { ...s, overrides: ov };
+            const updatedSeries = { ...s, overrides: ov };
+            
+            // Save updated series to Firestore if user is logged in
+            if (user && taskRepoRef.current) {
+              taskRepoRef.current.saveRecurringSeries(updatedSeries).catch(err => {
+                console.error('Failed to save updated recurring series to cloud', err);
+              });
+            }
+            
+            return updatedSeries;
           }));
         }
         return updated;
@@ -1447,7 +1489,16 @@ export default function App() {
       if (s.id !== task.seriesId) return s;
       const ex = Array.isArray(s.exceptions) ? s.exceptions.slice() : [];
       if (!ex.includes(task.due)) ex.push(task.due);
-      return { ...s, exceptions: ex };
+      const updatedSeries = { ...s, exceptions: ex };
+      
+      // Save updated series to Firestore if user is logged in
+      if (user && taskRepoRef.current) {
+        taskRepoRef.current.saveRecurringSeries(updatedSeries).catch(err => {
+          console.error('Failed to save updated recurring series to cloud', err);
+        });
+      }
+      
+      return updatedSeries;
     }));
     setTasksMap((prev) => {
       const prevList = prev[task.due] || [];
@@ -1487,7 +1538,16 @@ export default function App() {
               subtasks: updated.subtasks,
               done: updated.done,
             };
-            return { ...s, overrides: ov };
+            const updatedSeries = { ...s, overrides: ov };
+            
+            // Save updated series to Firestore if user is logged in
+            if (user && taskRepoRef.current) {
+              taskRepoRef.current.saveRecurringSeries(updatedSeries).catch(err => {
+                console.error('Failed to save updated recurring series to cloud', err);
+              });
+            }
+            
+            return updatedSeries;
           }));
         }
         return updated;
@@ -1555,7 +1615,16 @@ export default function App() {
               subtasks: updated.subtasks,
               done: updated.done,
             };
-            return { ...s, overrides: ov };
+            const updatedSeries = { ...s, overrides: ov };
+            
+            // Save updated series to Firestore if user is logged in
+            if (user && taskRepoRef.current) {
+              taskRepoRef.current.saveRecurringSeries(updatedSeries).catch(err => {
+                console.error('Failed to save updated recurring series to cloud', err);
+              });
+            }
+            
+            return updatedSeries;
           }));
         }
         return updated;

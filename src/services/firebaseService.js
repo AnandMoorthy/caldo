@@ -276,6 +276,63 @@ export class FirebaseService {
       updatedAt: new Date()
     }, { merge: true });
   }
+
+  // Get reference to recurring tasks collection
+  getRecurringTasksRef() {
+    return db.collection('users').doc(this.userId).collection('meta').collection('recurringTasks');
+  }
+
+  // Save a recurring task series
+  async saveRecurringSeries(series) {
+    const docRef = this.getRecurringTasksRef().doc(series.id);
+    await docRef.set({
+      ...series,
+      ownerUid: this.userId,
+      updatedAt: new Date(),
+      createdAt: series.createdAt || new Date()
+    }, { merge: true });
+    return docRef.id;
+  }
+
+  // Save multiple recurring task series
+  async saveRecurringSeriesBatch(seriesList) {
+    if (!seriesList || seriesList.length === 0) return;
+    
+    const batch = db.batch();
+    seriesList.forEach(series => {
+      const docRef = this.getRecurringTasksRef().doc(series.id);
+      batch.set(docRef, {
+        ...series,
+        ownerUid: this.userId,
+        updatedAt: new Date(),
+        createdAt: series.createdAt || new Date()
+      }, { merge: true });
+    });
+    await batch.commit();
+  }
+
+  // Load all recurring task series for the user
+  async loadRecurringSeries() {
+    const snapshot = await this.getRecurringTasksRef().get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  }
+
+  // Delete a recurring task series
+  async deleteRecurringSeries(seriesId) {
+    await this.getRecurringTasksRef().doc(seriesId).delete();
+  }
+
+  // Delete multiple recurring task series
+  async deleteRecurringSeriesBatch(seriesIds) {
+    if (!seriesIds || seriesIds.length === 0) return;
+    
+    const batch = db.batch();
+    seriesIds.forEach(seriesId => {
+      const docRef = this.getRecurringTasksRef().doc(seriesId);
+      batch.delete(docRef);
+    });
+    await batch.commit();
+  }
 }
 
 // Export a factory function for easy usage

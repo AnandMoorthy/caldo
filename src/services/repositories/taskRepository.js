@@ -86,6 +86,110 @@ export class TaskRepository {
     tasks.forEach(t => batch.delete(this.tasksRef().doc(t.id)));
     await batch.commit();
   }
+
+  // Recurring task methods
+  getRecurringTasksDocRef() {
+    return db.collection('users').doc(this.userId).collection('meta').doc('recurringTasks');
+  }
+
+  async saveRecurringSeries(series) {
+    const docRef = this.getRecurringTasksDocRef();
+    const doc = await docRef.get();
+    
+    if (!doc.exists) {
+      // Create new document with first series
+      await docRef.set({
+        series: [series],
+        ownerUid: this.userId,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    } else {
+      // Update existing document by adding/updating series
+      const data = doc.data();
+      const seriesList = data.series || [];
+      const existingIndex = seriesList.findIndex(s => s.id === series.id);
+      
+      if (existingIndex >= 0) {
+        // Update existing series
+        seriesList[existingIndex] = series;
+      } else {
+        // Add new series
+        seriesList.push(series);
+      }
+      
+      await docRef.update({
+        series: seriesList,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+    
+    return series.id;
+  }
+
+  async saveRecurringSeriesBatch(seriesList) {
+    if (!seriesList || seriesList.length === 0) return [];
+    
+    const docRef = this.getRecurringTasksDocRef();
+    await docRef.set({
+      series: seriesList,
+      ownerUid: this.userId,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    
+    return seriesList.map(s => s.id);
+  }
+
+  async loadRecurringSeries() {
+    try {
+      const doc = await this.getRecurringTasksDocRef().get();
+      if (!doc.exists) return [];
+      
+      const data = doc.data();
+      return data.series || [];
+    } catch (error) {
+      // If the document doesn't exist yet, return empty array
+      if (error.code === 'permission-denied' || error.code === 'not-found') {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async deleteRecurringSeries(seriesId) {
+    const docRef = this.getRecurringTasksDocRef();
+    const doc = await docRef.get();
+    
+    if (doc.exists) {
+      const data = doc.data();
+      const seriesList = data.series || [];
+      const filteredSeries = seriesList.filter(s => s.id !== seriesId);
+      
+      await docRef.update({
+        series: filteredSeries,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  }
+
+  async deleteRecurringSeriesBatch(seriesIds) {
+    if (!seriesIds || seriesIds.length === 0) return;
+    
+    const docRef = this.getRecurringTasksDocRef();
+    const doc = await docRef.get();
+    
+    if (doc.exists) {
+      const data = doc.data();
+      const seriesList = data.series || [];
+      const filteredSeries = seriesList.filter(s => !seriesIds.includes(s.id));
+      
+      await docRef.update({
+        series: filteredSeries,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  }
 }
 
 export const createTaskRepository = (userId) => new TaskRepository(userId);
