@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Check, RotateCcw, Trash, Clock, ChevronDown, ChevronRight, Plus, RefreshCcw } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { generateId } from "../utils/uid";
+import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
 
-function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, showDueDate = false, density = 'normal' }) {
+function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, showDueDate = false, density = 'normal', recurringSeries = [] }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
   const completedSubtasks = hasSubtasks ? t.subtasks.filter((st) => st.done).length : 0;
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
@@ -30,6 +31,12 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   const [expanded, setExpanded] = useState(false);
   const [newSubTitle, setNewSubTitle] = useState("");
   const inputRef = useRef(null);
+  
+  // Get recurrence information for this task
+  const series = t.isRecurringInstance && t.seriesId ? recurringSeries.find(s => s.id === t.seriesId) : null;
+  const recurrenceInfo = series ? formatRecurrenceInfo(series) : null;
+  const recurrenceIcon = series ? getRecurrenceIcon(series) : null;
+  
   function onClickAddSubtask() {
     setExpanded((prev) => {
       const next = !prev;
@@ -68,12 +75,17 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
           <div className={`min-w-0 ${titleLeftMarginCls}`}>
             <div className={`font-medium ${titleSizeCls} ${isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} truncate flex items-center gap-1.5`}>
               {t.isRecurringInstance && (
-                <span className="inline-flex items-center justify-center text-purple-600 dark:text-purple-400 flex-shrink-0" data-tip="Recurring Task">
-                  <RefreshCcw size={Math.max(10, iconSize - 2)} />
+                <span className="inline-flex items-center justify-center text-purple-600 dark:text-purple-400 flex-shrink-0" data-tip={recurrenceInfo || "Recurring Task"}>
+                  {recurrenceIcon || <RefreshCcw size={Math.max(10, iconSize - 2)} />}
                 </span>
               )}
               <span className="truncate">{title}</span>
             </div>
+            {t.isRecurringInstance && recurrenceInfo && density !== 'minified' && (
+              <div className="text-[10px] text-purple-600 dark:text-purple-400 mt-0.5">
+                {recurrenceInfo}
+              </div>
+            )}
           </div>
           <div className="shrink-0 flex flex-col items-end gap-1">
             <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
@@ -187,7 +199,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   );
 }
 
-export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null }) {
+export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [] }) {
   if (!tasks || tasks.length === 0) {
     const msg = emptyMessage || 'No tasks. Double-click any day to add one quickly.';
     return <div className="text-sm text-slate-400 dark:text-slate-500">{msg}</div>;
@@ -208,6 +220,7 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
           onDeleteSubtask={onDeleteSubtask}
           showDueDate={showDueDate}
           density={density}
+          recurringSeries={recurringSeries}
         />
       ))}
     </div>

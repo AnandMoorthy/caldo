@@ -169,4 +169,55 @@ export function materializeSeries(seriesList, rangeStart, rangeEnd) {
   return byDate;
 }
 
+export function formatRecurrenceInfo(series) {
+  if (!series || !series.recurrence || !series.recurrence.frequency) return null;
+  
+  const { frequency, interval, byWeekday, byMonthday, ends } = series.recurrence;
+  
+  let info = '';
+  
+  // Frequency and interval
+  if (interval === 1) {
+    info += frequency === 'daily' ? 'Daily' : 
+            frequency === 'weekly' ? 'Weekly' : 
+            frequency === 'monthly' ? 'Monthly' : '';
+  } else {
+    info += `Every ${interval} ${frequency === 'daily' ? 'days' : 
+                                    frequency === 'weekly' ? 'weeks' : 
+                                    frequency === 'monthly' ? 'months' : ''}`;
+  }
+  
+  // Specific days for weekly
+  if (frequency === 'weekly' && Array.isArray(byWeekday) && byWeekday.length > 0) {
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const days = byWeekday.map(d => dayNames[d]).join(', ');
+    info += ` on ${days}`;
+  }
+  
+  // Specific dates for monthly
+  if (frequency === 'monthly' && Array.isArray(byMonthday) && byMonthday.length > 0) {
+    const dates = byMonthday.map(d => d).join(', ');
+    info += ` on ${dates}`;
+  }
+  
+  // End conditions
+  if (ends && ends.type !== 'never') {
+    if (ends.type === 'onDate' && ends.onDateKey) {
+      const date = new Date(ends.onDateKey);
+      info += ` until ${date.toLocaleDateString()}`;
+    } else if (ends.type === 'afterCount' && ends.count) {
+      info += ` for ${ends.count} times`;
+    }
+  }
+  
+  return info;
+}
+
+export function getRecurrenceIcon(series) {
+  if (!series || !series.recurrence || !series.recurrence.frequency) return null;
+  
+  // Return null to use the default RefreshCcw icon
+  return null;
+}
+
 

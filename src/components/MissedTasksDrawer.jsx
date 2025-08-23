@@ -17,6 +17,7 @@ export default function MissedTasksDrawer({
   onDeleteSubtask,
   density = 'normal',
   scope = 'month',
+  recurringSeries = [],
 }) {
   return (
     <AnimatePresence>
@@ -63,6 +64,7 @@ export default function MissedTasksDrawer({
               fullHeight
               showDueDate
               density={density}
+              recurringSeries={recurringSeries}
             />
           </div>
         </motion.aside>

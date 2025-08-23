@@ -23,6 +23,7 @@ export default function DayView({
   setShowDensityMenu,
   onChangeDensity,
   densityMenuRef,
+  recurringSeries = [],
 }) {
   return (
     <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
@@ -103,6 +104,7 @@ export default function DayView({
         onDeleteSubtask={onDeleteSubtask}
         density={density}
         emptyMessage="No tasks. Add a new task to view."
+        recurringSeries={recurringSeries}
       />
     </section>
   );

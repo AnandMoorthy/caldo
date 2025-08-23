@@ -726,12 +726,25 @@ export default function App() {
       const prevList = output[dateKey] || [];
       const { taskList, noteItem } = splitDayList(prevList);
       const byId = new Map(taskList.map((t) => [t.id, t]));
-      // Prefer existing tasks (often from cloud) over materialized recurring instances
+      
+      // For recurring instances, prefer the materialized version to ensure series updates are reflected
       for (const rt of recList) {
         if (byId.has(rt.id)) {
-          // Keep existing as source of truth; fill any missing props from recurring instance
           const existing = byId.get(rt.id);
-          byId.set(rt.id, { ...rt, ...existing });
+          // If this is a recurring instance, prefer the materialized version for series properties
+          if (rt.isRecurringInstance) {
+            console.log('Merging recurring instance:', rt.id, 'existing title:', existing.title, 'new title:', rt.title);
+            byId.set(rt.id, { 
+              ...existing,           // Keep existing overrides and completion status
+              title: rt.title,       // But use series title
+              notes: rt.notes,       // And series notes
+              priority: rt.priority, // And series priority
+              subtasks: rt.subtasks, // And series subtasks
+            });
+          } else {
+            // For non-recurring, keep existing as source of truth
+            byId.set(rt.id, { ...rt, ...existing });
+          }
         } else {
           byId.set(rt.id, rt);
         }
@@ -747,12 +760,25 @@ export default function App() {
     if (!recurringEnabled) return;
     try {
       const { start, end } = getMaterializationWindow();
+      console.log('Materializing series:', recurringSeries.length, 'series, window:', start, 'to', end);
       const recMap = materializeSeries(recurringSeries, start, end);
-      setTasksMap((prev) => mergeWithRecurringInstances(prev, recMap));
+      console.log('Materialized map:', Object.keys(recMap).length, 'dates');
+      setTasksMap((prev) => {
+        console.log('Merging with recurring instances, prev map keys:', Object.keys(prev));
+        const merged = mergeWithRecurringInstances(prev, recMap);
+        console.log('After merge, map keys:', Object.keys(merged));
+        return merged;
+      });
     } catch (e) {
       console.error('Failed to materialize recurring series', e);
     }
   }, [cursor, recurringSeries, recurringEnabled]);
+  
+  // Debug effect to see when materialization runs
+  useEffect(() => {
+    console.log('Materialization effect triggered, series count:', recurringSeries.length);
+    console.log('Series details:', recurringSeries.map(s => ({ id: s.id, title: s.title })));
+  }, [recurringSeries]);
 
   function getDayNoteByKey(dateKey) {
     const list = tasksMap[dateKey] || [];
@@ -954,6 +980,13 @@ export default function App() {
   }
 
   function openEditModal(task) {
+    // For recurring tasks, show scope dialog first
+    if (task?.isRecurringInstance && task.seriesId) {
+      scopeActionRef.current = { type: 'edit', task };
+      setScopeDialogOpen(true);
+      return;
+    }
+    
     setEditTask(task);
     setEditForm({
       title: task.title,
@@ -974,7 +1007,52 @@ export default function App() {
   function saveEdit(e) {
     e.preventDefault();
     if (!editTask) return;
-    // If recurring, treat as Only this occurrence (override). Series-wide edit will come later if needed
+    
+    // Handle series-wide edit
+    if (editTask.isEditingSeries && editTask.series) {
+      console.log('Editing series:', editTask.series.id, editForm);
+      
+      const sanitizedSubs = Array.isArray(editForm.subtasks)
+        ? editForm.subtasks
+            .map((st) => ({
+              id: st.id || generateId(),
+              title: (st.title || '').trim(),
+              done: !!st.done,
+              createdAt: st.createdAt || new Date().toISOString(),
+            }))
+            .filter((st) => !!st.title)
+        : [];
+      
+      // Update the series - the materialization effect will handle updating all instances
+      setRecurringSeries((prevSeries) => {
+        console.log('Previous series:', prevSeries);
+        console.log('Looking for series with ID:', editTask.series.id);
+        const updated = prevSeries.map((s) => {
+          console.log('Checking series:', s.id, 'against:', editTask.series.id);
+          if (s.id !== editTask.series.id) return s;
+          const newSeries = {
+            ...s,
+            title: editForm.title || 'Untitled',
+            notes: editForm.notes || '',
+            priority: editForm.priority || 'medium',
+            subtasks: sanitizedSubs,
+          };
+          console.log('Updated series item:', newSeries);
+          return newSeries;
+        });
+        console.log('Updated series array:', updated);
+        // Force a new array reference to ensure React detects the change
+        const result = [...updated];
+        console.log('Final result array:', result);
+        return result;
+      });
+      
+      setShowEdit(false);
+      setEditTask(null);
+      return;
+    }
+    
+    // Handle single occurrence edit (existing logic)
     setTasksMap((prev) => {
       const prevList = prev[editTask.due] || [];
       const { taskList, noteItem } = splitDayList(prevList);
@@ -1201,6 +1279,23 @@ export default function App() {
         if (full.length) next[task.due] = full; else delete next[task.due];
         return next;
       });
+    } else if (payload.type === 'edit') {
+      // Only this occurrence: open edit modal for current task
+      setEditTask(task);
+      setEditForm({
+        title: task.title,
+        notes: task.notes,
+        priority: task.priority || 'medium',
+        subtasks: Array.isArray(task.subtasks)
+          ? task.subtasks.map((st) => ({
+              id: st.id || generateId(),
+              title: st.title || '',
+              done: !!st.done,
+              createdAt: st.createdAt || new Date().toISOString(),
+            }))
+          : [],
+      });
+      setShowEdit(true);
     }
     scopeActionRef.current = null;
   }
@@ -1226,6 +1321,50 @@ export default function App() {
         }
         return next;
       });
+    } else if (payload.type === 'edit') {
+      // Edit entire series: find the series and open edit modal
+      console.log('Scope edit triggered for task:', task);
+      console.log('Task seriesId:', task.seriesId);
+      console.log('Available series:', recurringSeries.map(s => ({ id: s.id, title: s.title })));
+      const series = recurringSeries.find(s => s.id === task.seriesId);
+      console.log('Found series:', series);
+      if (series) {
+        const editTaskWithSeries = { ...task, isEditingSeries: true, series };
+        console.log('Setting editTask with series:', editTaskWithSeries);
+        setEditTask(editTaskWithSeries);
+        setEditForm({
+          title: series.title,
+          notes: series.notes,
+          priority: series.priority || 'medium',
+          subtasks: Array.isArray(series.subtasks)
+            ? series.subtasks.map((st) => ({
+                id: st.id || generateId(),
+                title: st.title || '',
+                done: !!st.done,
+                createdAt: st.createdAt || new Date().toISOString(),
+              }))
+            : [],
+        });
+        setShowEdit(true);
+      } else {
+        // Fallback: if series not found, edit just this occurrence
+        console.log('Series not found, editing single occurrence');
+        setEditTask(task);
+        setEditForm({
+          title: task.title,
+          notes: task.notes,
+          priority: task.priority || 'medium',
+          subtasks: Array.isArray(task.subtasks)
+            ? task.subtasks.map((st) => ({
+                id: st.id || generateId(),
+                title: st.title || '',
+                done: !!st.done,
+                createdAt: st.createdAt || new Date().toISOString(),
+              }))
+            : [],
+        });
+        setShowEdit(true);
+      }
     }
     scopeActionRef.current = null;
   }
@@ -1879,6 +2018,7 @@ export default function App() {
                 onDeleteSubtask={deleteSubtask}
                 density={density}
                 emptyMessage="No tasks. Add a new task to view."
+                recurringSeries={recurringSeries}
               />
             </aside>
           </main>
@@ -1984,6 +2124,7 @@ export default function App() {
                 onToggleSubtask={toggleSubtask}
                 onDeleteSubtask={deleteSubtask}
                 density={density}
+                recurringSeries={recurringSeries}
               />
             </aside>
           </main>
@@ -2025,6 +2166,7 @@ export default function App() {
               setShowDensityMenu={setShowDensityMenu}
               onChangeDensity={(d) => setDensity(d)}
               densityMenuRef={densityMenuRef}
+              recurringSeries={recurringSeries}
             />
           </main>
         ) : null}
@@ -2072,7 +2214,7 @@ export default function App() {
         )}
 
         <AddTaskDrawer open={showAdd} selectedDate={selectedDate} form={form} setForm={setForm} onSubmit={addTask} onClose={() => setShowAdd(false)} recurringEnabled={recurringEnabled} />
-        <EditTaskDrawer open={showEdit} editForm={editForm} setEditForm={setEditForm} onSubmit={saveEdit} onClose={() => setShowEdit(false)} />
+        <EditTaskDrawer open={showEdit} editForm={editForm} setEditForm={setEditForm} onSubmit={saveEdit} onClose={() => setShowEdit(false)} editTask={editTask} />
         <MissedTasksDrawer
           open={showMissed}
           count={currentView === 'week' ? missedTasksThisWeek.length : missedTasksThisMonth.length}
@@ -2087,6 +2229,7 @@ export default function App() {
           onDeleteSubtask={deleteSubtask}
           density={density}
           scope={currentView === 'week' ? 'week' : 'month'}
+          recurringSeries={recurringSeries}
         />
 
         <DayNotesDrawer
@@ -2172,6 +2315,7 @@ export default function App() {
           onClose={() => { setScopeDialogOpen(false); scopeActionRef.current = null; }}
           onOnlyThis={handleScopeOnlyThis}
           onEntireSeries={handleScopeEntireSeries}
+          actionType={scopeActionRef.current?.type || 'delete'}
         />
 
         <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>

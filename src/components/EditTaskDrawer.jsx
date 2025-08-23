@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Trash } from "lucide-react";
 
-export default function EditTaskDrawer({ open, editForm, setEditForm, onSubmit, onClose }) {
+export default function EditTaskDrawer({ open, editForm, setEditForm, onSubmit, onClose, editTask }) {
   const [newSubTitle, setNewSubTitle] = useState("");
   const inputRef = useRef(null);
   const listRef = useRef(null);
@@ -42,7 +42,9 @@ export default function EditTaskDrawer({ open, editForm, setEditForm, onSubmit, 
           aria-label="Edit task panel"
         >
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">Edit Task</div>
+            <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              {editTask?.isEditingSeries ? 'Edit Recurring Series' : 'Edit Task'}
+            </div>
             <button
               type="button"
               onClick={onClose}
@@ -54,6 +56,14 @@ export default function EditTaskDrawer({ open, editForm, setEditForm, onSubmit, 
           </div>
 
           <motion.form onSubmit={onSubmit} className="p-4 flex-1 min-h-0 overflow-auto">
+            {editTask?.isEditingSeries && (
+              <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                <div className="text-sm font-medium text-purple-800 dark:text-purple-200 mb-1">Editing Recurring Series</div>
+                <div className="text-xs text-purple-600 dark:text-purple-400">
+                  Changes will apply to all future occurrences of this task.
+                </div>
+              </div>
+            )}
             <div className="grid gap-3">
               <label className="text-sm text-slate-600 dark:text-slate-300">Title</label>
               <input
