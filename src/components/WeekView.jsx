@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { addDays, format, isSameDay, startOfWeek } from "date-fns";
+import { addDays, format, isSameDay, startOfWeek, isAfter, startOfDay } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar, ListX, List, CheckCircle, FileText, Code as CodeIcon } from "lucide-react";
 
 export default function WeekView({
@@ -167,8 +167,20 @@ export default function WeekView({
                   {(() => {
                     const maxDots = 3;
                     const taskDots = Math.min(maxDots - (hasNote ? 1 : 0), totalCount);
+                    const isFutureDate = isAfter(day, startOfDay(new Date()));
                     return Array.from({ length: taskDots }).map((_, idx) => (
-                      <span key={`t-${idx}`} className={`${doneCount === 0 ? 'bg-red-400' : doneCount === totalCount ? 'bg-emerald-500' : 'bg-amber-400'} inline-block w-1.5 h-1.5 rounded-full`} />
+                      <span 
+                        key={`t-${idx}`} 
+                        className={`${
+                          isFutureDate 
+                            ? 'bg-slate-400' 
+                            : doneCount === 0 
+                              ? 'bg-red-400' 
+                              : doneCount === totalCount 
+                                ? 'bg-emerald-500' 
+                                : 'bg-amber-400'
+                        } inline-block w-1.5 h-1.5 rounded-full`} 
+                      />
                     ));
                   })()}
                   {(() => {

@@ -133,7 +133,14 @@ export default function HelpPage({ open, onClose }) {
               <span className="inline-block w-4 h-4 rounded-full bg-red-400" />
               <div>
                 <div className="font-medium text-slate-900 dark:text-slate-100">Red dot</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Incomplete tasks</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Incomplete tasks (past/today)</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <span className="inline-block w-4 h-4 rounded-full bg-slate-400" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Gray dot</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Upcoming tasks (future dates)</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">

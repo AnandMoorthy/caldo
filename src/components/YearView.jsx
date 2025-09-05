@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { startOfYear, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, format } from "date-fns";
+import { startOfYear, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, format, isAfter, startOfDay } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar, List, CheckCircle, FileText, Code as CodeIcon } from "lucide-react";
 
 export default function YearView({
@@ -126,15 +126,18 @@ export default function YearView({
               </div>
               <div className="mt-3 grid grid-cols-7 gap-1">
                 {days.map((d, idx) => {
+                  const isFutureDate = isAfter(d.date, startOfDay(new Date()));
                   const color = !d.inMonth
                     ? "bg-transparent"
                     : d.totalCount === 0
                       ? (d.hasNote ? "bg-blue-500/50" : "bg-slate-200 dark:bg-slate-700")
-                      : d.doneCount === 0
-                        ? "bg-red-400"
-                        : d.doneCount === d.totalCount
-                          ? "bg-emerald-500"
-                          : "bg-amber-400";
+                      : isFutureDate
+                        ? "bg-slate-400"
+                        : d.doneCount === 0
+                          ? "bg-red-400"
+                          : d.doneCount === d.totalCount
+                            ? "bg-emerald-500"
+                            : "bg-amber-400";
                   return (
                     <span
                       key={idx}
