@@ -14,9 +14,14 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
   const [originalContent, setOriginalContent] = useState(""); // Track original content to detect changes
   const [hasUserModified, setHasUserModified] = useState(false); // Track if user has actually modified content
   const [isInitialized, setIsInitialized] = useState(false); // Track if component has fully initialized
+  const [autoSavedId, setAutoSavedId] = useState(null); // Track if auto-save already created a snippet
 
   useEffect(() => {
     setSelectedId(snippetId);
+    // Reset auto-saved ID when opening a new snippet
+    if (snippetId === '__new__' || !snippetId) {
+      setAutoSavedId(null);
+    }
   }, [snippetId]);
 
   useEffect(() => {
@@ -70,63 +75,94 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     
     console.log('🔄 Snippet auto-save triggered:', { open, hasUserModified, title, content: content?.substring(0, 50) });
     
-    const handle = setTimeout(async () => {
+    const handle = setTimeout(() => {
       try {
         console.log('💾 Executing snippet auto-save...');
         if (!repo || !user) return;
-        setSaving(true);
         
         if (!selectedId || selectedId === '__new__') {
-          // Create snippet in background (non-blocking)
-          repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') })
-            .then((created) => {
-              try { onSnippetsChanged && onSnippetsChanged(); } catch {}
-            })
-            .catch((err) => {
-              console.error('Failed to save snippet to cloud', err);
-            });
+          // Only create if we haven't already auto-saved this content
+          if (!autoSavedId) {
+            // Create snippet in background (non-blocking)
+            repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+              .then((created) => {
+                setAutoSavedId(created.id); // Track the created snippet ID
+                console.log('✅ Auto-save created new snippet with ID:', created.id);
+                try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+                // Reset modification flag after successful save
+                setHasUserModified(false);
+                setOriginalTitle(title);
+                setOriginalContent(content);
+                console.log('✅ Snippet auto-save completed');
+              })
+              .catch((err) => {
+                console.error('Failed to auto-save snippet to cloud', err);
+              });
+          } else {
+            // Update the existing auto-saved snippet in background (non-blocking)
+            repo.updateSnippet(autoSavedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+              .then(() => {
+                console.log('✅ Auto-save updated existing snippet with ID:', autoSavedId);
+                try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+                // Reset modification flag after successful save
+                setHasUserModified(false);
+                setOriginalTitle(title);
+                setOriginalContent(content);
+                console.log('✅ Snippet auto-save completed');
+              })
+              .catch((err) => {
+                console.error('Failed to update snippet in cloud', err);
+              });
+          }
         } else {
           // Update snippet in background (non-blocking)
           repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
             .then(() => {
               try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+              // Reset modification flag after successful save
+              setHasUserModified(false);
+              setOriginalTitle(title);
+              setOriginalContent(content);
+              console.log('✅ Snippet auto-save completed');
             })
             .catch((err) => {
               console.error('Failed to update snippet in cloud', err);
             });
         }
-        
-        // Reset modification flag after successful save
-        setHasUserModified(false);
-        setOriginalTitle(title);
-        setOriginalContent(content);
-        console.log('✅ Snippet auto-save completed');
       } catch (e) {
         console.error('❌ Snippet auto-save failed:', e);
-      } finally {
-        setSaving(false);
       }
     }, 1200);
     
     return () => clearTimeout(handle);
-  }, [title, content, open, hasUserModified, repo, user, selectedId, onSnippetsChanged]);
+  }, [title, content, open, hasUserModified, repo, user, selectedId, onSnippetsChanged, autoSavedId]);
 
   // Track title changes - only after component is initialized
   useEffect(() => {
     if (!isInitialized) return; // Don't track changes until fully initialized
     
-    if (title !== originalTitle) {
-      setHasUserModified(true);
-    }
+    // Add a small delay to prevent immediate auto-save on initialization
+    const timer = setTimeout(() => {
+      if (title !== originalTitle) {
+        setHasUserModified(true);
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, [title, originalTitle, isInitialized]);
 
   // Track content changes - only after component is initialized
   useEffect(() => {
     if (!isInitialized) return; // Don't track changes until fully initialized
     
-    if (content !== originalContent) {
-      setHasUserModified(true);
-    }
+    // Add a small delay to prevent immediate auto-save on initialization
+    const timer = setTimeout(() => {
+      if (content !== originalContent) {
+        setHasUserModified(true);
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, [content, originalContent, isInitialized]);
 
   // Helper functions for consistent modification tracking
@@ -140,17 +176,24 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
 
   async function onSave() {
     if (!repo || !user) return;
+    
+    // Don't save if already saving
+    if (saving) return;
+    
     setSaving(true);
     try {
       if (!selectedId || selectedId === '__new__') {
-        // Create snippet in background (non-blocking)
-        repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') })
-          .then((created) => {
-            try { onSnippetsChanged && onSnippetsChanged(); } catch {}
-          })
-          .catch((err) => {
-            console.error('Failed to save snippet to cloud', err);
-          });
+        // If auto-save already created a snippet, update it instead of creating a new one
+        if (autoSavedId) {
+          await repo.updateSnippet(autoSavedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+          console.log('✅ Manual save updated auto-saved snippet with ID:', autoSavedId);
+        } else {
+          // Create snippet only if auto-save hasn't created one yet
+          const created = await repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+          setAutoSavedId(created.id);
+          console.log('✅ Manual save created new snippet with ID:', created.id);
+        }
+        try { onSnippetsChanged && onSnippetsChanged(); } catch {}
       } else {
         // Update snippet in background (non-blocking)
         repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
@@ -172,6 +215,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
         setTitle('');
         setContent('');
         setSelectedId(null);
+        setAutoSavedId(null); // Reset auto-saved ID when closing
         onClose && onClose();
       }, 950); // Close immediately after "Saved" message disappears
     } catch (e) {
@@ -211,6 +255,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     setHasUserModified(false);
     setOriginalTitle('');
     setOriginalContent('');
+    setAutoSavedId(null); // Reset auto-saved ID when closing
     onClose && onClose();
   }
 
@@ -265,7 +310,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
               {hasUserModified && (
                 <div className="inline-flex items-center gap-2 px-2 py-1 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded">
                   <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                  Auto-saving...
+                  {autoSavedId ? 'Auto-saved' : 'Auto-saving...'}
                 </div>
               )}
               <button

@@ -17,7 +17,6 @@ import DayNotesDrawer from "./components/DayNotesDrawer.jsx";
 import HelpPage from "./components/HelpPage.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 import ScopeDialog from "./components/ScopeDialog.jsx";
-import SnippetsModal from "./components/SnippetsModal.jsx";
 import TooltipProvider from "./components/Tooltip.jsx";
 import NotesPage from "./components/NotesPage.jsx";
 import SnippetsPage from "./components/SnippetsPage.jsx";
@@ -73,7 +72,6 @@ export default function App() {
   const [draftDayNote, setDraftDayNote] = useState("");
   const [showNotes, setShowNotes] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [showSnippets, setShowSnippets] = useState(false);
   const [snippetsDrawerOpen, setSnippetsDrawerOpen] = useState(false);
   const [snippetsDrawerId, setSnippetsDrawerId] = useState(null);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
@@ -199,7 +197,6 @@ export default function App() {
         if (showNotes) setShowNotes(false);
         if (showMissed) setShowMissed(false);
         if (showHelp) setShowHelp(false);
-        if (showSnippets) setShowSnippets(false);
         if (showSearch) setShowSearch(false);
         stopNavRepeat();
         return;
@@ -214,14 +211,6 @@ export default function App() {
         return;
       }
 
-      // Handle Cmd/Ctrl+Shift+S for snippets
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && key === 's') {
-        e.preventDefault();
-        // Close day notes drawer if open to avoid conflicts
-        setShowNotes(false);
-        setShowSnippets(true);
-        return;
-      }
       
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (key === 't') {
@@ -2000,11 +1989,6 @@ export default function App() {
           onImportJSON={importJSON}
           onOpenHelp={() => setShowHelp(true)}
           onOpenSearch={() => setShowSearch(true)}
-          onOpenSnippets={() => {
-            // Close day notes drawer if open to avoid conflicts
-            setShowNotes(false);
-            setShowSnippets(true);
-          }}
           currentStreak={streak?.current || 0}
           deleteAllTasksEnabled={!!deleteAllTasksEnabled}
           onDeleteAllTasks={deleteAllTasksFromCloud}
@@ -2417,17 +2401,6 @@ export default function App() {
           onQueryChange={setSearchQuery}
         />
 
-        <SnippetsModal
-          open={showSnippets}
-          onClose={() => setShowSnippets(false)}
-          repo={snippetRepoRef.current}
-          user={user}
-          initialSnippets={snippetsCache}
-          onSnippetsChanged={(items) => {
-            console.log('App.jsx: onSnippetsChanged called with', (items || []).length, 'items');
-            setSnippetsCache(items || []);
-          }}
-        />
 
         <SnippetsDrawer
           open={snippetsDrawerOpen}

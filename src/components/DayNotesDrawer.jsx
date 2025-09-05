@@ -148,16 +148,27 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
     console.log('🔄 Auto-save triggered:', { open, mode, hasUserModified, value: value?.substring(0, 50) });
     
     const text = String(value || '');
-    const handle = setTimeout(async () => {
+    const handle = setTimeout(() => {
       try {
         console.log('💾 Executing auto-save...');
-        if (onSave) await onSave();
-        setAutoJustSaved(true);
-        setTimeout(() => setAutoJustSaved(false), 900);
-        // Reset modification flag after successful save
-        setHasUserModified(false);
-        setOriginalValue(text);
-        console.log('✅ Auto-save completed');
+        if (onSave) {
+          // Call onSave without await to prevent blocking
+          onSave().then(() => {
+            setAutoJustSaved(true);
+            setTimeout(() => setAutoJustSaved(false), 900);
+            // Reset modification flag after successful save
+            setHasUserModified(false);
+            setOriginalValue(text);
+            console.log('✅ Auto-save completed');
+          }).catch((e) => {
+            console.error('❌ Auto-save failed:', e);
+          });
+        } else {
+          // If no onSave function, just reset the modification flag
+          setHasUserModified(false);
+          setOriginalValue(text);
+          console.log('✅ Auto-save completed (no onSave function)');
+        }
       } catch (e) {
         console.error('❌ Auto-save failed:', e);
       }
