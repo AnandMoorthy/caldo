@@ -28,6 +28,44 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 
 .dark .btn{border-color:rgba(148,163,184,.25); color:#e2e8f0}
 .dark .input{border-color:#334155;background-color:#0f172a;color:#e2e8f0}
 .dark .input::placeholder{color:#94a3b8}
+
+/* Time picker dark mode fix */
+.dark input[type="time"] {
+  color-scheme: dark;
+  background-color: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: none;
+  background-color: #e2e8f0;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpolyline points='12,6 12,12 16,14'/%3E%3C/svg%3E") no-repeat center;
+  mask-size: 16px 16px;
+  width: 16px;
+  height: 16px;
+  opacity: 1;
+}
+
+.dark input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  background-color: #f1f5f9;
+  opacity: 1;
+}
+
+/* Additional time picker styling for better visibility */
+.dark input[type="time"]::-webkit-datetime-edit-text {
+  color: #e2e8f0;
+}
+
+.dark input[type="time"]::-webkit-datetime-edit-hour-field,
+.dark input[type="time"]::-webkit-datetime-edit-minute-field {
+  color: #e2e8f0;
+  background-color: transparent;
+}
+
+.dark input[type="time"]::-webkit-datetime-edit-ampm-field {
+  color: #e2e8f0;
+}
 .clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
 /* Search result text truncation */

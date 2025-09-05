@@ -30,6 +30,8 @@ import { createTaskRepository } from "./services/repositories/taskRepository";
 import { createDayNoteRepository } from "./services/repositories/noteRepository";
 import { createSnippetRepository } from "./services/repositories/snippetRepository";
 import { materializeSeries } from "./utils/recurrence";
+import { notificationService } from "./services/notificationService";
+import { reminderScheduler } from "./services/reminderScheduler";
 
 
 // Single-file Caldo app
@@ -47,10 +49,10 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksMap, setTasksMap] = useState(() => loadTasks());
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title: "", notes: "", priority: "medium", subtasks: [] });
+  const [form, setForm] = useState({ title: "", notes: "", priority: "medium", subtasks: [], reminderTime: "" });
   const [showEdit, setShowEdit] = useState(false);
   const [editTask, setEditTask] = useState(null);
-  const [editForm, setEditForm] = useState({ title: "", notes: "", priority: "medium" });
+  const [editForm, setEditForm] = useState({ title: "", notes: "", priority: "medium", reminderTime: "" });
   const [user, setUser] = useState(null);
   const hasLoadedCloud = useRef(false);
   const loadedMonthsRef = useRef(new Set());
@@ -155,6 +157,59 @@ export default function App() {
       setSearchResults([]);
     }
   }, [searchQuery, searchIndex]);
+
+  // Request notification permission on app load
+  useEffect(() => {
+    // Add test function to window immediately for debugging
+    window.testReminder = () => reminderScheduler.testReminder('Test Task Reminder');
+    window.testNotification = async () => {
+      try {
+        await notificationService.showReminderNotification({
+          id: 'test',
+          title: 'Test Notification',
+          reminderTime: '12:00'
+        });
+      } catch (error) {
+        console.error('Test notification error:', error);
+      }
+    };
+    window.debugReminders = () => {
+      console.log('Reminder Scheduler Debug Info:', reminderScheduler.getDebugInfo());
+    };
+    window.cancelAllReminders = () => {
+      reminderScheduler.cancelAllReminders();
+      console.log('All reminders cancelled');
+    };
+    window.refreshTodayReminders = () => {
+      reminderScheduler.refreshTodayReminders();
+    };
+    window.forceUpdateReminders = () => {
+      reminderScheduler.forceUpdate();
+    };
+    console.log('Test functions available: window.testReminder(), window.testNotification(), window.debugReminders(), window.cancelAllReminders(), window.refreshTodayReminders(), window.forceUpdateReminders()');
+
+    const requestNotificationPermission = async () => {
+      try {
+        console.log('Requesting notification permission...');
+        const granted = await notificationService.requestPermission();
+        if (granted) {
+          console.log('Notification permission granted');
+        } else {
+          console.log('Notification permission denied or not supported');
+          console.log('Permission status:', notificationService.getPermissionStatus());
+        }
+      } catch (error) {
+        console.error('Error requesting notification permission:', error);
+      }
+    };
+
+    requestNotificationPermission();
+  }, []);
+
+  // Update reminders when tasks change
+  useEffect(() => {
+    reminderScheduler.updateReminders(tasksMap);
+  }, [tasksMap]);
 
   // Keep draft note in sync when tasksMap changes for the selected day (e.g., remote refresh)
   useEffect(() => {
@@ -931,6 +986,7 @@ export default function App() {
         priority: form.priority || 'medium',
         subtasks: subtasks.length ? subtasks : [],
         startDateKey: key,
+        ...(form.reminderTime ? { reminderTime: form.reminderTime } : {}),
         recurrence: {
           frequency: form.recurrence.frequency,
           interval: Math.max(1, Number(form.recurrence.interval) || 1),
@@ -959,7 +1015,7 @@ export default function App() {
         setTasksMap((prev) => mergeWithRecurringInstances(prev, recMap));
       } catch {}
       if (options?.addAnother) {
-        setForm({ title: "", notes: "", priority: "medium", subtasks: [], recurrence: { frequency: 'none', interval: 1 } });
+        setForm({ title: "", notes: "", priority: "medium", subtasks: [], reminderTime: "", recurrence: { frequency: 'none', interval: 1 } });
         setShowAdd(true);
       } else {
         setShowAdd(false);
@@ -975,7 +1031,18 @@ export default function App() {
       due: key,
       createdAt: new Date().toISOString(),
       ...(subtasks.length ? { subtasks } : {}),
+      ...(form.reminderTime ? { reminderTime: form.reminderTime } : {}),
     };
+    
+    // Only log if task has reminder
+    if (form.reminderTime) {
+      console.log('➕ Creating task with reminder:', {
+        title: newTask.title,
+        reminderTime: newTask.reminderTime,
+        due: newTask.due,
+        today: new Date().toISOString().split('T')[0]
+      });
+    }
     setTasksMap((prev) => {
       const prevList = prev[key] || [];
       const { taskList, noteItem } = splitDayList(prevList);
@@ -989,7 +1056,7 @@ export default function App() {
       return updated;
     });
     if (options?.addAnother) {
-      setForm({ title: "", notes: "", priority: "medium", subtasks: [] });
+      setForm({ title: "", notes: "", priority: "medium", subtasks: [], reminderTime: "" });
       setShowAdd(true);
     } else {
       setShowAdd(false);
@@ -1009,6 +1076,7 @@ export default function App() {
       title: task.title,
       notes: task.notes,
       priority: task.priority || 'medium',
+      reminderTime: task.reminderTime || '',
       subtasks: Array.isArray(task.subtasks)
         ? task.subtasks.map((st) => ({
             id: st.id || generateId(),
@@ -1048,6 +1116,7 @@ export default function App() {
             notes: editForm.notes || '',
             priority: editForm.priority || 'medium',
             subtasks: sanitizedSubs,
+            ...(editForm.reminderTime ? { reminderTime: editForm.reminderTime } : { reminderTime: undefined }),
           };
           return newSeries;
         });
@@ -1096,6 +1165,7 @@ export default function App() {
           priority: editForm.priority || 'medium',
           done: parentDone,
           ...(sanitizedSubs.length ? { subtasks: sanitizedSubs } : { subtasks: [] }),
+          ...(editForm.reminderTime ? { reminderTime: editForm.reminderTime } : { reminderTime: undefined }),
         };
         if (t.isRecurringInstance && t.seriesId) {
           setRecurringSeries((prevSeries) => prevSeries.map((s) => {
@@ -1107,6 +1177,7 @@ export default function App() {
               priority: updated.priority,
               done: updated.done,
               subtasks: updated.subtasks || [],
+              ...(updated.reminderTime ? { reminderTime: updated.reminderTime } : {}),
             };
             return { ...s, overrides: ov };
           }));
@@ -1315,6 +1386,7 @@ export default function App() {
         title: task.title,
         notes: task.notes,
         priority: task.priority || 'medium',
+        reminderTime: task.reminderTime || '',
         subtasks: Array.isArray(task.subtasks)
           ? task.subtasks.map((st) => ({
               id: st.id || generateId(),
@@ -1368,6 +1440,7 @@ export default function App() {
           title: series.title,
           notes: series.notes,
           priority: series.priority || 'medium',
+          reminderTime: series.reminderTime || '',
           subtasks: Array.isArray(series.subtasks)
             ? series.subtasks.map((st) => ({
                 id: st.id || generateId(),
@@ -1385,6 +1458,7 @@ export default function App() {
           title: task.title,
           notes: task.notes,
           priority: task.priority || 'medium',
+          reminderTime: task.reminderTime || '',
           subtasks: Array.isArray(task.subtasks)
             ? task.subtasks.map((st) => ({
                 id: st.id || generateId(),

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Keyboard, HelpCircle, Search, RefreshCcw, Calendar, List, Plus, FileText, Clock, CheckCircle, AlertCircle, Info, Code, Copy } from "lucide-react";
+import { X, Keyboard, HelpCircle, Search, RefreshCcw, Calendar, List, Plus, FileText, Clock, CheckCircle, AlertCircle, Info, Code, Copy, Bell } from "lucide-react";
 
 export default function HelpPage({ open, onClose }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -45,6 +45,7 @@ export default function HelpPage({ open, onClose }) {
     { id: 'overview', label: 'Overview', icon: HelpCircle },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'tasks', label: 'Tasks', icon: List },
+    { id: 'reminders', label: 'Reminders', icon: Bell },
     { id: 'snippets', label: 'Snippets', icon: Code },
     { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
     { id: 'features', label: 'Features', icon: Info },
@@ -103,6 +104,16 @@ export default function HelpPage({ open, onClose }) {
           <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Snippets</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             Store and manage reusable text snippets for any purpose
+          </p>
+        </div>
+
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 mb-3">
+            <Bell size={20} className="text-blue-600 dark:text-blue-400" />
+          </div>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Task Reminders</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Set time-based reminders and get browser notifications
           </p>
         </div>
       </div>
@@ -265,6 +276,95 @@ export default function HelpPage({ open, onClose }) {
             <li>These restrictions help maintain accurate progress tracking and series integrity</li>
             <li>See the <button onClick={() => setActiveTab('faq')} className="text-amber-700 dark:text-amber-300 underline hover:no-underline">FAQ section</button> for detailed explanations</li>
           </ul>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderReminders = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Task Reminders</h2>
+        <p className="text-slate-600 dark:text-slate-300 mb-6">
+          Set time-based reminders for your tasks and receive browser notifications
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Setting Reminders</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Bell size={16} className="text-blue-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Time Picker</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Set reminder time when creating or editing tasks</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Clock size={16} className="text-green-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">10-Minute Advance</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Notifications appear 10 minutes before task time</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Visual Indicators</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Bell size={16} className="text-blue-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Bell Icon</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Blue bell icon shows tasks with reminders</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Info size={16} className="text-purple-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Tooltip</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Hover to see reminder time</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+        <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">How Reminders Work</h3>
+        <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+          <p><strong>Setting:</strong> Choose a time when creating or editing a task</p>
+          <p><strong>Notification:</strong> Browser notification appears 10 minutes before the set time</p>
+          <p><strong>Persistence:</strong> Reminders work even when the app is closed (browser must be open)</p>
+          <p><strong>Permission:</strong> First-time users will be asked to allow notifications</p>
+        </div>
+      </div>
+
+      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+        <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 flex items-center gap-2">
+          <AlertCircle size={20} />
+          Troubleshooting Notifications
+        </h3>
+        <div className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
+          <p><strong>If you don't see notifications:</strong></p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li><strong>Check browser permissions:</strong> Look for notification icon in address bar</li>
+            <li><strong>System settings:</strong> Ensure notifications are enabled for your browser</li>
+            <li><strong>Browser focus:</strong> Some browsers only show notifications when tab is active</li>
+            <li><strong>Do Not Disturb:</strong> Check if system Do Not Disturb is blocking notifications</li>
+            <li><strong>Browser support:</strong> Ensure your browser supports notifications</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+        <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">Testing Reminders</h3>
+        <div className="text-sm text-green-800 dark:text-green-200 space-y-2">
+          <p><strong>Quick Test:</strong> Open browser console and run <code className="px-1.5 py-0.5 rounded bg-green-200 dark:bg-green-800 text-xs">window.testReminder()</code></p>
+          <p><strong>Real Test:</strong> Create a task with reminder time set 1-2 minutes from now</p>
+          <p><strong>Debug Info:</strong> Check console for scheduling and permission messages</p>
         </div>
       </div>
     </div>
@@ -603,6 +703,42 @@ export default function HelpPage({ open, onClose }) {
             </ul>
           </div>
         </div>
+
+        <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+          <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+            <Bell size={20} />
+            Why aren't my reminder notifications showing?
+          </h3>
+          <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
+            <p><strong>Common reasons for missing notifications:</strong></p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Browser permissions:</strong> Check if notifications are blocked for this site</li>
+              <li><strong>System settings:</strong> Ensure notifications are enabled for your browser</li>
+              <li><strong>Browser focus:</strong> Some browsers only show notifications when the tab is active</li>
+              <li><strong>Do Not Disturb:</strong> Check if system Do Not Disturb mode is blocking notifications</li>
+              <li><strong>Browser support:</strong> Ensure your browser supports the Notification API</li>
+              <li><strong>Time zone:</strong> Make sure your system time is correct</li>
+            </ul>
+            <p className="mt-2"><strong>Quick test:</strong> Run <code className="px-1.5 py-0.5 rounded bg-blue-200 dark:bg-blue-800 text-xs">window.testReminder()</code> in the console</p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+          <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2 flex items-center gap-2">
+            <Clock size={20} />
+            How do reminder times work?
+          </h3>
+          <div className="text-sm text-green-800 dark:text-green-200 space-y-2">
+            <p><strong>Reminder timing explained:</strong></p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Set time:</strong> Choose when you want to be reminded (e.g., 8:00 PM)</li>
+              <li><strong>Notification time:</strong> You'll get notified 10 minutes before (7:50 PM)</li>
+              <li><strong>Date context:</strong> Reminder time is for the task's due date</li>
+              <li><strong>Format:</strong> Use 24-hour format (20:00) or 12-hour format (8:00 PM)</li>
+              <li><strong>Visual indicator:</strong> Blue bell icon shows which tasks have reminders</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -612,6 +748,7 @@ export default function HelpPage({ open, onClose }) {
       case 'overview': return renderOverview();
       case 'calendar': return renderCalendar();
       case 'tasks': return renderTasks();
+      case 'reminders': return renderReminders();
       case 'snippets': return renderSnippets();
       case 'shortcuts': return renderShortcuts();
       case 'features': return renderFeatures();

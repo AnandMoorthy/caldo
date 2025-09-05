@@ -8,6 +8,7 @@ import { addDays, addMonths, differenceInCalendarDays, differenceInCalendarMonth
 //   priority: 'low'|'medium'|'high',
 //   subtasks: Array<{ id: string, title: string, done: boolean, createdAt: string }>,
 //   startDateKey: 'YYYY-MM-DD',
+//   reminderTime?: string, // Optional time in 24-hour format (HH:MM)
 //   recurrence: {
 //     frequency: 'daily'|'weekly'|'monthly',
 //     interval: number,
@@ -16,7 +17,7 @@ import { addDays, addMonths, differenceInCalendarDays, differenceInCalendarMonth
 //     ends?: { type: 'never'|'onDate'|'afterCount', onDateKey?: string, count?: number }
 //   },
 //   exceptions?: string[], // dateKeys
-//   overrides?: Record<string, Partial<{ title: string, notes: string, priority: string, done: boolean, subtasks: any[] }>>
+//   overrides?: Record<string, Partial<{ title: string, notes: string, priority: string, done: boolean, subtasks: any[], reminderTime?: string }>>
 // }
 
 function toDate(dateKey) {
@@ -143,6 +144,7 @@ export function makeInstanceFromSeries(series, dateKey) {
     occurrenceDateKey: dateKey,
   };
   if (Array.isArray(series.subtasks) && series.subtasks.length) base.subtasks = series.subtasks;
+  if (series.reminderTime) base.reminderTime = series.reminderTime;
   return base;
 }
 

@@ -95,6 +95,17 @@ export default function AddTaskDrawer({ open, selectedDate, form, setForm, onSub
                 </label>
               </div>
 
+              <div className="grid grid-cols-2 gap-2 items-center">
+                <label className="text-sm text-slate-700 dark:text-slate-300">Reminder time</label>
+                <input
+                  type="time"
+                  value={form.reminderTime || ''}
+                  onChange={(e) => setForm((f) => ({ ...f, reminderTime: e.target.value }))}
+                  className="input"
+                  placeholder="Optional"
+                />
+              </div>
+
               <details className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3">
                 <summary className="cursor-pointer text-sm text-slate-700 dark:text-slate-300">Subtasks (optional)</summary>
                 <div className="mt-2 pl-3 border-l-2 border-slate-200 dark:border-slate-700/60 rounded-md">

@@ -28,6 +28,7 @@ We use a flat, query-first schema to support fast daily/weekly/monthly views and
   "done": false,
   "priority": "low|medium|high",
   "subtasks": [ { "id": "...", "title": "...", "done": false, "createdAt": <timestamp> } ],
+  "reminderTime": "20:00", // Optional time in 24-hour format (HH:MM)
 
   // Denormalized keys for fast filters
   "dateKey": "YYYY-MM-DD",
@@ -180,9 +181,58 @@ service cloud.firestore {
 
 No migration required (development phase). Old nested per-day schema is removed from the app code. New writes go only to `tasks` and `dayNotes`.
 
+## Recurring tasks collection
+
+- Recurring series: `users/{uid}/recurringTasks/series`
+  - One document containing all recurring series for a user.
+  - Each series defines a recurring pattern and materializes into individual task instances.
+
+### Recurring series document
+```json
+{
+  "ownerUid": "<uid>",
+  "series": [
+    {
+      "id": "rec_<seriesId>",
+      "title": "Recurring task title",
+      "notes": "Optional notes",
+      "priority": "low|medium|high",
+      "subtasks": [ { "id": "...", "title": "...", "done": false, "createdAt": <timestamp> } ],
+      "startDateKey": "YYYY-MM-DD",
+      "reminderTime": "20:00", // Optional time in 24-hour format (HH:MM)
+      "recurrence": {
+        "frequency": "daily|weekly|monthly",
+        "interval": 1,
+        "byWeekday": [1, 3, 5], // For weekly: 0-6 (Sun-Sat)
+        "byMonthday": [1, 15], // For monthly: 1-31
+        "ends": { "type": "never|onDate|afterCount", "onDateKey": "YYYY-MM-DD", "count": 10 }
+      },
+      "exceptions": ["YYYY-MM-DD"], // dateKeys to skip
+      "overrides": {
+        "YYYY-MM-DD": {
+          "title": "Custom title for this occurrence",
+          "notes": "Custom notes",
+          "priority": "high",
+          "done": true,
+          "subtasks": [...],
+          "reminderTime": "21:00" // Override reminder for this occurrence
+        }
+      }
+    }
+  ],
+  "updatedAt": <timestamp>,
+  "createdAt": <timestamp>
+}
+```
+
+Notes:
+- Recurring series are stored in a single document per user for efficient batch operations.
+- Individual task instances are materialized on-demand from series definitions.
+- `reminderTime` is inherited by all instances unless overridden for specific occurrences.
+- `overrides` allow customizing individual occurrences without affecting the series.
+
 ## Future enhancements
 
-- Recurring tasks: add `recurrence` on task series, materialize instances with `dueDate`.
 - Tags and filters: store `tags: string[]`, add composite indexes on `(ownerUid, tags)` if needed (or query client-side for small sets).
 - External search: integrate Algolia/Meili for full-text across large datasets.
 

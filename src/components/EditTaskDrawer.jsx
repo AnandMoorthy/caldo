@@ -96,6 +96,17 @@ export default function EditTaskDrawer({ open, editForm, setEditForm, onSubmit, 
                 </label>
               </div>
 
+              <div className="grid grid-cols-2 gap-2 items-center">
+                <label className="text-sm text-slate-600 dark:text-slate-300">Reminder time</label>
+                <input
+                  type="time"
+                  value={editForm.reminderTime || ''}
+                  onChange={(e) => setEditForm((f) => ({ ...f, reminderTime: e.target.value }))}
+                  className="input"
+                  placeholder="Optional"
+                />
+              </div>
+
               <details className="rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3" open={subsOpen} onToggle={(e) => setSubsOpen(e.currentTarget.open)}>
                 <summary className="cursor-pointer text-sm text-slate-700 dark:text-slate-300">Subtasks</summary>
                 <div className="mt-2 pl-3 border-l-2 border-slate-200 dark:border-slate-700/60 rounded-md">
