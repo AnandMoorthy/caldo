@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
@@ -37,6 +37,8 @@ lowlight.register('html', html);
 
 export default function RichTextEditor({ content, onChange, placeholder = "Start typing your snippet…" }) {
   console.log('RichTextEditor received content:', content);
+  const [isEditorReady, setIsEditorReady] = useState(false);
+  
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -53,6 +55,14 @@ export default function RichTextEditor({ content, onChange, placeholder = "Start
     content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
+    },
+    onCreate: ({ editor }) => {
+      console.log('RichTextEditor: Editor created');
+      setIsEditorReady(true);
+    },
+    onDestroy: () => {
+      console.log('RichTextEditor: Editor destroyed');
+      setIsEditorReady(false);
     },
     editorProps: {
       attributes: {
@@ -89,18 +99,29 @@ export default function RichTextEditor({ content, onChange, placeholder = "Start
 
   // Update editor content when content prop changes
   React.useEffect(() => {
-    if (editor) {
+    if (editor && isEditorReady) {
       const currentContent = editor.getHTML();
       console.log('RichTextEditor: Current editor content:', currentContent);
       console.log('RichTextEditor: New content prop:', content);
-      if (content !== currentContent) {
+      console.log('RichTextEditor: Editor ready:', isEditorReady);
+      
+      // Normalize content for comparison (handle undefined/null)
+      const normalizedContent = content || '';
+      const normalizedCurrent = currentContent || '';
+      
+      if (normalizedContent !== normalizedCurrent) {
         console.log('RichTextEditor: Content differs, updating editor');
-        editor.commands.setContent(content || '');
+        // Use a small delay to ensure the editor is ready
+        setTimeout(() => {
+          if (editor && !editor.isDestroyed && isEditorReady) {
+            editor.commands.setContent(normalizedContent);
+          }
+        }, 50);
       } else {
         console.log('RichTextEditor: Content is the same, no update needed');
       }
     }
-  }, [editor, content]);
+  }, [editor, content, isEditorReady]);
 
   if (!editor) {
     console.log('RichTextEditor: Editor not ready yet');

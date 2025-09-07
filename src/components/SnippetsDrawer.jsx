@@ -19,25 +19,28 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
 
   // Debug content changes
   useEffect(() => {
-    console.log('Content state changed to:', content);
-  }, [content]);
+    console.log('SnippetsDrawer: Content state changed to:', content);
+    console.log('SnippetsDrawer: Current props:', { open, snippetId, type, selectedId });
+  }, [content, open, snippetId, type, selectedId]);
 
+  // Consolidated effect to handle both selectedId changes and content loading
   useEffect(() => {
+    if (!open) return;
+    if (!repo || !user) return;
+    
+    // Set selectedId immediately
     setSelectedId(snippetId);
+    
     // Reset auto-saved ID when opening a new snippet
     if (snippetId === '__new__' || !snippetId) {
       setAutoSavedId(null);
     }
-  }, [snippetId]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (!repo || !user) return;
+    
     let mounted = true;
     (async () => {
       setLoading(true);
       try {
-        if (!selectedId || selectedId === '__new__') {
+        if (!snippetId || snippetId === '__new__') {
           if (!mounted) return;
           const defaultTitle = type === 'note' ? 'Day Note' : 'Untitled snippet';
           setTitle(defaultTitle);
@@ -49,13 +52,15 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           setIsInitialized(false);
           setUserHasInteracted(false);
           // Set initialized after a short delay
-          setTimeout(() => setIsInitialized(true), 100);
+          setTimeout(() => {
+            if (mounted) setIsInitialized(true);
+          }, 100);
         } else {
           if (type === 'note') {
             // Load day note
-            const note = await repo.getDayNote(selectedId);
+            const note = await repo.getDayNote(snippetId);
             if (!mounted) return;
-            console.log('Loading day note:', selectedId, note);
+            console.log('Loading day note:', snippetId, note);
             setTitle('Day Note');
             setContent(note?.content || '');
             setPinned(false); // Notes don't have pin functionality
@@ -65,13 +70,15 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
             setIsInitialized(false);
             setUserHasInteracted(false);
             // Set initialized after a short delay
-            setTimeout(() => setIsInitialized(true), 100);
+            setTimeout(() => {
+              if (mounted) setIsInitialized(true);
+            }, 100);
           } else {
             // Load single snippet by id via list then find; repo lacks get-by-id helper
             const list = await repo.listSnippets({ includeArchived: false, limit: 500 });
-            const sn = (list || []).find(s => s.id === selectedId) || null;
+            const sn = (list || []).find(s => s.id === snippetId) || null;
             if (!mounted) return;
-            console.log('Loading snippet:', selectedId, sn);
+            console.log('Loading snippet:', snippetId, sn);
             console.log('Snippet content:', sn?.content);
             console.log('Setting title to:', sn?.title || '');
             console.log('Setting content to:', sn?.content || '');
@@ -84,7 +91,9 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
             setIsInitialized(false);
             setUserHasInteracted(false);
             // Set initialized after a short delay
-            setTimeout(() => setIsInitialized(true), 100);
+            setTimeout(() => {
+              if (mounted) setIsInitialized(true);
+            }, 100);
           }
         }
       } catch (e) {
@@ -94,7 +103,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
       }
     })();
     return () => { mounted = false; };
-  }, [open, repo, user, selectedId, type]);
+  }, [open, repo, user, snippetId, type]);
 
   // Auto-save content: debounce when user has modified content
   useEffect(() => {
@@ -405,12 +414,18 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
               </button>
             </div>
             <div className="flex-1 min-h-0">
-              <RichTextEditor
-                key={selectedId || 'new'}
-                content={content}
-                onChange={updateContent}
-                placeholder={type === 'note' ? "Start typing your day note…" : "Start typing your snippet…"}
-              />
+              {loading ? (
+                <div className="flex items-center justify-center h-full text-slate-500">
+                  <div className="text-sm">Loading...</div>
+                </div>
+              ) : (
+                <RichTextEditor
+                  key={`${type}-${selectedId || 'new'}`}
+                  content={content}
+                  onChange={updateContent}
+                  placeholder={type === 'note' ? "Start typing your day note…" : "Start typing your snippet…"}
+                />
+              )}
             </div>
           </div>
 
