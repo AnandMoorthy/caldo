@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Plus, Pin, PinOff, Code2, Loader2 } from "lucide-react";
+import StyledSnippetPreview from "./StyledSnippetPreview";
 
 function sortSnippets(list) {
   return [...(list || [])].sort((a, b) => {
@@ -85,9 +86,12 @@ export default function SnippetsPage({ repo, user, initialSnippets = [], onOpenE
 
   function onClickSnippet(snippet) {
     try {
+      console.log('Clicking snippet:', snippet?.id, snippet?.title);
       // Use drawer-based editor if provided via onOpenEditor
       onOpenEditor && onOpenEditor(snippet?.id || null);
-    } catch {}
+    } catch (e) {
+      console.error('Error clicking snippet:', e);
+    }
   }
 
   function onCreateSnippet() {
@@ -130,7 +134,9 @@ export default function SnippetsPage({ repo, user, initialSnippets = [], onOpenE
               <div className="flex items-start gap-2">
                 <button className="text-left flex-1 min-w-0" onClick={() => onClickSnippet(sn)}>
                   <div className="text-sm font-medium truncate">{sn.title || 'Untitled snippet'}</div>
-                  <div className="mt-1 text-xs text-slate-500 line-clamp-5">{sn.content || ''}</div>
+                  <div className="mt-1">
+                    <StyledSnippetPreview content={sn.content} />
+                  </div>
                 </button>
                 <button
                   type="button"

@@ -203,11 +203,16 @@ export default function App() {
       }
       if (/(INPUT|TEXTAREA|SELECT)/.test(tag)) return;
       
-      // Handle CMD+K/Ctrl+K for search
+      // Handle CMD+K/Ctrl+K for search (allow this everywhere)
       if ((e.metaKey || e.ctrlKey) && key === 'k') {
         e.preventDefault();
         setShowSearch(true);
         setSearchQuery("");
+        return;
+      }
+      
+      // Disable other shortcuts when in snippets or notes sections
+      if (activeTab === 'snippets' || activeTab === 'notes' || snippetsDrawerOpen || showNotes) {
         return;
       }
 
@@ -2300,22 +2305,26 @@ export default function App() {
               }
             }}
             onOpenSnippetEditor={(id) => { 
-              // Close day notes drawer if open to avoid conflicts
+              // Close other drawers to avoid conflicts
               setShowNotes(false);
+              setShowMissed(false);
+              setShowHelp(false);
               setSnippetsDrawerId(id || '__new__'); 
               setSnippetsDrawerOpen(true); 
             }}
           />
         )}
 
-        {false && activeTab === 'snippets' && (
+        {activeTab === 'snippets' && (
           <SnippetsPage
             repo={snippetRepoRef.current}
             user={user}
             initialSnippets={snippetsCache}
             onOpenEditor={(id) => { 
-              // Close day notes drawer if open to avoid conflicts
+              // Close other drawers to avoid conflicts
               setShowNotes(false);
+              setShowMissed(false);
+              setShowHelp(false);
               setSnippetsDrawerId(id || '__new__'); 
               setSnippetsDrawerOpen(true); 
             }}

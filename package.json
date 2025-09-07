@@ -10,9 +10,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tiptap/extension-code-block-lowlight": "^3.4.1",
+    "@tiptap/extension-placeholder": "^3.4.1",
+    "@tiptap/react": "^3.4.1",
+    "@tiptap/starter-kit": "^3.4.1",
     "date-fns": "2.30.0",
     "firebase": "^10.12.2",
     "framer-motion": "10.12.16",
+    "lowlight": "^3.3.0",
     "lucide-react": "^0.539.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",

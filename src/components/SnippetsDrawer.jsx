@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2, Copy, Pin, PinOff } from "lucide-react";
+import RichTextEditor from "./RichTextEditor";
 
 export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = null, onSnippetsChanged }) {
   const [loading, setLoading] = useState(false);
@@ -9,12 +10,17 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
   const [content, setContent] = useState("");
   const [selectedId, setSelectedId] = useState(snippetId);
   const [pinned, setPinned] = useState(false);
-  const textareaRef = useRef(null);
   const [originalTitle, setOriginalTitle] = useState(""); // Track original title to detect changes
   const [originalContent, setOriginalContent] = useState(""); // Track original content to detect changes
   const [hasUserModified, setHasUserModified] = useState(false); // Track if user has actually modified content
   const [isInitialized, setIsInitialized] = useState(false); // Track if component has fully initialized
   const [autoSavedId, setAutoSavedId] = useState(null); // Track if auto-save already created a snippet
+  const [userHasInteracted, setUserHasInteracted] = useState(false); // Track if user has actually interacted with the editor
+
+  // Debug content changes
+  useEffect(() => {
+    console.log('Content state changed to:', content);
+  }, [content]);
 
   useEffect(() => {
     setSelectedId(snippetId);
@@ -40,7 +46,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           setOriginalContent('');
           setHasUserModified(false);
           setIsInitialized(false);
-          setTimeout(() => { try { textareaRef.current?.focus(); } catch {} }, 0);
+          setUserHasInteracted(false);
           // Set initialized after a short delay
           setTimeout(() => setIsInitialized(true), 100);
         } else {
@@ -48,6 +54,10 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           const list = await repo.listSnippets({ includeArchived: false, limit: 500 });
           const sn = (list || []).find(s => s.id === selectedId) || null;
           if (!mounted) return;
+          console.log('Loading snippet:', selectedId, sn);
+          console.log('Snippet content:', sn?.content);
+          console.log('Setting title to:', sn?.title || '');
+          console.log('Setting content to:', sn?.content || '');
           setTitle(sn?.title || '');
           setContent(sn?.content || '');
           setPinned(!!sn?.pinned);
@@ -55,7 +65,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           setOriginalContent(sn?.content || '');
           setHasUserModified(false);
           setIsInitialized(false);
-          setTimeout(() => { try { textareaRef.current?.focus(); } catch {} }, 0);
+          setUserHasInteracted(false);
           // Set initialized after a short delay
           setTimeout(() => setIsInitialized(true), 100);
         }
@@ -73,11 +83,9 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     if (!open) return;
     if (!hasUserModified) return; // Only auto-save if user has actually modified content
     
-    console.log('🔄 Snippet auto-save triggered:', { open, hasUserModified, title, content: content?.substring(0, 50) });
     
     const handle = setTimeout(() => {
       try {
-        console.log('💾 Executing snippet auto-save...');
         if (!repo || !user) return;
         
         if (!selectedId || selectedId === '__new__') {
@@ -87,13 +95,11 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
             repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') })
               .then((created) => {
                 setAutoSavedId(created.id); // Track the created snippet ID
-                console.log('✅ Auto-save created new snippet with ID:', created.id);
                 try { onSnippetsChanged && onSnippetsChanged(); } catch {}
                 // Reset modification flag after successful save
                 setHasUserModified(false);
                 setOriginalTitle(title);
                 setOriginalContent(content);
-                console.log('✅ Snippet auto-save completed');
               })
               .catch((err) => {
                 console.error('Failed to auto-save snippet to cloud', err);
@@ -102,13 +108,11 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
             // Update the existing auto-saved snippet in background (non-blocking)
             repo.updateSnippet(autoSavedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
               .then(() => {
-                console.log('✅ Auto-save updated existing snippet with ID:', autoSavedId);
                 try { onSnippetsChanged && onSnippetsChanged(); } catch {}
                 // Reset modification flag after successful save
                 setHasUserModified(false);
                 setOriginalTitle(title);
                 setOriginalContent(content);
-                console.log('✅ Snippet auto-save completed');
               })
               .catch((err) => {
                 console.error('Failed to update snippet in cloud', err);
@@ -132,45 +136,38 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
       } catch (e) {
         console.error('❌ Snippet auto-save failed:', e);
       }
-    }, 1200);
+    }, 5000);
     
     return () => clearTimeout(handle);
   }, [title, content, open, hasUserModified, repo, user, selectedId, onSnippetsChanged, autoSavedId]);
 
-  // Track title changes - only after component is initialized
+  // Track title changes - only after user has actually interacted
   useEffect(() => {
-    if (!isInitialized) return; // Don't track changes until fully initialized
+    if (!isInitialized || !userHasInteracted) return;
     
-    // Add a small delay to prevent immediate auto-save on initialization
-    const timer = setTimeout(() => {
-      if (title !== originalTitle) {
-        setHasUserModified(true);
-      }
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [title, originalTitle, isInitialized]);
+    if (title !== originalTitle) {
+      setHasUserModified(true);
+    }
+  }, [title, originalTitle, isInitialized, userHasInteracted]);
 
-  // Track content changes - only after component is initialized
+  // Track content changes - only after user has actually interacted
   useEffect(() => {
-    if (!isInitialized) return; // Don't track changes until fully initialized
+    if (!isInitialized || !userHasInteracted) return;
     
-    // Add a small delay to prevent immediate auto-save on initialization
-    const timer = setTimeout(() => {
-      if (content !== originalContent) {
-        setHasUserModified(true);
-      }
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [content, originalContent, isInitialized]);
+    if (content !== originalContent) {
+      setHasUserModified(true);
+    }
+  }, [content, originalContent, isInitialized, userHasInteracted]);
 
   // Helper functions for consistent modification tracking
   function updateTitle(newTitle) {
+    setUserHasInteracted(true);
     setTitle(newTitle);
   }
 
   function updateContent(newContent) {
+    console.log('updateContent called with:', newContent);
+    setUserHasInteracted(true);
     setContent(newContent);
   }
 
@@ -256,12 +253,16 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     setOriginalTitle('');
     setOriginalContent('');
     setAutoSavedId(null); // Reset auto-saved ID when closing
+    setUserHasInteracted(false);
     onClose && onClose();
   }
 
   async function onCopy() {
     try {
-      await navigator.clipboard.writeText(String(content || ''));
+      // Strip HTML tags for copying
+      const doc = new DOMParser().parseFromString(content || '', 'text/html');
+      const plainText = doc.body.textContent || '';
+      await navigator.clipboard.writeText(plainText);
       if (repo && user && selectedId && selectedId !== '__new__') {
         repo.incrementCopyCount(selectedId).catch(() => {});
       }
@@ -296,11 +297,11 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     <AnimatePresence>
       {open && (
         <motion.aside
-          initial={{ x: 420, opacity: 0 }}
+          initial={{ x: 896, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 420, opacity: 0 }}
+          exit={{ x: 896, opacity: 0 }}
           transition={{ type: "spring", stiffness: 280, damping: 28 }}
-          className="fixed right-0 top-0 h-full z-[70] w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
+          className="fixed right-0 top-0 h-full z-[70] w-full max-w-4xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
           aria-label="Snippets panel"
         >
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -348,13 +349,11 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
               </button>
             </div>
             <div className="flex-1 min-h-0">
-              <textarea
-                ref={textareaRef}
-                rows={14}
-                value={content}
-                onChange={(e) => updateContent(e.target.value)}
+              <RichTextEditor
+                key={selectedId || 'new'}
+                content={content}
+                onChange={updateContent}
                 placeholder="Start typing your snippet…"
-                className="input w-full h-full resize-none overflow-auto"
               />
             </div>
           </div>

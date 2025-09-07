@@ -5,6 +5,7 @@ import { StickyNote, Calendar as CalendarIcon, Code2, Pin, PinOff, Plus, Loader2
 import { parseISO, format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import StyledSnippetPreview from "./StyledSnippetPreview";
 
 export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onOpenSnippetEditor }) {
   // Unified feed state (notes + snippets)
@@ -467,7 +468,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                   </div>
                   <div className="mt-2 whitespace-pre-wrap text-sm line-clamp-6">
                     <div className="font-medium truncate">{sn.title || 'Untitled snippet'}</div>
-                    {sn.content ? <div className="mt-1 text-slate-600 dark:text-slate-400">{sn.content}</div> : null}
+                    {sn.content ? <div className="mt-1 text-slate-600 dark:text-slate-400"><StyledSnippetPreview content={sn.content} /></div> : null}
                   </div>
                   <div className="mt-2 text-[11px] text-slate-500" title={updated.toString()}>
                     Updated {isNaN(updated.getTime()) ? '—' : format(updated, 'PPp')}
