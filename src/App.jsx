@@ -13,7 +13,7 @@ import AddTaskDrawer from "./components/AddTaskDrawer.jsx";
 import EditTaskDrawer from "./components/EditTaskDrawer.jsx";
 import CelebrationCanvas from "./components/CelebrationCanvas.jsx";
 import MissedTasksDrawer from "./components/MissedTasksDrawer.jsx";
-import DayNotesDrawer from "./components/DayNotesDrawer.jsx";
+// import DayNotesDrawer from "./components/DayNotesDrawer.jsx"; // Replaced with unified SnippetsDrawer
 import HelpPage from "./components/HelpPage.jsx";
 import SearchModal from "./components/SearchModal.jsx";
 import ScopeDialog from "./components/ScopeDialog.jsx";
@@ -63,6 +63,7 @@ export default function App() {
   const noteRepoRef = useRef(null);
   const snippetRepoRef = useRef(null);
   const [snippetsCache, setSnippetsCache] = useState(() => loadSnippetsCache());
+  const [notesCache, setNotesCache] = useState(new Map()); // Cache for day notes
   // profile menu moved into Header component
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(monthStart);
@@ -385,6 +386,8 @@ export default function App() {
         const list = existing.slice();
         if (n.content) list.push({ id: 'day_note', due: dk, dayNote: n.content, createdAt: n.updatedAt || new Date().toISOString() });
         byDate[dk] = list;
+        // Also update notesCache
+        setNotesCache(prev => new Map(prev).set(dk, n));
       });
       setTasksMap((prev) => mergeTasksMaps(prev, byDate));
     } catch (e) {
@@ -434,6 +437,16 @@ export default function App() {
         if (fullList.length) next[dateKey] = fullList; else delete next[dateKey];
         return next;
       });
+      // Also update notesCache
+      if (note) {
+        setNotesCache(prev => new Map(prev).set(dateKey, note));
+      } else {
+        setNotesCache(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(dateKey);
+          return newMap;
+        });
+      }
     } catch (e) {
       console.error('Failed to refresh day from cloud', e);
     }
@@ -835,8 +848,12 @@ export default function App() {
   function hasNoteForDay(date) {
     try {
       const dk = keyFor(date);
+      // Check tasksMap for legacy notes
       const list = tasksMap[dk] || [];
-      return list.some((t) => isNoteItem(t) && (t.dayNote || "").trim().length > 0);
+      const hasLegacyNote = list.some((t) => isNoteItem(t) && (t.dayNote || "").trim().length > 0);
+      // Check notesCache for new notes
+      const hasNewNote = notesCache.has(dk) && notesCache.get(dk)?.content?.trim().length > 0;
+      return hasLegacyNote || hasNewNote;
     } catch { return false; }
   }
 
@@ -2363,26 +2380,31 @@ export default function App() {
           recurringSeries={recurringSeries}
         />
 
-        <DayNotesDrawer
+        <SnippetsDrawer
           open={showNotes}
-          dateLabel={format(selectedDate, 'PPP')}
-          value={draftDayNote}
-          onChange={setDraftDayNote}
-          onSave={async () => {
-            try {
-              setNotesSaving(true);
-              await saveDayNoteForKey(keyFor(selectedDate), draftDayNote);
-            } finally {
-              setNotesSaving(false);
-            }
+          onClose={() => {
+            setShowNotes(false);
           }}
-          saving={notesSaving}
+          repo={noteRepoRef.current}
+          user={user}
+          snippetId={keyFor(selectedDate)}
+          type="note"
+          dateLabel={format(selectedDate, 'PPP')}
           onGoToDay={() => {
             setActiveTab('tasks');
             setCurrentView('day');
           }}
-          onClose={() => {
-            setShowNotes(false);
+          onNotesChanged={(dateKey, content) => {
+            // Update notes cache when note is saved
+            if (content && content.trim()) {
+              setNotesCache(prev => new Map(prev).set(dateKey, { dateKey, content, updatedAt: new Date() }));
+            } else {
+              setNotesCache(prev => {
+                const newMap = new Map(prev);
+                newMap.delete(dateKey);
+                return newMap;
+              });
+            }
           }}
         />
 

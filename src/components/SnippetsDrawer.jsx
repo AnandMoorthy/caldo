@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Trash2, Copy, Pin, PinOff } from "lucide-react";
 import RichTextEditor from "./RichTextEditor";
 
-export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = null, onSnippetsChanged }) {
+export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = null, onSnippetsChanged, type = 'snippet', dateLabel = '', onGoToDay, onNotesChanged }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState("");
@@ -39,10 +39,11 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
       try {
         if (!selectedId || selectedId === '__new__') {
           if (!mounted) return;
-          setTitle('Untitled snippet');
+          const defaultTitle = type === 'note' ? 'Day Note' : 'Untitled snippet';
+          setTitle(defaultTitle);
           setContent('');
           setPinned(false);
-          setOriginalTitle('Untitled snippet');
+          setOriginalTitle(defaultTitle);
           setOriginalContent('');
           setHasUserModified(false);
           setIsInitialized(false);
@@ -50,35 +51,52 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           // Set initialized after a short delay
           setTimeout(() => setIsInitialized(true), 100);
         } else {
-          // Load single snippet by id via list then find; repo lacks get-by-id helper
-          const list = await repo.listSnippets({ includeArchived: false, limit: 500 });
-          const sn = (list || []).find(s => s.id === selectedId) || null;
-          if (!mounted) return;
-          console.log('Loading snippet:', selectedId, sn);
-          console.log('Snippet content:', sn?.content);
-          console.log('Setting title to:', sn?.title || '');
-          console.log('Setting content to:', sn?.content || '');
-          setTitle(sn?.title || '');
-          setContent(sn?.content || '');
-          setPinned(!!sn?.pinned);
-          setOriginalTitle(sn?.title || '');
-          setOriginalContent(sn?.content || '');
-          setHasUserModified(false);
-          setIsInitialized(false);
-          setUserHasInteracted(false);
-          // Set initialized after a short delay
-          setTimeout(() => setIsInitialized(true), 100);
+          if (type === 'note') {
+            // Load day note
+            const note = await repo.getDayNote(selectedId);
+            if (!mounted) return;
+            console.log('Loading day note:', selectedId, note);
+            setTitle('Day Note');
+            setContent(note?.content || '');
+            setPinned(false); // Notes don't have pin functionality
+            setOriginalTitle('Day Note');
+            setOriginalContent(note?.content || '');
+            setHasUserModified(false);
+            setIsInitialized(false);
+            setUserHasInteracted(false);
+            // Set initialized after a short delay
+            setTimeout(() => setIsInitialized(true), 100);
+          } else {
+            // Load single snippet by id via list then find; repo lacks get-by-id helper
+            const list = await repo.listSnippets({ includeArchived: false, limit: 500 });
+            const sn = (list || []).find(s => s.id === selectedId) || null;
+            if (!mounted) return;
+            console.log('Loading snippet:', selectedId, sn);
+            console.log('Snippet content:', sn?.content);
+            console.log('Setting title to:', sn?.title || '');
+            console.log('Setting content to:', sn?.content || '');
+            setTitle(sn?.title || '');
+            setContent(sn?.content || '');
+            setPinned(!!sn?.pinned);
+            setOriginalTitle(sn?.title || '');
+            setOriginalContent(sn?.content || '');
+            setHasUserModified(false);
+            setIsInitialized(false);
+            setUserHasInteracted(false);
+            // Set initialized after a short delay
+            setTimeout(() => setIsInitialized(true), 100);
+          }
         }
       } catch (e) {
-        console.error('Failed to load snippet', e);
+        console.error('Failed to load content', e);
       } finally {
         if (mounted) setLoading(false);
       }
     })();
     return () => { mounted = false; };
-  }, [open, repo, user, selectedId]);
+  }, [open, repo, user, selectedId, type]);
 
-  // Auto-save snippet: debounce when user has modified content
+  // Auto-save content: debounce when user has modified content
   useEffect(() => {
     if (!open) return;
     if (!hasUserModified) return; // Only auto-save if user has actually modified content
@@ -88,50 +106,67 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
       try {
         if (!repo || !user) return;
         
-        if (!selectedId || selectedId === '__new__') {
-          // Only create if we haven't already auto-saved this content
-          if (!autoSavedId) {
-            // Create snippet in background (non-blocking)
-            repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') })
-              .then((created) => {
-                setAutoSavedId(created.id); // Track the created snippet ID
-                try { onSnippetsChanged && onSnippetsChanged(); } catch {}
-                // Reset modification flag after successful save
-                setHasUserModified(false);
-                setOriginalTitle(title);
-                setOriginalContent(content);
-              })
-              .catch((err) => {
-                console.error('Failed to auto-save snippet to cloud', err);
-              });
+        if (type === 'note') {
+          // Auto-save day note
+          repo.saveDayNote(selectedId, String(content || ''))
+            .then(() => {
+              // Reset modification flag after successful save
+              setHasUserModified(false);
+              setOriginalTitle(title);
+              setOriginalContent(content);
+              // Update notes cache
+              try { onNotesChanged && onNotesChanged(selectedId, String(content || '')); } catch {}
+            })
+            .catch((err) => {
+              console.error('Failed to auto-save day note to cloud', err);
+            });
+        } else {
+          // Handle snippet auto-save
+          if (!selectedId || selectedId === '__new__') {
+            // Only create if we haven't already auto-saved this content
+            if (!autoSavedId) {
+              // Create snippet in background (non-blocking)
+              repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+                .then((created) => {
+                  setAutoSavedId(created.id); // Track the created snippet ID
+                  try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+                  // Reset modification flag after successful save
+                  setHasUserModified(false);
+                  setOriginalTitle(title);
+                  setOriginalContent(content);
+                })
+                .catch((err) => {
+                  console.error('Failed to auto-save snippet to cloud', err);
+                });
+            } else {
+              // Update the existing auto-saved snippet in background (non-blocking)
+              repo.updateSnippet(autoSavedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+                .then(() => {
+                  try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+                  // Reset modification flag after successful save
+                  setHasUserModified(false);
+                  setOriginalTitle(title);
+                  setOriginalContent(content);
+                })
+                .catch((err) => {
+                  console.error('Failed to update snippet in cloud', err);
+                });
+            }
           } else {
-            // Update the existing auto-saved snippet in background (non-blocking)
-            repo.updateSnippet(autoSavedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+            // Update snippet in background (non-blocking)
+            repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
               .then(() => {
                 try { onSnippetsChanged && onSnippetsChanged(); } catch {}
                 // Reset modification flag after successful save
                 setHasUserModified(false);
                 setOriginalTitle(title);
                 setOriginalContent(content);
+                console.log('✅ Snippet auto-save completed');
               })
               .catch((err) => {
                 console.error('Failed to update snippet in cloud', err);
               });
           }
-        } else {
-          // Update snippet in background (non-blocking)
-          repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
-            .then(() => {
-              try { onSnippetsChanged && onSnippetsChanged(); } catch {}
-              // Reset modification flag after successful save
-              setHasUserModified(false);
-              setOriginalTitle(title);
-              setOriginalContent(content);
-              console.log('✅ Snippet auto-save completed');
-            })
-            .catch((err) => {
-              console.error('Failed to update snippet in cloud', err);
-            });
         }
       } catch (e) {
         console.error('❌ Snippet auto-save failed:', e);
@@ -179,27 +214,36 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     
     setSaving(true);
     try {
-      if (!selectedId || selectedId === '__new__') {
-        // If auto-save already created a snippet, update it instead of creating a new one
-        if (autoSavedId) {
-          await repo.updateSnippet(autoSavedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') });
-          console.log('✅ Manual save updated auto-saved snippet with ID:', autoSavedId);
-        } else {
-          // Create snippet only if auto-save hasn't created one yet
-          const created = await repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') });
-          setAutoSavedId(created.id);
-          console.log('✅ Manual save created new snippet with ID:', created.id);
-        }
-        try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+      if (type === 'note') {
+        // Save day note
+        await repo.saveDayNote(selectedId, String(content || ''));
+        console.log('✅ Day note saved for:', selectedId);
+        // Update notes cache
+        try { onNotesChanged && onNotesChanged(selectedId, String(content || '')); } catch {}
       } else {
-        // Update snippet in background (non-blocking)
-        repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
-          .then(() => {
-            try { onSnippetsChanged && onSnippetsChanged(); } catch {}
-          })
-          .catch((err) => {
-            console.error('Failed to update snippet in cloud', err);
-          });
+        // Handle snippet saving
+        if (!selectedId || selectedId === '__new__') {
+          // If auto-save already created a snippet, update it instead of creating a new one
+          if (autoSavedId) {
+            await repo.updateSnippet(autoSavedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+            console.log('✅ Manual save updated auto-saved snippet with ID:', autoSavedId);
+          } else {
+            // Create snippet only if auto-save hasn't created one yet
+            const created = await repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+            setAutoSavedId(created.id);
+            console.log('✅ Manual save created new snippet with ID:', created.id);
+          }
+          try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+        } else {
+          // Update snippet in background (non-blocking)
+          repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+            .then(() => {
+              try { onSnippetsChanged && onSnippetsChanged(); } catch {}
+            })
+            .catch((err) => {
+              console.error('Failed to update snippet in cloud', err);
+            });
+        }
       }
       
       // Reset modification flag after successful save
@@ -291,7 +335,12 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
       });
   }
 
-  const headerTitle = useMemo(() => (selectedId && selectedId !== '__new__' ? 'Edit Snippet' : 'New Snippet'), [selectedId]);
+  const headerTitle = useMemo(() => {
+    if (type === 'note') {
+      return 'Edit Note';
+    }
+    return selectedId && selectedId !== '__new__' ? 'Edit Snippet' : 'New Snippet';
+  }, [selectedId, type]);
 
   return (
     <AnimatePresence>
@@ -302,7 +351,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           exit={{ x: 896, opacity: 0 }}
           transition={{ type: "spring", stiffness: 280, damping: 28 }}
           className="fixed right-0 top-0 h-full z-[70] w-full max-w-4xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
-          aria-label="Snippets panel"
+          aria-label={type === 'note' ? 'Notes panel' : 'Snippets panel'}
         >
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{headerTitle}</div>
@@ -326,20 +375,27 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           </div>
 
           <div className="p-4 flex-1 min-h-0 flex flex-col">
-            <div className="flex items-center gap-2 mb-2">
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => updateTitle(e.target.value)}
-                placeholder="Title"
-                className="flex-1 px-3 py-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-              />
-            </div>
+            {type === 'snippet' && (
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => updateTitle(e.target.value)}
+                  placeholder="Title"
+                  className="flex-1 px-3 py-2 rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                />
+              </div>
+            )}
+            {type === 'note' && (
+              <div className="mb-2">
+                <div className="text-sm font-medium text-slate-700 dark:text-slate-300">{dateLabel}</div>
+              </div>
+            )}
             <div className="flex items-center gap-2 mb-2">
               <button type="button" onClick={onCopy} className="px-2 py-1 text-xs rounded bg-slate-100 dark:bg-slate-800 inline-flex items-center gap-1">
                 <Copy size={14} /> Copy
               </button>
-              {selectedId && selectedId !== '__new__' && (
+              {type === 'snippet' && selectedId && selectedId !== '__new__' && (
                 <button type="button" onClick={onTogglePin} className="px-2 py-1 text-xs rounded bg-slate-100 dark:bg-slate-800 inline-flex items-center gap-1">
                   {pinned ? (<><Pin size={14} /> Unpin</>) : (<><PinOff size={14} /> Pin</>)}
                 </button>
@@ -353,7 +409,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
                 key={selectedId || 'new'}
                 content={content}
                 onChange={updateContent}
-                placeholder="Start typing your snippet…"
+                placeholder={type === 'note' ? "Start typing your day note…" : "Start typing your snippet…"}
               />
             </div>
           </div>

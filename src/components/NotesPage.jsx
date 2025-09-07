@@ -409,36 +409,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                       {String(n.content || '').trim().length === 0 ? (
                         <div className="text-slate-400 italic">No content</div>
                       ) : (
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          components={{
-                            p: ({node, ...props}) => <p className="my-2 leading-relaxed" {...props} />,
-                            ul: ({node, className, ...props}) => <ul className={`list-disc ml-5 my-2 space-y-1 ${className || ''}`} {...props} />,
-                            ol: ({node, className, ...props}) => <ol className={`list-decimal ml-5 my-2 space-y-1 ${className || ''}`} {...props} />,
-                            li: ({node, className, ...props}) => <li className={`my-1 ${className || ''} ${className?.includes?.('task-list-item') ? 'list-none' : ''}`} {...props} />,
-                            strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
-                            em: ({node, ...props}) => <em className="italic" {...props} />,
-                            blockquote: ({node, className, ...props}) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-700 pl-3 italic text-slate-700 dark:text-slate-300 my-3" {...props} />,
-                            hr: (props) => <hr className="my-4 border-slate-200 dark:border-slate-700" {...props} />,
-                            code({node, inline, className, children, ...props}) {
-                              if (inline) {
-                                return <code className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800" {...props}>{children}</code>;
-                              }
-                              return (
-                                <pre className="p-3 rounded bg-slate-950 text-slate-100 overflow-auto">
-                                  <code {...props}>{children}</code>
-                                </pre>
-                              );
-                            },
-                            a: ({node, ...props}) => <a className="text-indigo-600 dark:text-indigo-400 underline" target="_blank" rel="noreferrer" {...props} />,
-                            table: ({node, ...props}) => <table className="my-3 w-full border-collapse text-sm" {...props} />,
-                            th: ({node, ...props}) => <th className="border border-slate-200 dark:border-slate-700 px-2 py-1 text-left" {...props} />,
-                            td: ({node, className, ...props}) => <td className="border border-slate-200 dark:border-slate-700 px-2 py-1" {...props} />,
-                            input: ({node, ...props}) => <input {...props} disabled className="align-middle mr-2 accent-indigo-600" />,
-                          }}
-                        >
-                          {String(n.content || '')}
-                        </ReactMarkdown>
+                        <StyledSnippetPreview content={n.content} />
                       )}
                     </div>
                     <div className="mt-2 text-[11px] text-slate-500" title={updated.toString()}>
