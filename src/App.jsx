@@ -57,7 +57,7 @@ export default function App() {
   const loadedMonthsRef = useRef(new Set());
   const [recurringSeries, setRecurringSeries] = useState(() => loadRecurringSeries());
   const [recurringEnabled, setRecurringEnabled] = useState(true);
-  const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
+  const [pomodoroEnabled, setPomodoroEnabled] = useState(true);
   const [deleteAllTasksEnabled, setDeleteAllTasksEnabled] = useState(false);
   
   // Repositories

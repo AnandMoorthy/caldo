@@ -73,12 +73,12 @@ export default function FloatingPomodoro({
         const pos = JSON.parse(saved);
         setPosition(pos);
       } catch (e) {
-        // Default position above task list
-        setPosition({ x: 20, y: 100 });
+        // Default position - top right corner with better spacing
+        setPosition({ x: window.innerWidth - 308, y: 80 });
       }
     } else {
-      // Default position above task list
-      setPosition({ x: 20, y: 100 });
+      // Default position - top right corner with better spacing
+      setPosition({ x: window.innerWidth - 308, y: 80 });
     }
   }, []);
 
@@ -326,9 +326,11 @@ export default function FloatingPomodoro({
       y: e.clientY - dragOffset.y
     };
     
-    // Keep widget within viewport
-    const maxX = window.innerWidth - 200;
-    const maxY = window.innerHeight - 100;
+    // Keep widget within viewport with responsive constraints
+    const widgetWidth = 288; // w-72 = 288px
+    const widgetHeight = 120; // Approximate height for compact design
+    const maxX = window.innerWidth - widgetWidth;
+    const maxY = window.innerHeight - widgetHeight;
     
     newPosition.x = Math.max(0, Math.min(newPosition.x, maxX));
     newPosition.y = Math.max(0, Math.min(newPosition.y, maxY));
@@ -353,6 +355,24 @@ export default function FloatingPomodoro({
       };
     }
   }, [isDragging, dragOffset]);
+
+  // Handle window resize to keep widget in bounds
+  useEffect(() => {
+    const handleResize = () => {
+      const widgetWidth = 288; // w-72 = 288px
+      const widgetHeight = 120; // Approximate height for compact design
+      const maxX = window.innerWidth - widgetWidth;
+      const maxY = window.innerHeight - widgetHeight;
+      
+      setPosition(prev => ({
+        x: Math.max(0, Math.min(prev.x, maxX)),
+        y: Math.max(0, Math.min(prev.y, maxY))
+      }));
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   if (!isVisible) return null;
 
@@ -410,20 +430,23 @@ export default function FloatingPomodoro({
         </div>
       </div>
 
-      {/* Main Content - Horizontal Layout */}
+      {/* Main Content - Compact Horizontal Layout */}
       <div className="flex items-center justify-between p-3">
-        {/* Timer Display */}
-        <div className="flex-1 text-center">
+        {/* Timer Display - Left Side */}
+        <div className="flex-1 min-w-0">
           <div className={`text-2xl font-mono font-bold ${getPhaseColor()} mb-1`}>
             {formatTime(timeLeft)}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400">
-            {sessionsCompleted} sessions
+          <div className="flex items-center gap-1 text-xs">
+            <div className="w-1.5 h-1.5 bg-slate-400 dark:bg-slate-500 rounded-full"></div>
+            <span className="text-slate-500 dark:text-slate-400">
+              {sessionsCompleted} sessions
+            </span>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-1">
+        {/* Controls - Right Side */}
+        <div className="flex items-center gap-1 ml-3">
           {!isRunning ? (
             <button
               onClick={startTimer}

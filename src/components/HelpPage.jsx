@@ -23,7 +23,9 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
         console.log('HelpPage: Escape key pressed');
         event.preventDefault();
         event.stopPropagation();
-        handleClose();
+        if (typeof onClose === 'function') {
+          onClose();
+        }
       }
     };
 
@@ -39,7 +41,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       document.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'unset';
     };
-  }, [open, handleClose]);
+  }, [open, onClose]);
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: HelpCircle },
