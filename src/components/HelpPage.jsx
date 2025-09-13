@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Keyboard, HelpCircle, Search, RefreshCcw, Calendar, List, Plus, FileText, Clock, CheckCircle, AlertCircle, Info, Code, Copy } from "lucide-react";
 
-export default function HelpPage({ open, onClose }) {
+export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
   const [activeTab, setActiveTab] = useState('overview');
 
   const handleClose = useCallback(() => {
@@ -45,7 +45,7 @@ export default function HelpPage({ open, onClose }) {
     { id: 'overview', label: 'Overview', icon: HelpCircle },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'tasks', label: 'Tasks', icon: List },
-    { id: 'pomodoro', label: 'Pomodoro', icon: Clock },
+    ...(pomodoroEnabled ? [{ id: 'pomodoro', label: 'Pomodoro', icon: Clock }] : []),
     { id: 'snippets', label: 'Snippets', icon: Code },
     { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
     { id: 'features', label: 'Features', icon: Info },
@@ -97,15 +97,17 @@ export default function HelpPage({ open, onClose }) {
           </p>
         </div>
 
-        <div className="p-4 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 mb-3">
-            <Clock size={20} className="text-orange-600 dark:text-orange-400" />
+        {pomodoroEnabled && (
+          <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 mb-3">
+              <Clock size={20} className="text-orange-600 dark:text-orange-400" />
+            </div>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Pomodoro Timer</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Focus timer with work/break cycles for productivity
+            </p>
           </div>
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Pomodoro Timer</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            Focus timer with work/break cycles for productivity
-          </p>
-        </div>
+        )}
 
         <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 mb-3">
@@ -459,10 +461,12 @@ export default function HelpPage({ open, onClose }) {
           <span className="text-slate-700 dark:text-slate-200">Open missed tasks</span>
           <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">O</kbd>
         </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Open Pomodoro timer</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">P</kbd>
-        </div>
+        {pomodoroEnabled && (
+          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+            <span className="text-slate-700 dark:text-slate-200">Open Pomodoro timer</span>
+            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">P</kbd>
+          </div>
+        )}
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <span className="text-slate-700 dark:text-slate-700">Open snippets</span>
           <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">
@@ -604,25 +608,27 @@ export default function HelpPage({ open, onClose }) {
           </div>
         </div>
 
-        <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
-          <div className="flex items-center gap-3 mb-3">
-            <Clock size={20} className="text-orange-600" />
-            <h3 className="font-semibold text-orange-900 dark:text-orange-100">Pomodoro Timer</h3>
+        {pomodoroEnabled && (
+          <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+            <div className="flex items-center gap-3 mb-3">
+              <Clock size={20} className="text-orange-600" />
+              <h3 className="font-semibold text-orange-900 dark:text-orange-100">Pomodoro Timer</h3>
+            </div>
+            <div className="text-sm text-orange-800 dark:text-orange-200 space-y-2">
+              <p>Boost productivity with focused work sessions and strategic breaks:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Press <kbd className="px-1.5 py-0.5 rounded bg-orange-200 dark:bg-orange-800 text-xs">P</kbd> to open Pomodoro timer</li>
+                <li>25-minute work sessions with 5-minute breaks</li>
+                <li>15-minute long break after 4 work sessions</li>
+                <li>Auto-complete tasks when work sessions end</li>
+                <li>Draggable floating widget with persistent position</li>
+                <li>Customizable timer durations in settings</li>
+                <li>Sound notifications and desktop alerts</li>
+                <li>Only works for today's tasks (past/future disabled)</li>
+              </ul>
+            </div>
           </div>
-          <div className="text-sm text-orange-800 dark:text-orange-200 space-y-2">
-            <p>Boost productivity with focused work sessions and strategic breaks:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-orange-200 dark:bg-orange-800 text-xs">P</kbd> to open Pomodoro timer</li>
-              <li>25-minute work sessions with 5-minute breaks</li>
-              <li>15-minute long break after 4 work sessions</li>
-              <li>Auto-complete tasks when work sessions end</li>
-              <li>Draggable floating widget with persistent position</li>
-              <li>Customizable timer durations in settings</li>
-              <li>Sound notifications and desktop alerts</li>
-              <li>Only works for today's tasks (past/future disabled)</li>
-            </ul>
-          </div>
-        </div>
+        )}
 
         <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
           <div className="flex items-center gap-3 mb-3">

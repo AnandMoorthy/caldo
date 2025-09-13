@@ -57,6 +57,7 @@ export default function App() {
   const loadedMonthsRef = useRef(new Set());
   const [recurringSeries, setRecurringSeries] = useState(() => loadRecurringSeries());
   const [recurringEnabled, setRecurringEnabled] = useState(true);
+  const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
   const [deleteAllTasksEnabled, setDeleteAllTasksEnabled] = useState(false);
   
   // Repositories
@@ -289,7 +290,7 @@ export default function App() {
       } else if (e.key === '?') {
         e.preventDefault();
         setShowHelp(true);
-      } else if (key === 'p') {
+      } else if (key === 'p' && pomodoroEnabled) {
         e.preventDefault();
         setShowFloatingPomodoro(true);
       }
@@ -567,6 +568,20 @@ export default function App() {
           } catch (err) {
             console.warn('Feature flag fetch failed; defaulting to enabled', err);
             setRecurringEnabled(true);
+          }
+
+          // Feature flag: pomodoro timer (default enabled). Stored at
+          // /users/{uid}/meta/featureFlag { pomodoroTimer: boolean }
+          try {
+            const flagRef = db.collection('users').doc(u.uid).collection('meta').doc('featureFlag');
+            const flagDoc = await flagRef.get();
+            let enabled = true;
+            if (flagDoc.exists) enabled = !!(flagDoc.data()?.pomodoroTimer ?? true);
+            setPomodoroEnabled(enabled);
+            if (!flagDoc.exists) await flagRef.set({ pomodoroTimer: true }, { merge: true });
+          } catch (err) {
+            console.warn('Pomodoro feature flag fetch failed; defaulting to enabled', err);
+            setPomodoroEnabled(true);
           }
 
           // Feature flag: delete all tasks (default disabled). Stored at
@@ -2068,6 +2083,7 @@ export default function App() {
           onChangeView={(v) => setCurrentView(v)}
           activeTab={activeTab}
           onChangeTab={setActiveTab}
+          pomodoroEnabled={pomodoroEnabled}
         />
         {activeTab === 'tasks' && currentView === 'month' ? (
           <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
@@ -2188,11 +2204,11 @@ export default function App() {
                 onAddSubtask={addSubtask}
                 onToggleSubtask={toggleSubtask}
                 onDeleteSubtask={deleteSubtask}
-                onStartPomodoro={openPomodoroTimer}
+                onStartPomodoro={pomodoroEnabled ? openPomodoroTimer : null}
                 density={density}
                 emptyMessage="No tasks. Add a new task to view."
                 recurringSeries={recurringSeries}
-                pomodoroRunningState={pomodoroRunningState}
+                pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
               />
             </aside>
           </main>
@@ -2301,10 +2317,10 @@ export default function App() {
                 onAddSubtask={addSubtask}
                 onToggleSubtask={toggleSubtask}
                 onDeleteSubtask={deleteSubtask}
-                onStartPomodoro={openPomodoroTimer}
+                onStartPomodoro={pomodoroEnabled ? openPomodoroTimer : null}
                 density={density}
                 recurringSeries={recurringSeries}
-                pomodoroRunningState={pomodoroRunningState}
+                pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
               />
             </aside>
           </main>
@@ -2474,7 +2490,8 @@ export default function App() {
             } catch (e) {
               console.error('App: Error updating history:', e);
             }
-          }} 
+          }}
+          pomodoroEnabled={pomodoroEnabled}
         />
 
         <SearchModal
@@ -2512,13 +2529,15 @@ export default function App() {
         />
 
         {/* Floating Pomodoro Widget */}
-        <FloatingPomodoro
-          isVisible={showFloatingPomodoro}
-          onClose={closePomodoroTimer}
-          currentTask={currentPomodoroTask}
-          onTaskComplete={handlePomodoroTaskComplete}
-          onRunningStateChange={handlePomodoroRunningStateChange}
-        />
+        {pomodoroEnabled && (
+          <FloatingPomodoro
+            isVisible={showFloatingPomodoro}
+            onClose={closePomodoroTimer}
+            currentTask={currentPomodoroTask}
+            onTaskComplete={handlePomodoroTaskComplete}
+            onRunningStateChange={handlePomodoroRunningStateChange}
+          />
+        )}
 
         <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
         <TooltipProvider />

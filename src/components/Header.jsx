@@ -22,7 +22,7 @@ function Avatar({ user }) {
   return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
-export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, onOpenPomodoro, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks, currentView = 'month', onChangeView, activeTab = 'tasks', onChangeTab }) {
+export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, onOpenPomodoro, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks, currentView = 'month', onChangeView, activeTab = 'tasks', onChangeTab, pomodoroEnabled = true }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const [canInstall, setCanInstall] = useState(false);
@@ -192,13 +192,15 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
           >
             <Search size={18} />
           </button>
-          <button 
-            onClick={onOpenPomodoro} 
-            className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
-            data-tip={`Start Pomodoro timer (P)`}
-          >
-            <Timer size={18} />
-          </button>
+          {pomodoroEnabled && (
+            <button 
+              onClick={onOpenPomodoro} 
+              className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
+              data-tip={`Start Pomodoro timer (P)`}
+            >
+              <Timer size={18} />
+            </button>
+          )}
           {canInstall && (
             <button 
               onClick={onClickInstall} 
