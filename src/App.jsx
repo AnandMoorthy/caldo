@@ -21,6 +21,7 @@ import TooltipProvider from "./components/Tooltip.jsx";
 import NotesPage from "./components/NotesPage.jsx";
 import SnippetsPage from "./components/SnippetsPage.jsx";
 import SnippetsDrawer from "./components/SnippetsDrawer.jsx";
+import FloatingPomodoro from "./components/FloatingPomodoro.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference, loadSnippetsCache, saveSnippetsCache } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
@@ -76,6 +77,10 @@ export default function App() {
   const [snippetsDrawerOpen, setSnippetsDrawerOpen] = useState(false);
   const [snippetsDrawerId, setSnippetsDrawerId] = useState(null);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  
+  // Pomodoro timer state
+  const [showFloatingPomodoro, setShowFloatingPomodoro] = useState(false);
+  const [currentPomodoroTask, setCurrentPomodoroTask] = useState(null);
   const scopeActionRef = useRef(null); // { type: 'delete'|'edit', task }
   const [density, setDensity] = useState(() => (typeof window === 'undefined' ? 'normal' : loadDensityPreference()));
   const [showDensityMenu, setShowDensityMenu] = useState(false);
@@ -277,6 +282,9 @@ export default function App() {
       } else if (e.key === '?') {
         e.preventDefault();
         setShowHelp(true);
+      } else if (key === 'p') {
+        e.preventDefault();
+        setShowFloatingPomodoro(true);
       }
     }
     function onKeyUp(e) {
@@ -1820,6 +1828,29 @@ export default function App() {
     } catch {}
   }
 
+  // Pomodoro timer functions
+  function openPomodoroTimer(task = null) {
+    setCurrentPomodoroTask(task);
+    setShowFloatingPomodoro(true);
+  }
+
+  function closePomodoroTimer() {
+    setShowFloatingPomodoro(false);
+    setCurrentPomodoroTask(null);
+  }
+
+  function handlePomodoroTaskComplete(task) {
+    if (task && task.id) {
+      if (task.parentTask) {
+        // This is a subtask - toggle the subtask
+        toggleSubtask(task.parentTask, task.id);
+      } else {
+        // This is a main task - mark as completed
+        toggleDone(task);
+      }
+    }
+  }
+
   function exportJSON() {
     const blob = new Blob([JSON.stringify(tasksMap, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -2011,6 +2042,7 @@ export default function App() {
           onImportJSON={importJSON}
           onOpenHelp={() => setShowHelp(true)}
           onOpenSearch={() => setShowSearch(true)}
+          onOpenPomodoro={() => openPomodoroTimer()}
           currentStreak={streak?.current || 0}
           deleteAllTasksEnabled={!!deleteAllTasksEnabled}
           onDeleteAllTasks={deleteAllTasksFromCloud}
@@ -2138,6 +2170,7 @@ export default function App() {
                 onAddSubtask={addSubtask}
                 onToggleSubtask={toggleSubtask}
                 onDeleteSubtask={deleteSubtask}
+                onStartPomodoro={openPomodoroTimer}
                 density={density}
                 emptyMessage="No tasks. Add a new task to view."
                 recurringSeries={recurringSeries}
@@ -2249,6 +2282,7 @@ export default function App() {
                 onAddSubtask={addSubtask}
                 onToggleSubtask={toggleSubtask}
                 onDeleteSubtask={deleteSubtask}
+                onStartPomodoro={openPomodoroTimer}
                 density={density}
                 recurringSeries={recurringSeries}
               />
@@ -2455,6 +2489,14 @@ export default function App() {
           onOnlyThis={handleScopeOnlyThis}
           onEntireSeries={handleScopeEntireSeries}
           actionType={scopeActionRef.current?.type || 'delete'}
+        />
+
+        {/* Floating Pomodoro Widget */}
+        <FloatingPomodoro
+          isVisible={showFloatingPomodoro}
+          onClose={closePomodoroTimer}
+          currentTask={currentPomodoroTask}
+          onTaskComplete={handlePomodoroTaskComplete}
         />
 
         <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>

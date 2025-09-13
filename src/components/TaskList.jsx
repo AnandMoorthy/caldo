@@ -1,11 +1,11 @@
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Check, RotateCcw, Trash, Clock, ChevronDown, ChevronRight, Plus, RefreshCcw } from "lucide-react";
+import { Pencil, Check, RotateCcw, Trash, Clock, ChevronDown, ChevronRight, Plus, RefreshCcw, Timer } from "lucide-react";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { generateId } from "../utils/uid";
 import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
 
-function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, showDueDate = false, density = 'normal', recurringSeries = [] }) {
+function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [] }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
   const completedSubtasks = hasSubtasks ? t.subtasks.filter((st) => st.done).length : 0;
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
@@ -146,15 +146,28 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
                     />
                     <span className={`text-[12px] truncate ${(st.done || false) ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-300"}`}>{st.title || "Untitled"}</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => onDeleteSubtask && onDeleteSubtask(t, st.id || generateId())}
-                    className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400"
-                    data-tip="Delete subtask"
-                    aria-label="Delete subtask"
-                  >
-                    <Trash size={Math.max(12, iconSize - 2)} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {onStartPomodoro && !st.done && (
+                      <button
+                        type="button"
+                        onClick={() => onStartPomodoro({ ...st, parentTask: t })}
+                        className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-950/30 text-orange-600 dark:text-orange-400"
+                        data-tip="Start Pomodoro for subtask"
+                        aria-label="Start Pomodoro for subtask"
+                      >
+                        <Timer size={Math.max(12, iconSize - 2)} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onDeleteSubtask && onDeleteSubtask(t, st.id || generateId())}
+                      className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400"
+                      data-tip="Delete subtask"
+                      aria-label="Delete subtask"
+                    >
+                      <Trash size={Math.max(12, iconSize - 2)} />
+                    </button>
+                  </div>
                 </div>
               ))}
               <div className="flex items-center gap-2 pt-1">
@@ -206,6 +219,11 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
           <button onClick={() => onOpenEditModal(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-indigo-600 dark:text-indigo-400`} data-tip="Edit" aria-label="Edit">
             <Pencil size={iconSize} />
           </button>
+          {onStartPomodoro && !isDone && (
+            <button onClick={() => onStartPomodoro(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-orange-950/30 text-orange-600 dark:text-orange-400`} data-tip="Start Pomodoro" aria-label="Start Pomodoro">
+              <Timer size={iconSize} />
+            </button>
+          )}
           <button onClick={() => onDeleteTask(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400`} data-tip="Delete" aria-label="Delete">
             <Trash size={iconSize} />
           </button>
@@ -215,7 +233,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   );
 }
 
-export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [] }) {
+export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [] }) {
   if (!tasks || tasks.length === 0) {
     const msg = emptyMessage || 'No tasks. Double-click any day to add one quickly.';
     return <div className="text-sm text-slate-400 dark:text-slate-500">{msg}</div>;
@@ -234,6 +252,7 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
           onAddSubtask={onAddSubtask}
           onToggleSubtask={onToggleSubtask}
           onDeleteSubtask={onDeleteSubtask}
+          onStartPomodoro={onStartPomodoro}
           showDueDate={showDueDate}
           density={density}
           recurringSeries={recurringSeries}
