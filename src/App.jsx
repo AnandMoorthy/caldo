@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from "react";
+import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO } from "date-fns";
 import { motion } from "framer-motion";
 import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX } from "lucide-react";
@@ -1868,9 +1868,9 @@ export default function App() {
     });
   }
 
-  function handlePomodoroRunningStateChange(state) {
+  const handlePomodoroRunningStateChange = useCallback((state) => {
     setPomodoroRunningState(state);
-  }
+  }, []);
 
   function handlePomodoroTaskComplete(task) {
     if (task && task.id) {
