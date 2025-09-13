@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Clock, Play, Pause, Square, X, Grip, Settings } from "lucide-react";
+import { parseISO, isAfter, startOfDay, isBefore, endOfDay } from "date-fns";
 
 const POMODORO_PHASES = {
   WORK: 'work',
@@ -18,7 +19,8 @@ export default function FloatingPomodoro({
   isVisible, 
   onClose, 
   currentTask = null,
-  onTaskComplete = null 
+  onTaskComplete = null,
+  onRunningStateChange = null
 }) {
   const [phase, setPhase] = useState(POMODORO_PHASES.WORK);
   const [timeLeft, setTimeLeft] = useState(DEFAULT_TIMES.work);
@@ -31,6 +33,20 @@ export default function FloatingPomodoro({
   const [currentTaskId, setCurrentTaskId] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState(customTimes);
+  
+  // Check if Pomodoro should be disabled based on task date
+  const isPomodoroDisabled = () => {
+    if (!currentTask) return false;
+    
+    const taskDate = currentTask.due || currentTask.dateKey;
+    if (!taskDate) return false;
+    
+    const today = new Date();
+    const taskDateObj = parseISO(taskDate);
+    
+    // Disable if task is for past or future dates (only allow today)
+    return isBefore(taskDateObj, startOfDay(today)) || isAfter(taskDateObj, endOfDay(today));
+  };
   
   const intervalRef = useRef(null);
   const widgetRef = useRef(null);
@@ -77,6 +93,19 @@ export default function FloatingPomodoro({
       setSessionsCompleted(0);
     }
   }, [currentTask, currentTaskId, customTimes.work]);
+
+  // Notify parent component when running state changes
+  useEffect(() => {
+    if (onRunningStateChange) {
+      onRunningStateChange({
+        isRunning,
+        currentTask: isRunning ? currentTask : null,
+        timeLeft: isRunning ? timeLeft : null,
+        phase: isRunning ? phase : null,
+        totalTime: isRunning ? customTimes[phase] : null
+      });
+    }
+  }, [isRunning, currentTask, timeLeft, phase, customTimes, onRunningStateChange]);
 
   // Save position to localStorage
   const savePosition = (newPosition) => {
@@ -219,6 +248,7 @@ export default function FloatingPomodoro({
   };
 
   const startTimer = () => {
+    if (isPomodoroDisabled()) return;
     setIsRunning(true);
   };
 
@@ -338,16 +368,29 @@ export default function FloatingPomodoro({
         top: position.y,
         zIndex: 1000
       }}
-      className={`w-64 border-2 rounded-xl shadow-lg bg-white dark:bg-slate-900 cursor-move select-none ${getPhaseBgColor()}`}
+      className={`w-72 border-2 rounded-lg shadow-lg bg-white dark:bg-slate-900 cursor-move select-none ${getPhaseBgColor()}`}
       onMouseDown={handleMouseDown}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-slate-200 dark:border-slate-700">
-        <div className="flex items-center gap-2">
-          <Clock size={16} className={getPhaseColor()} />
-          <span className={`text-sm font-medium ${getPhaseColor()}`}>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Clock size={14} className={getPhaseColor()} />
+          <span className={`text-xs font-medium ${getPhaseColor()}`}>
             {getPhaseLabel()}
           </span>
+          {isPomodoroDisabled() && (
+            <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+              (Today only)
+            </span>
+          )}
+          {currentTask && (
+            <>
+              <span className="text-xs text-slate-400 dark:text-slate-500">•</span>
+              <span className="text-xs font-semibold text-slate-900 dark:text-slate-100 truncate">
+                {currentTask.title}
+              </span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -355,51 +398,41 @@ export default function FloatingPomodoro({
             className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
             aria-label="Settings"
           >
-            <Settings size={14} className="text-slate-600 dark:text-slate-400" />
+            <Settings size={12} className="text-slate-600 dark:text-slate-400" />
           </button>
           <button
             onClick={onClose}
             className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
             aria-label="Close"
           >
-            <X size={14} className="text-slate-600 dark:text-slate-400" />
+            <X size={12} className="text-slate-600 dark:text-slate-400" />
           </button>
         </div>
       </div>
 
-      {/* Timer Display */}
-      <div className="p-4 text-center">
-        {/* Current Task */}
-        {currentTask && (
-          <div className="mb-3 p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-            <div className="text-xs text-slate-600 dark:text-slate-400 mb-1">Working on:</div>
-            <div className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">
-              {currentTask.title}
-            </div>
-          </div>
-        )}
-
-        {/* Timer */}
-        <div className="mb-3">
-          <div className={`text-2xl font-mono font-bold ${getPhaseColor()}`}>
+      {/* Main Content - Horizontal Layout */}
+      <div className="flex items-center justify-between p-3">
+        {/* Timer Display */}
+        <div className="flex-1 text-center">
+          <div className={`text-2xl font-mono font-bold ${getPhaseColor()} mb-1`}>
             {formatTime(timeLeft)}
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 space-y-1">
-            <div>{sessionsCompleted} sessions completed</div>
-            <div>
-              {phase === POMODORO_PHASES.WORK && `Work: ${Math.floor(customTimes.work / 60)}min`}
-              {phase === POMODORO_PHASES.SHORT_BREAK && `Break: ${Math.floor(customTimes.shortBreak / 60)}min`}
-              {phase === POMODORO_PHASES.LONG_BREAK && `Long Break: ${Math.floor(customTimes.longBreak / 60)}min`}
-            </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400">
+            {sessionsCompleted} sessions
           </div>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center gap-1">
           {!isRunning ? (
             <button
               onClick={startTimer}
-              className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+              disabled={isPomodoroDisabled()}
+              className={`flex items-center gap-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
+                isPomodoroDisabled()
+                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                  : 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200'
+              }`}
             >
               <Play size={14} />
               Start
@@ -407,7 +440,7 @@ export default function FloatingPomodoro({
           ) : (
             <button
               onClick={pauseTimer}
-              className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-lg text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+              className="flex items-center gap-1 px-3 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
             >
               <Pause size={14} />
               Pause
@@ -416,7 +449,7 @@ export default function FloatingPomodoro({
           
           <button
             onClick={resetTimer}
-            className="p-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
             aria-label="Reset"
           >
             <Square size={14} />
@@ -426,13 +459,13 @@ export default function FloatingPomodoro({
 
       {/* Inline Settings */}
       {showSettings && (
-        <div className="border-t border-slate-200 dark:border-slate-700 p-4 space-y-3">
-          <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100">Timer Settings</h4>
+        <div className="border-t border-slate-200 dark:border-slate-700 p-3 space-y-2">
+          <h4 className="text-xs font-medium text-slate-900 dark:text-slate-100">Timer Settings</h4>
           
-          <div className="space-y-3">
+          <div className="grid grid-cols-3 gap-2">
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Work Duration (minutes)
+                Work (min)
               </label>
               <input
                 type="number"
@@ -440,13 +473,13 @@ export default function FloatingPomodoro({
                 max="60"
                 value={Math.floor(settings.work / 60)}
                 onChange={(e) => updateSetting('work', parseInt(e.target.value) || 1)}
-                className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                className="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
               />
             </div>
             
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Short Break (minutes)
+                Short (min)
               </label>
               <input
                 type="number"
@@ -454,13 +487,13 @@ export default function FloatingPomodoro({
                 max="30"
                 value={Math.floor(settings.shortBreak / 60)}
                 onChange={(e) => updateSetting('shortBreak', parseInt(e.target.value) || 1)}
-                className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                className="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
               />
             </div>
             
             <div>
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                Long Break (minutes)
+                Long (min)
               </label>
               <input
                 type="number"
@@ -468,21 +501,21 @@ export default function FloatingPomodoro({
                 max="60"
                 value={Math.floor(settings.longBreak / 60)}
                 onChange={(e) => updateSetting('longBreak', parseInt(e.target.value) || 1)}
-                className="w-full px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
+                className="w-full px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100"
               />
             </div>
           </div>
           
-          <div className="flex gap-2 pt-2">
+          <div className="flex gap-2 pt-1">
             <button
               onClick={() => setShowSettings(false)}
-              className="flex-1 px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+              className="flex-1 px-2 py-1 text-xs text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={handleSaveSettings}
-              className="flex-1 px-3 py-1.5 text-xs bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+              className="flex-1 px-2 py-1 text-xs bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded font-medium hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
             >
               Save
             </button>

@@ -5,7 +5,7 @@ import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { generateId } from "../utils/uid";
 import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
 
-function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [] }) {
+function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null } }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
   const completedSubtasks = hasSubtasks ? t.subtasks.filter((st) => st.done).length : 0;
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
@@ -19,6 +19,36 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   
   // Check if task is for a future date
   const isFutureTask = dueDate && isAfter(parseISO(dueDate), startOfDay(new Date()));
+  
+  // Check if this task is currently running a Pomodoro session
+  const isPomodoroRunning = pomodoroRunningState.isRunning && 
+    pomodoroRunningState.currentTask && 
+    (pomodoroRunningState.currentTask.id === t.id || 
+     (pomodoroRunningState.currentTask.parentTask && pomodoroRunningState.currentTask.parentTask.id === t.id));
+
+  // Format time for display
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Calculate progress percentage
+  const getProgressPercentage = () => {
+    if (!isPomodoroRunning || !pomodoroRunningState.totalTime || !pomodoroRunningState.timeLeft) return 0;
+    return ((pomodoroRunningState.totalTime - pomodoroRunningState.timeLeft) / pomodoroRunningState.totalTime) * 100;
+  };
+
+  // Get phase color
+  const getPhaseColor = () => {
+    if (!pomodoroRunningState.phase) return 'text-orange-600 dark:text-orange-400';
+    switch (pomodoroRunningState.phase) {
+      case 'work': return 'text-red-600 dark:text-red-400';
+      case 'shortBreak': return 'text-green-600 dark:text-green-400';
+      case 'longBreak': return 'text-blue-600 dark:text-blue-400';
+      default: return 'text-orange-600 dark:text-orange-400';
+    }
+  };
   
   const priorityPill =
     priority === "high"
@@ -73,7 +103,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
       className={`relative overflow-hidden ${paddingCls} border border-l-4 ${priorityBorder} bg-white dark:bg-slate-900 rounded-lg ${t.isRecurringInstance ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
       draggable={!t.isRecurringInstance}
       onDragStart={(e) => !t.isRecurringInstance && onDragStartTask(e, t)}
-      data-tip={`${title}${notes ? "\n" + notes : ""}`}
+      data-tip={`${title}${notes ? "\n" + notes : ""}${isPomodoroRunning ? `\n🍅 Pomodoro in progress - ${formatTime(pomodoroRunningState.timeLeft)}` : ""}`}
     >
               <div className={`flex items-start justify-between ${topGapCls}`}>
           <div className={`min-w-0 ${titleLeftMarginCls}`}>
@@ -101,6 +131,25 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
             )}
           </div>
         </div>
+      {isPomodoroRunning && (
+        <div className="mt-2">
+          <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
+            <span className="capitalize">{pomodoroRunningState.phase === 'work' ? 'Focus' : pomodoroRunningState.phase === 'shortBreak' ? 'Short Break' : 'Long Break'}</span>
+            <span className="font-mono">{formatTime(pomodoroRunningState.timeLeft)}</span>
+          </div>
+          <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
+            <motion.div 
+              className={`h-1.5 rounded-full ${
+                pomodoroRunningState.phase === 'work' ? 'bg-red-500' : 
+                pomodoroRunningState.phase === 'shortBreak' ? 'bg-green-500' : 'bg-blue-500'
+              }`}
+              initial={{ width: 0 }}
+              animate={{ width: `${getProgressPercentage()}%` }}
+              transition={{ duration: 0.3 }}
+            />
+          </div>
+        </div>
+      )}
       {showNotesPreview && <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-1 break-words clamp-2">{notes}</div>}
       <div className={`${metaMarginTopCls} flex items-center`}>
         <div className="flex items-center gap-2">
@@ -135,25 +184,36 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
             className="mt-2 pl-3 border-l-2 border-slate-200 dark:border-slate-700/60 rounded-md"
           >
             <div className="space-y-1.5 py-1">
-              {hasSubtasks && t.subtasks.map((st) => (
-                <div key={st.id || generateId()} className="flex items-center justify-between gap-2">
-                  <label className="flex items-center gap-2 min-w-0">
-                    <input
-                      type="checkbox"
-                      checked={!!(st.done || false)}
-                      onChange={() => onToggleSubtask && onToggleSubtask(t, st.id || generateId())}
-                      className="w-4 h-4 rounded-md border-slate-300 dark:border-slate-600 accent-indigo-600 dark:accent-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                    <span className={`text-[12px] truncate ${(st.done || false) ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-300"}`}>{st.title || "Untitled"}</span>
-                  </label>
+              {hasSubtasks && t.subtasks.map((st) => {
+                const isSubtaskPomodoroRunning = pomodoroRunningState.isRunning && 
+                  pomodoroRunningState.currentTask && 
+                  pomodoroRunningState.currentTask.id === st.id;
+                
+                return (
+                <div key={st.id || generateId()} className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="flex items-center gap-2 min-w-0">
+                      <input
+                        type="checkbox"
+                        checked={!!(st.done || false)}
+                        onChange={() => onToggleSubtask && onToggleSubtask(t, st.id || generateId())}
+                        className="w-4 h-4 rounded-md border-slate-300 dark:border-slate-600 accent-indigo-600 dark:accent-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                      <span className={`text-[12px] truncate ${(st.done || false) ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-slate-300"}`}>{st.title || "Untitled"}</span>
+                    </label>
                   <div className="flex items-center gap-1">
                     {onStartPomodoro && !st.done && (
                       <button
                         type="button"
                         onClick={() => onStartPomodoro({ ...st, parentTask: t })}
-                        className="p-1 rounded hover:bg-orange-50 dark:hover:bg-orange-950/30 text-orange-600 dark:text-orange-400"
-                        data-tip="Start Pomodoro for subtask"
-                        aria-label="Start Pomodoro for subtask"
+                        disabled={isFutureTask}
+                        className={`p-1 rounded ${
+                          isFutureTask
+                            ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-50'
+                            : 'hover:bg-orange-50 dark:hover:bg-orange-950/30 text-orange-600 dark:text-orange-400'
+                        }`}
+                        data-tip={isFutureTask ? "Pomodoro only available for today's tasks" : "Start Pomodoro for subtask"}
+                        aria-label={isFutureTask ? "Pomodoro only available for today's tasks" : "Start Pomodoro for subtask"}
                       >
                         <Timer size={Math.max(12, iconSize - 2)} />
                       </button>
@@ -168,8 +228,29 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
                       <Trash size={Math.max(12, iconSize - 2)} />
                     </button>
                   </div>
+                  </div>
+                  {isSubtaskPomodoroRunning && (
+                    <div className="ml-6">
+                      <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
+                        <span className="capitalize">{pomodoroRunningState.phase === 'work' ? 'Focus' : pomodoroRunningState.phase === 'shortBreak' ? 'Short Break' : 'Long Break'}</span>
+                        <span className="font-mono">{formatTime(pomodoroRunningState.timeLeft)}</span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5">
+                        <motion.div 
+                          className={`h-1.5 rounded-full ${
+                            pomodoroRunningState.phase === 'work' ? 'bg-red-500' : 
+                            pomodoroRunningState.phase === 'shortBreak' ? 'bg-green-500' : 'bg-blue-500'
+                          }`}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${getProgressPercentage()}%` }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ))}
+                );
+              })}
               <div className="flex items-center gap-2 pt-1">
                 <input
                   ref={inputRef}
@@ -220,7 +301,17 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
             <Pencil size={iconSize} />
           </button>
           {onStartPomodoro && !isDone && (
-            <button onClick={() => onStartPomodoro(t)} className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-orange-50 dark:hover:bg-orange-950/30 text-orange-600 dark:text-orange-400`} data-tip="Start Pomodoro" aria-label="Start Pomodoro">
+            <button 
+              onClick={() => onStartPomodoro(t)} 
+              disabled={isFutureTask}
+              className={`${actionPadCls} rounded-lg border border-slate-200 dark:border-slate-700 ${
+                isFutureTask
+                  ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-50'
+                  : 'hover:bg-orange-50 dark:hover:bg-orange-950/30 text-orange-600 dark:text-orange-400'
+              }`} 
+              data-tip={isFutureTask ? "Pomodoro only available for today's tasks" : "Start Pomodoro"} 
+              aria-label={isFutureTask ? "Pomodoro only available for today's tasks" : "Start Pomodoro"}
+            >
               <Timer size={iconSize} />
             </button>
           )}
@@ -233,7 +324,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   );
 }
 
-export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [] }) {
+export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null } }) {
   if (!tasks || tasks.length === 0) {
     const msg = emptyMessage || 'No tasks. Double-click any day to add one quickly.';
     return <div className="text-sm text-slate-400 dark:text-slate-500">{msg}</div>;
@@ -256,6 +347,7 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
           showDueDate={showDueDate}
           density={density}
           recurringSeries={recurringSeries}
+          pomodoroRunningState={pomodoroRunningState}
         />
       ))}
     </div>

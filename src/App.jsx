@@ -81,6 +81,13 @@ export default function App() {
   // Pomodoro timer state
   const [showFloatingPomodoro, setShowFloatingPomodoro] = useState(false);
   const [currentPomodoroTask, setCurrentPomodoroTask] = useState(null);
+  const [pomodoroRunningState, setPomodoroRunningState] = useState({ 
+    isRunning: false, 
+    currentTask: null, 
+    timeLeft: null, 
+    phase: null, 
+    totalTime: null 
+  });
   const scopeActionRef = useRef(null); // { type: 'delete'|'edit', task }
   const [density, setDensity] = useState(() => (typeof window === 'undefined' ? 'normal' : loadDensityPreference()));
   const [showDensityMenu, setShowDensityMenu] = useState(false);
@@ -1837,6 +1844,17 @@ export default function App() {
   function closePomodoroTimer() {
     setShowFloatingPomodoro(false);
     setCurrentPomodoroTask(null);
+    setPomodoroRunningState({ 
+      isRunning: false, 
+      currentTask: null, 
+      timeLeft: null, 
+      phase: null, 
+      totalTime: null 
+    });
+  }
+
+  function handlePomodoroRunningStateChange(state) {
+    setPomodoroRunningState(state);
   }
 
   function handlePomodoroTaskComplete(task) {
@@ -2174,6 +2192,7 @@ export default function App() {
                 density={density}
                 emptyMessage="No tasks. Add a new task to view."
                 recurringSeries={recurringSeries}
+                pomodoroRunningState={pomodoroRunningState}
               />
             </aside>
           </main>
@@ -2285,6 +2304,7 @@ export default function App() {
                 onStartPomodoro={openPomodoroTimer}
                 density={density}
                 recurringSeries={recurringSeries}
+                pomodoroRunningState={pomodoroRunningState}
               />
             </aside>
           </main>
@@ -2497,6 +2517,7 @@ export default function App() {
           onClose={closePomodoroTimer}
           currentTask={currentPomodoroTask}
           onTaskComplete={handlePomodoroTaskComplete}
+          onRunningStateChange={handlePomodoroRunningStateChange}
         />
 
         <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>

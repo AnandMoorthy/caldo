@@ -45,6 +45,7 @@ export default function HelpPage({ open, onClose }) {
     { id: 'overview', label: 'Overview', icon: HelpCircle },
     { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'tasks', label: 'Tasks', icon: List },
+    { id: 'pomodoro', label: 'Pomodoro', icon: Clock },
     { id: 'snippets', label: 'Snippets', icon: Code },
     { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
     { id: 'features', label: 'Features', icon: Info },
@@ -93,6 +94,16 @@ export default function HelpPage({ open, onClose }) {
           <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Daily Notes</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300">
             Add personal notes and thoughts to any day
+          </p>
+        </div>
+
+        <div className="p-4 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 mb-3">
+            <Clock size={20} className="text-orange-600 dark:text-orange-400" />
+          </div>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Pomodoro Timer</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Focus timer with work/break cycles for productivity
           </p>
         </div>
 
@@ -270,6 +281,99 @@ export default function HelpPage({ open, onClose }) {
     </div>
   );
 
+  const renderPomodoro = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Pomodoro Timer</h2>
+        <p className="text-slate-600 dark:text-slate-300 mb-6">
+          Boost your productivity with focused work sessions and strategic breaks
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Getting Started</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Clock size={16} className="text-orange-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Start Timer</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Click timer icon on any task or press P key</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <CheckCircle size={16} className="text-green-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Today Only</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Pomodoro only works for today's tasks</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <RefreshCcw size={16} className="text-blue-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Auto-Complete</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Tasks auto-complete when work session ends</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Timer Phases</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Work Session</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">25 minutes of focused work (default)</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Short Break</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">5 minutes between work sessions</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Long Break</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">15 minutes after 4 work sessions</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+        <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">Floating Widget</h3>
+        <div className="text-sm text-orange-800 dark:text-orange-200 space-y-2">
+          <p><strong>Draggable:</strong> Move the timer anywhere on your screen</p>
+          <p><strong>Persistent:</strong> Position is saved and restored between sessions</p>
+          <p><strong>Compact:</strong> Slim design that doesn't obstruct your workflow</p>
+          <p><strong>Settings:</strong> Click the gear icon to customize timer durations</p>
+        </div>
+      </div>
+
+      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+        <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 flex items-center gap-2">
+          <AlertCircle size={20} />
+          Important Restrictions
+        </h3>
+        <div className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
+          <p><strong>Date Limitation:</strong> Pomodoro timer only works for tasks scheduled for today</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Past tasks cannot use Pomodoro (already completed or overdue)</li>
+            <li>Future tasks cannot use Pomodoro (not yet due)</li>
+            <li>Only today's tasks show active timer buttons</li>
+            <li>This ensures focus on current day's priorities</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderSnippets = () => (
     <div className="space-y-6">
       <div className="text-center">
@@ -354,6 +458,10 @@ export default function HelpPage({ open, onClose }) {
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <span className="text-slate-700 dark:text-slate-200">Open missed tasks</span>
           <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">O</kbd>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <span className="text-slate-700 dark:text-slate-200">Open Pomodoro timer</span>
+          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">P</kbd>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <span className="text-slate-700 dark:text-slate-700">Open snippets</span>
@@ -496,6 +604,26 @@ export default function HelpPage({ open, onClose }) {
           </div>
         </div>
 
+        <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
+          <div className="flex items-center gap-3 mb-3">
+            <Clock size={20} className="text-orange-600" />
+            <h3 className="font-semibold text-orange-900 dark:text-orange-100">Pomodoro Timer</h3>
+          </div>
+          <div className="text-sm text-orange-800 dark:text-orange-200 space-y-2">
+            <p>Boost productivity with focused work sessions and strategic breaks:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-orange-200 dark:bg-orange-800 text-xs">P</kbd> to open Pomodoro timer</li>
+              <li>25-minute work sessions with 5-minute breaks</li>
+              <li>15-minute long break after 4 work sessions</li>
+              <li>Auto-complete tasks when work sessions end</li>
+              <li>Draggable floating widget with persistent position</li>
+              <li>Customizable timer durations in settings</li>
+              <li>Sound notifications and desktop alerts</li>
+              <li>Only works for today's tasks (past/future disabled)</li>
+            </ul>
+          </div>
+        </div>
+
         <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
           <div className="flex items-center gap-3 mb-3">
             <AlertCircle size={20} className="text-amber-600" />
@@ -612,6 +740,7 @@ export default function HelpPage({ open, onClose }) {
       case 'overview': return renderOverview();
       case 'calendar': return renderCalendar();
       case 'tasks': return renderTasks();
+      case 'pomodoro': return renderPomodoro();
       case 'snippets': return renderSnippets();
       case 'shortcuts': return renderShortcuts();
       case 'features': return renderFeatures();
