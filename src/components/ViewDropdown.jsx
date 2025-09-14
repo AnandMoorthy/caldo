@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from "react";
 const VIEWS = [
   { key: 'day', label: 'Day' },
   { key: 'week', label: 'Week' },
-  { key: 'weeknew', label: 'Week New' },
   { key: 'month', label: 'Month' },
   { key: 'year', label: 'Year' },
 ];

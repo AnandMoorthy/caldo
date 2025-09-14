@@ -1,9 +1,8 @@
 import React, { useMemo } from "react";
 import { addDays, format, isSameDay, startOfWeek, isAfter, startOfDay } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar, ListX, List, CheckCircle, FileText, Code as CodeIcon } from "lucide-react";
-import TaskList from "./TaskList";
 
-export default function WeekNewView({
+export default function WeekView({
   anchorDate,
   onPrevWeek,
   onNextWeek,
@@ -19,16 +18,6 @@ export default function WeekNewView({
   dragOverDayKey,
   setDragOverDayKey,
   onDropTaskOnDay,
-  onDragStartTask,
-  onToggleDone,
-  onOpenEditModal,
-  onDeleteTask,
-  onAddSubtask,
-  onToggleSubtask,
-  onDeleteSubtask,
-  onStartPomodoro,
-  recurringSeries = [],
-  pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }
 }) {
   const days = useMemo(() => {
     const start = startOfWeek(anchorDate, { weekStartsOn: 1 });
@@ -67,7 +56,7 @@ export default function WeekNewView({
     <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <div className="text-sm text-slate-500 dark:text-slate-400">Week New</div>
+          <div className="text-sm text-slate-500 dark:text-slate-400">Week</div>
           <div className="font-semibold text-slate-900 dark:text-slate-100">{format(days[0], 'MMM d')} – {format(days[6], 'MMM d, yyyy')}</div>
         </div>
         <div className="flex items-center gap-2">
@@ -88,23 +77,29 @@ export default function WeekNewView({
           <button onClick={onNextWeek} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="Next week" data-tip="Next week"><ChevronRight size={16} /></button>
         </div>
       </div>
-      
       {/* Weekly summary chips */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300"><List size={12} /> {totalTasks}</span>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle size={12} /> {totalDone}</span>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-[11px] text-blue-700 dark:text-blue-300"><FileText size={12} /> {notesCount}</span>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-[11px] text-purple-700 dark:text-purple-300"><CodeIcon size={12} /> {snippetsCount}</span>
       </div>
-
-      {/* 7 days task lists in horizontal layout */}
       <div className="grid grid-cols-7 gap-2">
         {days.map((day) => {
-          const tasks = tasksFor ? tasksFor(day) : [];
+          const list = tasksFor ? tasksFor(day) : [];
           const isSelected = selectedDate && isSameDay(selectedDate, day);
-          const doneCount = tasks.filter((t) => t.done).length;
-          const totalCount = tasks.length;
+          const doneCount = list.filter((t) => t.done).length;
+          const totalCount = list.length;
           const hasNote = !!(hasNoteFor && hasNoteFor(day));
+          const percent = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+          const prioCount = list.reduce(
+            (acc, t) => {
+              const p = String(t.priority || 'medium');
+              if (p === 'high') acc.high += 1; else if (p === 'low') acc.low += 1; else acc.medium += 1;
+              return acc;
+            },
+            { high: 0, medium: 0, low: 0 }
+          );
           const key = format(day, 'yyyy-MM-dd');
           const ringClass =
             dragOverDayKey === key
@@ -112,60 +107,93 @@ export default function WeekNewView({
               : isSelected
               ? 'ring-2 ring-indigo-500'
               : '';
-
           return (
             <div
               key={String(day)}
-              className={`group relative border border-slate-200 dark:border-slate-800 rounded-lg p-2 min-h-[600px] flex flex-col ${ringClass}`}
+              className={`group relative border border-slate-200 dark:border-slate-800 rounded-lg p-2 min-h-[96px] cursor-pointer ${ringClass}`}
+              onClick={() => onSelectDate && onSelectDate(day)}
+              onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); onSelectDate && onSelectDate(day); onOpenAddForDate && onOpenAddForDate(day); }}
               onDragOver={(e) => { e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch {} setDragOverDayKey && setDragOverDayKey(key); }}
               onDragEnter={() => setDragOverDayKey && setDragOverDayKey(key)}
               onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayKey && setDragOverDayKey((k) => (k === key ? null : k)); }}
               onDrop={(e) => { onDropTaskOnDay && onDropTaskOnDay(e, day); setDragOverDayKey && setDragOverDayKey(null); }}
+              role="button"
+              tabIndex={0}
             >
-              {/* Day header */}
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{format(day, 'EEE')}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{format(day, 'MMM d')}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">{format(day, 'EEE, MMM d')}</div>
+              {/* Hover summary popover like Month view */}
+              {(totalCount > 0 || hasNote) && (
+                <div className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-30">
+                  <div className="opacity-0 translate-y-1 scale-95 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 transition-all duration-150 ease-out">
+                    <div className="w-56 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur p-3">
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400">{format(day, 'EEE, MMM d')}</div>
+                      <div className="mt-0.5 flex items-center justify-between">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{doneCount}/{totalCount} done</div>
+                        {hasNote && (
+                          <span className="inline-flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400" aria-label="Notes present">
+                            <span className="inline-block w-2 h-2 rounded-full bg-blue-500" />
+                            Notes present
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                        <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${percent}%` }} />
+                      </div>
+                      {totalCount > 0 ? (
+                        <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-600 dark:text-slate-400">
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-red-500" /> {prioCount.high} high
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-amber-400" /> {prioCount.medium} med
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500" /> {prioCount.low} low
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">No tasks</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
+              )}
+              {/* Month-style dots + note indicator */}
+              {(totalCount > 0 || hasNote) && (
+                <div className="absolute bottom-1 right-1 flex items-center gap-0.5">
                   {hasNote && (
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" data-tip="Notes present" />
                   )}
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    {doneCount}/{totalCount}
-                  </span>
+                  {(() => {
+                    const maxDots = 3;
+                    const taskDots = Math.min(maxDots - (hasNote ? 1 : 0), totalCount);
+                    const isFutureDate = isAfter(day, startOfDay(new Date()));
+                    return Array.from({ length: taskDots }).map((_, idx) => (
+                      <span 
+                        key={`t-${idx}`} 
+                        className={`${
+                          isFutureDate 
+                            ? 'bg-slate-400' 
+                            : doneCount === 0 
+                              ? 'bg-red-400' 
+                              : doneCount === totalCount 
+                                ? 'bg-emerald-500' 
+                                : 'bg-amber-400'
+                        } inline-block w-1.5 h-1.5 rounded-full`} 
+                      />
+                    ));
+                  })()}
+                  {(() => {
+                    const maxDots = 3;
+                    const taskDotsShown = Math.min(maxDots - (hasNote ? 1 : 0), totalCount);
+                    const overflow = totalCount - taskDotsShown;
+                    return overflow > 0 ? (
+                      <span className="text-[9px] leading-none text-slate-400 dark:text-slate-500 ml-0.5">+{overflow}</span>
+                    ) : null;
+                  })()}
                 </div>
-              </div>
-
-              {/* Add task button */}
-              <button
-                onClick={() => onOpenAddForDate && onOpenAddForDate(day)}
-                className="w-full mb-2 p-1.5 text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-600 rounded-md hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-              >
-                + Add task
-              </button>
-
-              {/* Task list for this day */}
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <TaskList
-                  tasks={tasks}
-                  onDragStartTask={onDragStartTask}
-                  onToggleDone={onToggleDone}
-                  onOpenEditModal={onOpenEditModal}
-                  onDeleteTask={onDeleteTask}
-                  onAddSubtask={onAddSubtask}
-                  onToggleSubtask={onToggleSubtask}
-                  onDeleteSubtask={onDeleteSubtask}
-                  onStartPomodoro={onStartPomodoro}
-                  density="minified"
-                  emptyMessage="No tasks for this day"
-                  recurringSeries={recurringSeries}
-                  pomodoroRunningState={pomodoroRunningState}
-                  hidePriorityLabel={true}
-                  hideSubtaskButton={true}
-                />
-              </div>
+              )}
+              {/* No inline Add link; double-click opens Add Task drawer */}
             </div>
           );
         })}
@@ -173,3 +201,5 @@ export default function WeekNewView({
     </section>
   );
 }
+
+

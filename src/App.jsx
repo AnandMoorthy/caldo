@@ -6,7 +6,6 @@ import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Calendar from "./components/Calendar.jsx";
 import WeekView from "./components/WeekView.jsx";
-import WeekNewView from "./components/WeekNewView.jsx";
 import YearView from "./components/YearView.jsx";
 import DayView from "./components/DayView.jsx";
 import TaskList from "./components/TaskList.jsx";
@@ -247,9 +246,6 @@ export default function App() {
       } else if (key === 'w') {
         e.preventDefault();
         setCurrentView('week');
-      } else if (key === 'n') {
-        e.preventDefault();
-        setCurrentView('weeknew');
       } else if (key === 'd') {
         e.preventDefault();
         setCurrentView('day');
@@ -285,9 +281,6 @@ export default function App() {
       } else if (key === '2') {
         e.preventDefault();
         setCurrentView('week');
-      } else if (key === '5') {
-        e.preventDefault();
-        setCurrentView('weeknew');
       } else if (key === '3') {
         e.preventDefault();
         setCurrentView('month');
@@ -2220,120 +2213,8 @@ export default function App() {
             </aside>
           </main>
         ) : activeTab === 'tasks' && currentView === 'week' ? (
-          <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            <div className="md:col-span-2">
-              <WeekView
-                anchorDate={cursor}
-                onPrevWeek={prevWeek}
-                onNextWeek={nextWeek}
-                onToday={() => { const today = new Date(); setCursor(today); setSelectedDate(today); }}
-                tasksFor={tasksFor}
-                selectedDate={selectedDate}
-                onOpenAddForDate={(d) => openAddModal(d)}
-                hasNoteFor={hasNoteForDay}
-                missedCount={missedTasksThisWeek.length}
-                onOpenMissed={() => setShowMissed(true)}
-                snippets={snippetsCache}
-                dragOverDayKey={dragOverDayKey}
-                setDragOverDayKey={setDragOverDayKey}
-                onDropTaskOnDay={onDropTaskOnDay}
-                onSelectDate={(d) => {
-                  setSelectedDate(d);
-                  setCursor(d);
-                  if (user) refreshDayFromCloud(user.uid, keyFor(d));
-                }}
-              />
-            </div>
-            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
-                  <div className="font-semibold text-slate-900 dark:text-slate-100">{format(selectedDate, 'EEEE, MMM d')}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="relative" ref={densityMenuRef}>
-                    <button
-                      type="button"
-                      onClick={() => setShowDensityMenu((v) => !v)}
-                      className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
-                      aria-label="Task card density"
-                      data-tip="Task card density"
-                    >
-                      {density === 'minified' ? <Minimize2 size={16} /> : density === 'compact' ? <Grip size={16} /> : <List size={16} />}
-                    </button>
-                    {showDensityMenu && (
-                      <div className="absolute right-0 z-10 mt-2 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1">
-                        <button
-                          type="button"
-                          onClick={() => { setDensity('normal'); setShowDensityMenu(false); }}
-                          className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'normal' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                          aria-label="Normal density"
-                        >
-                          <List size={16} />
-                          <span className="text-sm">Normal</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setDensity('compact'); setShowDensityMenu(false); }}
-                          className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'compact' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                          aria-label="Compact density"
-                        >
-                          <Grip size={16} />
-                          <span className="text-sm">Compact</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setDensity('minified'); setShowDensityMenu(false); }}
-                          className={`w-full flex items-center justify-start gap-2 p-2 rounded ${density === 'minified' ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                          aria-label="Minified density"
-                        >
-                          <Minimize2 size={16} />
-                          <span className="text-sm">Minified</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => {
-                      // Close snippets drawer if open to avoid conflicts
-                      setSnippetsDrawerOpen(false);
-                      setShowNotes(true);
-                    }}
-                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
-                    aria-label="Open notes (N)"
-                    data-tip="Open notes (N)"
-                  >
-                    <StickyNote size={16} />
-                  </button>
-                  <button
-                    onClick={() => openAddModal(selectedDate)}
-                    className="bg-indigo-600 text-white p-2 rounded-lg inline-flex items-center justify-center"
-                    aria-label="Add task (T)"
-                    data-tip="Add task (T)"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              </div>
-              <TaskList
-                tasks={tasksFor(selectedDate)}
-                onDragStartTask={onDragStartTask}
-                onToggleDone={toggleDone}
-                onOpenEditModal={openEditModal}
-                onDeleteTask={deleteTask}
-                onAddSubtask={addSubtask}
-                onToggleSubtask={toggleSubtask}
-                onDeleteSubtask={deleteSubtask}
-                onStartPomodoro={pomodoroEnabled ? openPomodoroTimer : null}
-                density={density}
-                recurringSeries={recurringSeries}
-                pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
-              />
-            </aside>
-          </main>
-        ) : activeTab === 'tasks' && currentView === 'weeknew' ? (
           <main className="grid grid-cols-1 gap-4 sm:gap-6">
-            <WeekNewView
+            <WeekView
               anchorDate={cursor}
               onPrevWeek={prevWeek}
               onNextWeek={nextWeek}
@@ -2344,6 +2225,16 @@ export default function App() {
               hasNoteFor={hasNoteForDay}
               missedCount={missedTasksThisWeek.length}
               onOpenMissed={() => setShowMissed(true)}
+              onOpenNotes={(day) => {
+                // Set the selected date to the clicked day
+                if (day) {
+                  setSelectedDate(day);
+                  setCursor(day);
+                }
+                // Close snippets drawer if open to avoid conflicts
+                setSnippetsDrawerOpen(false);
+                setShowNotes(true);
+              }}
               snippets={snippetsCache}
               dragOverDayKey={dragOverDayKey}
               setDragOverDayKey={setDragOverDayKey}

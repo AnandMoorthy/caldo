@@ -255,26 +255,28 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
                 </div>
                 );
               })}
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  ref={inputRef}
-                  value={newSubTitle}
-                  onChange={(e) => setNewSubTitle(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') { e.preventDefault(); submitNewSubtask(); }
-                    if (e.key === 'Escape') { setNewSubTitle(""); setExpanded(false); }
-                  }}
-                  placeholder="Add a subtask"
-                  className="input h-8 text-[12px] py-1"
-                />
-                <button
-                  type="button"
-                  onClick={submitNewSubtask}
-                  className="px-2 py-1 rounded bg-indigo-600 text-white text-[12px]"
-                >
-                  Add
-                </button>
-              </div>
+              {!hideSubtaskButton && (
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    ref={inputRef}
+                    value={newSubTitle}
+                    onChange={(e) => setNewSubTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); submitNewSubtask(); }
+                      if (e.key === 'Escape') { setNewSubTitle(""); setExpanded(false); }
+                    }}
+                    placeholder="Add a subtask"
+                    className="input h-8 text-[12px] py-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={submitNewSubtask}
+                    className="px-2 py-1 rounded bg-indigo-600 text-white text-[12px]"
+                  >
+                    Add
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
