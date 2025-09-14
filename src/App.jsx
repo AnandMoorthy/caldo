@@ -6,6 +6,7 @@ import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Calendar from "./components/Calendar.jsx";
 import WeekView from "./components/WeekView.jsx";
+import WeekNewView from "./components/WeekNewView.jsx";
 import YearView from "./components/YearView.jsx";
 import DayView from "./components/DayView.jsx";
 import TaskList from "./components/TaskList.jsx";
@@ -246,6 +247,9 @@ export default function App() {
       } else if (key === 'w') {
         e.preventDefault();
         setCurrentView('week');
+      } else if (key === 'n') {
+        e.preventDefault();
+        setCurrentView('weeknew');
       } else if (key === 'd') {
         e.preventDefault();
         setCurrentView('day');
@@ -281,6 +285,9 @@ export default function App() {
       } else if (key === '2') {
         e.preventDefault();
         setCurrentView('week');
+      } else if (key === '5') {
+        e.preventDefault();
+        setCurrentView('weeknew');
       } else if (key === '3') {
         e.preventDefault();
         setCurrentView('month');
@@ -2324,6 +2331,35 @@ export default function App() {
               />
             </aside>
           </main>
+        ) : activeTab === 'tasks' && currentView === 'weeknew' ? (
+          <main className="grid grid-cols-1 gap-4 sm:gap-6">
+            <WeekNewView
+              anchorDate={cursor}
+              onPrevWeek={prevWeek}
+              onNextWeek={nextWeek}
+              onToday={() => { const today = new Date(); setCursor(today); setSelectedDate(today); }}
+              tasksFor={tasksFor}
+              selectedDate={selectedDate}
+              onOpenAddForDate={(d) => openAddModal(d)}
+              hasNoteFor={hasNoteForDay}
+              missedCount={missedTasksThisWeek.length}
+              onOpenMissed={() => setShowMissed(true)}
+              snippets={snippetsCache}
+              dragOverDayKey={dragOverDayKey}
+              setDragOverDayKey={setDragOverDayKey}
+              onDropTaskOnDay={onDropTaskOnDay}
+              onDragStartTask={onDragStartTask}
+              onToggleDone={toggleDone}
+              onOpenEditModal={openEditModal}
+              onDeleteTask={deleteTask}
+              onAddSubtask={addSubtask}
+              onToggleSubtask={toggleSubtask}
+              onDeleteSubtask={deleteSubtask}
+              onStartPomodoro={pomodoroEnabled ? openPomodoroTimer : null}
+              recurringSeries={recurringSeries}
+              pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
+            />
+          </main>
         ) : activeTab === 'tasks' && currentView === 'year' ? (
           <main className="grid grid-cols-1 gap-4 sm:gap-6">
             <YearView
@@ -2435,8 +2471,8 @@ export default function App() {
         <EditTaskDrawer open={showEdit} editForm={editForm} setEditForm={setEditForm} onSubmit={saveEdit} onClose={() => setShowEdit(false)} editTask={editTask} />
         <MissedTasksDrawer
           open={showMissed}
-          count={currentView === 'week' ? missedTasksThisWeek.length : missedTasksThisMonth.length}
-          tasks={currentView === 'week' ? missedTasksThisWeek : missedTasksThisMonth}
+          count={currentView === 'week' || currentView === 'weeknew' ? missedTasksThisWeek.length : missedTasksThisMonth.length}
+          tasks={currentView === 'week' || currentView === 'weeknew' ? missedTasksThisWeek : missedTasksThisMonth}
           onClose={() => setShowMissed(false)}
           onDragStartTask={onDragStartTask}
           onToggleDone={toggleDone}
@@ -2446,7 +2482,7 @@ export default function App() {
           onToggleSubtask={toggleSubtask}
           onDeleteSubtask={deleteSubtask}
           density={density}
-          scope={currentView === 'week' ? 'week' : 'month'}
+          scope={currentView === 'week' || currentView === 'weeknew' ? 'week' : 'month'}
           recurringSeries={recurringSeries}
         />
 

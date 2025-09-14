@@ -5,7 +5,7 @@ import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { generateId } from "../utils/uid";
 import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
 
-function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null } }) {
+function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
   const completedSubtasks = hasSubtasks ? t.subtasks.filter((st) => st.done).length : 0;
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
@@ -122,10 +122,12 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
             )}
           </div>
           <div className="shrink-0 flex flex-col items-end gap-1">
-            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
-              <span className={`${priority === "high" ? "bg-red-600" : priority === "low" ? "bg-green-600" : "bg-amber-600"} w-1.5 h-1.5 rounded-full`} />
-              {priority.charAt(0).toUpperCase() + priority.slice(1)}
-            </div>
+            {!hidePriorityLabel && (
+              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] ${priorityPill}`}>
+                <span className={`${priority === "high" ? "bg-red-600" : priority === "low" ? "bg-green-600" : "bg-amber-600"} w-1.5 h-1.5 rounded-full`} />
+                {priority.charAt(0).toUpperCase() + priority.slice(1)}
+              </div>
+            )}
             {showDueDate && dueDate && (
               <div className="text-[10px] text-slate-500 dark:text-slate-400">Due on {format(parseISO(dueDate), "EEE, MMM d")}</div>
             )}
@@ -324,7 +326,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   );
 }
 
-export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null } }) {
+export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false }) {
   if (!tasks || tasks.length === 0) {
     const msg = emptyMessage || 'No tasks. Double-click any day to add one quickly.';
     return <div className="text-sm text-slate-400 dark:text-slate-500">{msg}</div>;
@@ -348,6 +350,7 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
           density={density}
           recurringSeries={recurringSeries}
           pomodoroRunningState={pomodoroRunningState}
+          hidePriorityLabel={hidePriorityLabel}
         />
       ))}
     </div>

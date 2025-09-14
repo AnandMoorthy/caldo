@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 const VIEWS = [
   { key: 'day', label: 'Day' },
   { key: 'week', label: 'Week' },
+  { key: 'weeknew', label: 'Week New' },
   { key: 'month', label: 'Month' },
   { key: 'year', label: 'Year' },
 ];
@@ -37,7 +38,7 @@ export default function ViewDropdown({ value = 'month', onChange }) {
       {open && (
         <div className="absolute right-0 mt-2 w-36 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg p-1 z-50" role="listbox">
           {VIEWS.map(v => {
-            const shortcut = v.key === 'day' ? 'D / 1' : v.key === 'week' ? 'W / 2' : v.key === 'month' ? 'M / 3' : 'Y / 4';
+            const shortcut = v.key === 'day' ? 'D / 1' : v.key === 'week' ? 'W / 2' : v.key === 'weeknew' ? 'N / 5' : v.key === 'month' ? 'M / 3' : 'Y / 4';
             return (
               <button
                 key={v.key}

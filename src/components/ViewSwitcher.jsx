@@ -4,6 +4,7 @@ export default function ViewSwitcher({ value = 'month', onChange }) {
   const options = [
     { key: 'day', label: 'Day' },
     { key: 'week', label: 'Week' },
+    { key: 'weeknew', label: 'Week New' },
     { key: 'month', label: 'Month' },
   ];
 
