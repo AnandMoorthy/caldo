@@ -5,7 +5,7 @@ import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { generateId } from "../utils/uid";
 import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
 
-function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false }) {
+function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
   const completedSubtasks = hasSubtasks ? t.subtasks.filter((st) => st.done).length : 0;
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
@@ -169,13 +169,15 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
             </button>
           )}
         </div>
-        <button
-          type="button"
-          onClick={onClickAddSubtask}
-          className={`ml-auto inline-flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline ${density === 'minified' ? 'mr-0.5' : ''}`}
-        >
-          <Plus size={Math.max(10, iconSize - 2)} /> Subtask
-        </button>
+        {!hideSubtaskButton && (
+          <button
+            type="button"
+            onClick={onClickAddSubtask}
+            className={`ml-auto inline-flex items-center gap-1 text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline ${density === 'minified' ? 'mr-0.5' : ''}`}
+          >
+            <Plus size={Math.max(10, iconSize - 2)} /> Subtask
+          </button>
+        )}
       </div>
       <AnimatePresence initial={false}>
         {expanded && (
@@ -326,7 +328,7 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   );
 }
 
-export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false }) {
+export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false }) {
   if (!tasks || tasks.length === 0) {
     const msg = emptyMessage || 'No tasks. Double-click any day to add one quickly.';
     return <div className="text-sm text-slate-400 dark:text-slate-500">{msg}</div>;
@@ -351,6 +353,7 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
           recurringSeries={recurringSeries}
           pomodoroRunningState={pomodoroRunningState}
           hidePriorityLabel={hidePriorityLabel}
+          hideSubtaskButton={hideSubtaskButton}
         />
       ))}
     </div>

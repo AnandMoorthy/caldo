@@ -116,7 +116,7 @@ export default function WeekNewView({
           return (
             <div
               key={String(day)}
-              className={`group relative border border-slate-200 dark:border-slate-800 rounded-lg p-2 min-h-[600px] ${ringClass}`}
+              className={`group relative border border-slate-200 dark:border-slate-800 rounded-lg p-2 min-h-[600px] flex flex-col ${ringClass}`}
               onDragOver={(e) => { e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch {} setDragOverDayKey && setDragOverDayKey(key); }}
               onDragEnter={() => setDragOverDayKey && setDragOverDayKey(key)}
               onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayKey && setDragOverDayKey((k) => (k === key ? null : k)); }}
@@ -147,7 +147,7 @@ export default function WeekNewView({
               </button>
 
               {/* Task list for this day */}
-              <div className="h-[520px] overflow-y-auto">
+              <div className="flex-1 min-h-0 overflow-y-auto">
                 <TaskList
                   tasks={tasks}
                   onDragStartTask={onDragStartTask}
@@ -163,6 +163,7 @@ export default function WeekNewView({
                   recurringSeries={recurringSeries}
                   pomodoroRunningState={pomodoroRunningState}
                   hidePriorityLabel={true}
+                  hideSubtaskButton={true}
                 />
               </div>
             </div>
