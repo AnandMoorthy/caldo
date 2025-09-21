@@ -31,6 +31,12 @@ export default function StyledSnippetPreview({ content, maxLength = 200 }) {
       el.textContent = `*${el.textContent}*`;
     });
     
+    // Convert strikethrough to strike text
+    const strikeElements = tempDiv.querySelectorAll('s, del');
+    strikeElements.forEach(el => {
+      el.textContent = `~~${el.textContent}~~`;
+    });
+    
     // Convert code to inline code
     const codeElements = tempDiv.querySelectorAll('code');
     codeElements.forEach(el => {

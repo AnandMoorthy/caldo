@@ -15,7 +15,8 @@ import {
   Minus,
   Heading1,
   Heading2,
-  Heading3
+  Heading3,
+  Strikethrough
 } from 'lucide-react';
 
 // Import some languages for syntax highlighting
@@ -185,6 +186,15 @@ export default function RichTextEditor({ content, onChange, placeholder = "Start
           <Italic size={16} />
         </button>
         <button
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+            editor.isActive('strike') ? 'bg-slate-200 dark:bg-slate-700' : ''
+          }`}
+          title="Strikethrough"
+        >
+          <Strikethrough size={16} />
+        </button>
+        <button
           onClick={() => editor.chain().focus().toggleCode().run()}
           className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
             editor.isActive('code') ? 'bg-slate-200 dark:bg-slate-700' : ''
@@ -192,6 +202,15 @@ export default function RichTextEditor({ content, onChange, placeholder = "Start
           title="Inline Code"
         >
           <Code size={16} />
+        </button>
+        <button
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+            editor.isActive('codeBlock') ? 'bg-slate-200 dark:bg-slate-700' : ''
+          }`}
+          title="Code Block"
+        >
+          <Code2 size={16} />
         </button>
 
         <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1" />
@@ -229,15 +248,6 @@ export default function RichTextEditor({ content, onChange, placeholder = "Start
           <Quote size={16} />
         </button>
         <button
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
-            editor.isActive('codeBlock') ? 'bg-slate-200 dark:bg-slate-700' : ''
-          }`}
-          title="Code Block"
-        >
-          <Code2 size={16} />
-        </button>
-        <button
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
           className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
           title="Horizontal Rule"
@@ -250,7 +260,7 @@ export default function RichTextEditor({ content, onChange, placeholder = "Start
       <div className="bg-white dark:bg-slate-900 flex-1 min-h-0">
         <EditorContent 
           editor={editor} 
-          className="h-full overflow-y-auto [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-full [&_.ProseMirror]:p-4 [&_.ProseMirror]:text-slate-900 [&_.ProseMirror]:dark:text-slate-100 [&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-4 [&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-bold [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-bold [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_strong]:font-bold [&_.ProseMirror_em]:italic [&_.ProseMirror_code]:bg-slate-100 [&_.ProseMirror_code]:dark:bg-slate-800 [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:text-sm [&_.ProseMirror_pre]:bg-slate-100 [&_.ProseMirror_pre]:dark:bg-slate-800 [&_.ProseMirror_pre]:p-4 [&_.ProseMirror_pre]:rounded-lg [&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:dark:border-slate-600 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_li]:mb-1 [&_.ProseMirror_hr]:border-slate-300 [&_.ProseMirror_hr]:dark:border-slate-600 [&_.ProseMirror_hr]:my-4"
+          className="h-full overflow-y-auto [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-full [&_.ProseMirror]:p-4 [&_.ProseMirror]:text-slate-900 [&_.ProseMirror]:dark:text-slate-100 [&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-4 [&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-bold [&_.ProseMirror_h2]:mb-3 [&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-bold [&_.ProseMirror_h3]:mb-2 [&_.ProseMirror_strong]:font-bold [&_.ProseMirror_em]:italic [&_.ProseMirror_s]:line-through [&_.ProseMirror_code]:bg-slate-100 [&_.ProseMirror_code]:dark:bg-slate-800 [&_.ProseMirror_code]:px-1 [&_.ProseMirror_code]:py-0.5 [&_.ProseMirror_code]:rounded [&_.ProseMirror_code]:text-sm [&_.ProseMirror_pre]:bg-slate-100 [&_.ProseMirror_pre]:dark:bg-slate-800 [&_.ProseMirror_pre]:p-4 [&_.ProseMirror_pre]:rounded-lg [&_.ProseMirror_pre]:overflow-x-auto [&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-slate-300 [&_.ProseMirror_blockquote]:dark:border-slate-600 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-6 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-6 [&_.ProseMirror_li]:mb-1 [&_.ProseMirror_hr]:border-slate-300 [&_.ProseMirror_hr]:dark:border-slate-600 [&_.ProseMirror_hr]:my-4"
         />
       </div>
     </div>

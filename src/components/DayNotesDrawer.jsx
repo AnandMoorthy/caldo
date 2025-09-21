@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Bold, Italic, List, ListOrdered, Square } from "lucide-react";
+import { X, Bold, Italic, List, ListOrdered, Square, Strikethrough } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { loadNotesModePreference, saveNotesModePreference } from "../utils/storage";
@@ -123,6 +123,7 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
 
   function onBold() { wrapSelection('**'); }
   function onItalic() { wrapSelection('*'); }
+  function onStrike() { wrapSelection('~~'); }
   function onUl() { formatLines(() => '- '); }
   function onOl() { formatLines((i) => `${i + 1}. `); }
   function onChecklist() { formatLines(() => '- [ ] '); }
@@ -226,6 +227,9 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
               <button type="button" disabled={mode==='preview'} onClick={onItalic} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Italic (wrap with *)">
                 <Italic size={14} /> Italic
               </button>
+              <button type="button" disabled={mode==='preview'} onClick={onStrike} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Strikethrough (wrap with ~~)">
+                <Strikethrough size={14} /> Strike
+              </button>
               <span className="inline-block w-px h-4 bg-slate-200 dark:border-slate-700 mx-1" />
               <button type="button" disabled={mode==='preview'} onClick={onUl} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Bullet list (-)">
                 <List size={14} /> Bullets
@@ -261,6 +265,7 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
                         li: ({node, className, ...props}) => <li className={`my-1 ${className || ''} ${className?.includes?.('task-list-item') ? 'list-none' : ''}`} {...props} />,
                         strong: ({node, ...props}) => <strong className="font-semibold" {...props} />,
                         em: ({node, ...props}) => <em className="italic" {...props} />,
+                        del: ({node, ...props}) => <del className="line-through" {...props} />,
                         blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-slate-300 dark:border-slate-700 pl-3 italic text-slate-700 dark:text-slate-300 my-3" {...props} />,
                         hr: (props) => <hr className="my-4 border-slate-200 dark:border-slate-700" {...props} />,
                         code({node, inline, className, children, ...props}) {
