@@ -36,7 +36,7 @@ lowlight.register('java', java);
 lowlight.register('css', css);
 lowlight.register('html', html);
 
-export default function RichTextEditor({ content, onChange, placeholder = "Start typing your snippet…" }) {
+export default function RichTextEditor({ content, onChange, placeholder = "Start typing your snippet…", readOnly = false, showToolbar = true, borderless = false }) {
   console.log('RichTextEditor received content:', content);
   const [isEditorReady, setIsEditorReady] = useState(false);
   
@@ -54,8 +54,10 @@ export default function RichTextEditor({ content, onChange, placeholder = "Start
       }),
     ],
     content,
+    editable: !readOnly,
     onUpdate: ({ editor }) => {
-      onChange(editor.getHTML());
+      if (readOnly) return;
+      onChange && onChange(editor.getHTML());
     },
     onCreate: ({ editor }) => {
       console.log('RichTextEditor: Editor created');
@@ -132,8 +134,9 @@ export default function RichTextEditor({ content, onChange, placeholder = "Start
   console.log('RichTextEditor: Editor ready, current content:', editor.getHTML());
 
   return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden h-full flex flex-col">
+    <div className={`${borderless ? '' : 'border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden'} h-full flex flex-col`}>
       {/* Toolbar */}
+      {showToolbar && (
       <div className="border-b border-slate-200 dark:border-slate-700 p-2 flex flex-wrap gap-1 bg-slate-50 dark:bg-slate-800">
         {/* Headers */}
         <button
@@ -255,6 +258,7 @@ export default function RichTextEditor({ content, onChange, placeholder = "Start
           <Minus size={16} />
         </button>
       </div>
+      )}
 
       {/* Editor Content */}
       <div className="bg-white dark:bg-slate-900 flex-1 min-h-0">

@@ -21,6 +21,7 @@ import TooltipProvider from "./components/Tooltip.jsx";
 import NotesPage from "./components/NotesPage.jsx";
 import SnippetsPage from "./components/SnippetsPage.jsx";
 import SnippetsDrawer from "./components/SnippetsDrawer.jsx";
+import PublicSnippetView from "./components/PublicSnippetView.jsx";
 import FloatingPomodoro from "./components/FloatingPomodoro.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference, loadSnippetsCache, saveSnippetsCache } from "./utils/storage";
 import { generateId } from "./utils/uid";
@@ -94,6 +95,39 @@ export default function App() {
   const [showDensityMenu, setShowDensityMenu] = useState(false);
   const densityMenuRef = useRef(null);
   const navRepeatRef = useRef({ dir: null, timeoutId: null, intervalId: null, active: false });
+
+  // Public snippet hash route state
+  const [publicRoute, setPublicRoute] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const hash = window.location.hash || '';
+    if (hash.startsWith('#/s/')) {
+      const queryIndex = hash.indexOf('?');
+      const path = queryIndex >= 0 ? hash.slice(0, queryIndex) : hash;
+      const slug = path.replace('#/s/', '').trim();
+      const params = new URLSearchParams(queryIndex >= 0 ? hash.slice(queryIndex + 1) : '');
+      const token = params.get('t');
+      return { slug, token };
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    function onHashChange() {
+      const hash = window.location.hash || '';
+      if (hash.startsWith('#/s/')) {
+        const queryIndex = hash.indexOf('?');
+        const path = queryIndex >= 0 ? hash.slice(0, queryIndex) : hash;
+        const slug = path.replace('#/s/', '').trim();
+        const params = new URLSearchParams(queryIndex >= 0 ? hash.slice(queryIndex + 1) : '');
+        const token = params.get('t');
+        setPublicRoute({ slug, token });
+      } else {
+        setPublicRoute(null);
+      }
+    }
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   // Search state
   const [showSearch, setShowSearch] = useState(false);
@@ -2065,6 +2099,9 @@ export default function App() {
   }, [activeTab]);
 
   return (
+    publicRoute ? (
+      <PublicSnippetView slug={publicRoute.slug} token={publicRoute.token} />
+    ) : (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200">
       <div className="max-w-7xl mx-auto">
         <Header
@@ -2470,5 +2507,6 @@ export default function App() {
         <TooltipProvider />
       </div>
     </div>
+    )
   );
 }

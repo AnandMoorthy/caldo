@@ -134,6 +134,12 @@ export default function SnippetsPage({ repo, user, initialSnippets = [], onOpenE
               <div className="flex items-start gap-2">
                 <button className="text-left flex-1 min-w-0" onClick={() => onClickSnippet(sn)}>
                   <div className="text-sm font-medium truncate">{sn.title || 'Untitled snippet'}</div>
+                  {(sn.isPublic) ? (
+                    <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                      <span>Public</span>
+                      {sn.allowWrite ? <span>(RW)</span> : <span>(RO)</span>}
+                    </div>
+                  ) : null}
                   <div className="mt-1">
                     <StyledSnippetPreview content={sn.content} />
                   </div>

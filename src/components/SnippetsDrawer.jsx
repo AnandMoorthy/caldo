@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Copy, Pin, PinOff } from "lucide-react";
+import { X, Trash2, Copy, Pin, PinOff, Loader2 } from "lucide-react";
 import RichTextEditor from "./RichTextEditor";
 
 export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = null, onSnippetsChanged, type = 'snippet', dateLabel = '', onGoToDay, onNotesChanged }) {
@@ -16,6 +16,13 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
   const [isInitialized, setIsInitialized] = useState(false); // Track if component has fully initialized
   const [autoSavedId, setAutoSavedId] = useState(null); // Track if auto-save already created a snippet
   const [userHasInteracted, setUserHasInteracted] = useState(false); // Track if user has actually interacted with the editor
+  const [isPublic, setIsPublic] = useState(false);
+  const [allowWrite, setAllowWrite] = useState(false);
+  const [publicSlug, setPublicSlug] = useState(null);
+  const [editToken, setEditToken] = useState(null);
+  const [shareSaving, setShareSaving] = useState(false);
+  const [copiedView, setCopiedView] = useState(false);
+  const [copiedEdit, setCopiedEdit] = useState(false);
 
   // Debug content changes
   useEffect(() => {
@@ -85,6 +92,10 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
             setTitle(sn?.title || '');
             setContent(sn?.content || '');
             setPinned(!!sn?.pinned);
+            setIsPublic(!!sn?.isPublic);
+            setAllowWrite(!!sn?.allowWrite);
+            setPublicSlug(sn?.publicSlug || null);
+            setEditToken(sn?.editToken || null);
             setOriginalTitle(sn?.title || '');
             setOriginalContent(sn?.content || '');
             setHasUserModified(false);
@@ -344,6 +355,65 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
       });
   }
 
+  async function onTogglePublic() {
+    if (!repo || !user) return;
+    try {
+      setShareSaving(true);
+      let ensureId = selectedId;
+      if (!ensureId || ensureId === '__new__') {
+        const created = await repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+        ensureId = created?.id;
+        setSelectedId(ensureId);
+        setAutoSavedId(ensureId);
+      }
+      if (isPublic) {
+        await repo.unpublishSnippet(ensureId);
+        setIsPublic(false);
+        setPublicSlug(null);
+      } else {
+        const { publicSlug: slug } = await repo.publishSnippet(ensureId);
+        setIsPublic(true);
+        setPublicSlug(slug);
+      }
+    } catch (e) {
+      console.error('Toggle public failed', e);
+    } finally {
+      setShareSaving(false);
+    }
+  }
+
+  async function onToggleAllowWrite() {
+    if (!repo || !user) return;
+    try {
+      setShareSaving(true);
+      let ensureId = selectedId;
+      if (!ensureId || ensureId === '__new__') {
+        const created = await repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+        ensureId = created?.id;
+        setSelectedId(ensureId);
+        setAutoSavedId(ensureId);
+      }
+      if (!isPublic) {
+        const { publicSlug: slug } = await repo.publishSnippet(ensureId);
+        setIsPublic(true);
+        setPublicSlug(slug);
+      }
+      if (allowWrite) {
+        await repo.disablePublicWrite(ensureId);
+        setAllowWrite(false);
+      } else {
+        const { publicSlug: slug, editToken: tok } = await repo.enablePublicWrite(ensureId);
+        setAllowWrite(true);
+        setPublicSlug(slug);
+        setEditToken(tok);
+      }
+    } catch (e) {
+      console.error('Toggle allow write failed', e);
+    } finally {
+      setShareSaving(false);
+    }
+  }
+
   const headerTitle = useMemo(() => {
     if (type === 'note') {
       return 'Edit Note';
@@ -427,6 +497,58 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
                 />
               )}
             </div>
+            {type === 'snippet' && (
+              <div className="mt-3 p-3 rounded border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
+                <div className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2 flex items-center gap-2">
+                  <span>Share</span>
+                  {shareSaving && <Loader2 size={14} className="animate-spin text-slate-500" />}
+                </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={isPublic} onChange={onTogglePublic} disabled={shareSaving} /> Make public (read-only)
+                  </label>
+                  {isPublic && publicSlug ? (
+                    <button
+                      type="button"
+                      className="ml-auto text-[12px] text-indigo-700 dark:text-indigo-300 underline underline-offset-2 hover:opacity-80"
+                      title="Click to copy"
+                      onClick={() => {
+                        const url = `${window.location.origin}${window.location.pathname}#/s/${publicSlug}`;
+                        navigator.clipboard.writeText(url).then(() => {
+                          setCopiedView(true);
+                          setTimeout(() => setCopiedView(false), 1200);
+                        }).catch(() => {});
+                      }}
+                    >
+                      {copiedView ? 'Copied!' : `${window.location.origin}${window.location.pathname}#/s/${publicSlug}`}
+                    </button>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex items-center gap-2 text-sm">
+                    <input type="checkbox" checked={allowWrite} onChange={onToggleAllowWrite} disabled={shareSaving || (!isPublic && !selectedId)} /> Allow edits via link
+                  </label>
+                  {isPublic && allowWrite && publicSlug ? (
+                    <button
+                      type="button"
+                      className="ml-auto text-[12px] text-indigo-700 dark:text-indigo-300 underline underline-offset-2 hover:opacity-80"
+                      title="Click to copy"
+                      onClick={() => {
+                        const params = editToken ? `?t=${encodeURIComponent(editToken)}` : '';
+                        const url = `${window.location.origin}${window.location.pathname}#/s/${publicSlug}${params}`;
+                        navigator.clipboard.writeText(url).then(() => {
+                          setCopiedEdit(true);
+                          setTimeout(() => setCopiedEdit(false), 1200);
+                        }).catch(() => {});
+                      }}
+                    >
+                      {copiedEdit ? 'Copied!' : `${window.location.origin}${window.location.pathname}#/s/${publicSlug}${editToken ? `?t=${encodeURIComponent(editToken)}` : ''}`}
+                    </button>
+                  ) : null}
+                </div>
+                <div className="mt-2 text-[11px] text-slate-500">Public content is visible to anyone with the link. Edit link grants write access.</div>
+              </div>
+            )}
           </div>
 
           <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
