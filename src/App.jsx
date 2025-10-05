@@ -22,6 +22,8 @@ import NotesPage from "./components/NotesPage.jsx";
 import SnippetsPage from "./components/SnippetsPage.jsx";
 import SnippetsDrawer from "./components/SnippetsDrawer.jsx";
 import PublicSnippetView from "./components/PublicSnippetView.jsx";
+import FocusedSnippetView from "./components/FocusedSnippetView.jsx";
+import FocusedDayNoteView from "./components/FocusedDayNoteView.jsx";
 import FloatingPomodoro from "./components/FloatingPomodoro.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference, loadSnippetsCache, saveSnippetsCache } from "./utils/storage";
 import { generateId } from "./utils/uid";
@@ -127,6 +129,40 @@ export default function App() {
     }
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  // Focused local views via hash: #/x/sn/:id and #/x/n/:dateKey
+  const [focusedRoute, setFocusedRoute] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    const hash = window.location.hash || '';
+    if (hash.startsWith('#/x/sn/')) {
+      const id = hash.replace('#/x/sn/', '').trim();
+      return { type: 'snippet', id };
+    }
+    if (hash.startsWith('#/x/n/')) {
+      const dateKey = hash.replace('#/x/n/', '').trim();
+      return { type: 'note', dateKey };
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    function onHashChange2() {
+      const hash = window.location.hash || '';
+      if (hash.startsWith('#/x/sn/')) {
+        const id = hash.replace('#/x/sn/', '').trim();
+        setFocusedRoute({ type: 'snippet', id });
+        return;
+      }
+      if (hash.startsWith('#/x/n/')) {
+        const dateKey = hash.replace('#/x/n/', '').trim();
+        setFocusedRoute({ type: 'note', dateKey });
+        return;
+      }
+      setFocusedRoute(null);
+    }
+    window.addEventListener('hashchange', onHashChange2);
+    return () => window.removeEventListener('hashchange', onHashChange2);
   }, []);
 
   // Search state
@@ -2101,6 +2137,12 @@ export default function App() {
   return (
     publicRoute ? (
       <PublicSnippetView slug={publicRoute.slug} token={publicRoute.token} />
+    ) : focusedRoute ? (
+      focusedRoute.type === 'snippet' ? (
+        <FocusedSnippetView id={focusedRoute.id} />
+      ) : (
+        <FocusedDayNoteView dateKey={focusedRoute.dateKey} />
+      )
     ) : (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200">
       <div className="max-w-7xl mx-auto">

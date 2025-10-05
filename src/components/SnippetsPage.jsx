@@ -152,6 +152,16 @@ export default function SnippetsPage({ repo, user, initialSnippets = [], onOpenE
                 >
                   {sn.pinned ? <Pin size={16} className="text-indigo-600" /> : <PinOff size={16} className="text-slate-400" />}
                 </button>
+                <a
+                  href={`#/x/sn/${sn.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Open in new tab"
+                  className="shrink-0 w-8 h-8 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <span className="sr-only">Open in new tab</span>
+                  ↗
+                </a>
               </div>
             </div>
           ))}

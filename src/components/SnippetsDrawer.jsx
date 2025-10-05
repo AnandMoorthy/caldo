@@ -524,6 +524,16 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
                   <Share2 size={14} /> Share
                 </button>
               )}
+              {type === 'snippet' && selectedId && selectedId !== '__new__' && (
+                <a
+                  href={`#/x/sn/${selectedId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-2 py-1 text-xs rounded bg-slate-100 dark:bg-slate-800 inline-flex items-center gap-1"
+                >
+                  Open in new tab
+                </a>
+              )}
               <button type="button" onClick={onDelete} className="ml-auto px-2 py-1 text-xs rounded bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 inline-flex items-center gap-1">
                 <Trash2 size={14} /> Delete
               </button>

@@ -201,6 +201,14 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
                   Auto-saving...
                 </div>
               )}
+              <a
+                href={`#/x/n/${dateLabel?.slice?.(0,10) || ''}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-auto px-2 py-1 text-xs inline-flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800"
+              >
+                Open in new tab
+              </a>
               <button
                 type="button"
                 onClick={handleClose}

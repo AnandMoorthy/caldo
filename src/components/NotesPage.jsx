@@ -402,6 +402,16 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                         <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleNotePin(n); }} className={`w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity ${n.pinned ? '' : 'opacity-0 group-hover:opacity-100'}`} title={n.pinned ? 'Unpin' : 'Pin'}>
                           {n.pinned ? <Pin size={14} className="text-amber-600" /> : <PinOff size={14} className="text-slate-400" />}
                         </button>
+                        <a
+                          href={`#/x/n/${n.dateKey || n.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation?.()}
+                          title="Open in new tab"
+                          className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ↗
+                        </a>
                         <span className="shrink-0 px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Day Note</span>
                       </span>
                     </div>
@@ -434,6 +444,16 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                       <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleSnippetPin(sn); }} className={`w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity ${sn.pinned ? '' : 'opacity-0 group-hover:opacity-100'}`} title={sn.pinned ? 'Unpin' : 'Pin'}>
                         {sn.pinned ? <Pin size={14} className="text-indigo-600" /> : <PinOff size={14} className="text-indigo-400" />}
                       </button>
+                      <a
+                        href={`#/x/sn/${sn.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation?.()}
+                        title="Open in new tab"
+                        className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ↗
+                      </a>
                       <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">Snippet</span>
                     </span>
                   </div>
