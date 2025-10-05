@@ -166,7 +166,7 @@ export default function PublicSnippetView({ slug, token = null }) {
         )}
         <div className="rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 min-h-[300px]">
           {canEdit ? (
-            <RichTextEditor content={content} onChange={(v) => { setContent(v); setHasUserModified(true); }} />
+            <RichTextEditor content={content} onChange={(v) => { setContent(v); setHasUserModified(true); }} borderless={true} />
           ) : (
             <RichTextEditor content={content} onChange={() => {}} readOnly={true} showToolbar={false} borderless={true} />
           )}

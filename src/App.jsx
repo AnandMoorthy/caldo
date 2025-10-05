@@ -2383,6 +2383,13 @@ export default function App() {
           />
         )}
 
+        {(snippetsDrawerOpen || showNotes) && (
+          <div
+            className="fixed inset-0 z-[65] bg-slate-900/20 backdrop-blur-sm"
+            onClick={() => { setSnippetsDrawerOpen(false); setShowNotes(false); }}
+          />
+        )}
+
         {showCelebration && (
           <div className="pointer-events-none fixed inset-0 z-[60]">
             <CelebrationCanvas seed={confettiSeed} />
