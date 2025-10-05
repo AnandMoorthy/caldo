@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Trash2, Copy, Pin, PinOff, Loader2 } from "lucide-react";
+import { X, Trash2, Copy, Pin, PinOff, Loader2, Share2 } from "lucide-react";
 import RichTextEditor from "./RichTextEditor";
 
 export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = null, onSnippetsChanged, type = 'snippet', dateLabel = '', onGoToDay, onNotesChanged }) {
@@ -23,6 +23,46 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
   const [shareSaving, setShareSaving] = useState(false);
   const [copiedView, setCopiedView] = useState(false);
   const [copiedEdit, setCopiedEdit] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const shareBtnRef = useRef(null);
+  const sharePanelRef = useRef(null);
+  const [shareStyle, setShareStyle] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    function positionShare() {
+      if (!showShare) return;
+      const btn = shareBtnRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const gap = 8;
+      const panelWidth = Math.min(560, Math.floor(window.innerWidth * 0.9));
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - panelWidth - 8));
+      const top = Math.min(window.innerHeight - 8, rect.bottom + gap);
+      setShareStyle({ top, left });
+    }
+    positionShare();
+    const onScroll = () => positionShare();
+    const onResize = () => positionShare();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [showShare]);
+
+  useEffect(() => {
+    function onDocClick(e) {
+      if (!showShare) return;
+      const panel = sharePanelRef.current;
+      const btn = shareBtnRef.current;
+      if (panel && panel.contains(e.target)) return;
+      if (btn && btn.contains(e.target)) return;
+      setShowShare(false);
+    }
+    document.addEventListener('click', onDocClick);
+    return () => document.removeEventListener('click', onDocClick);
+  }, [showShare]);
 
   // Debug content changes
   useEffect(() => {
@@ -479,9 +519,74 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
                   {pinned ? (<><Pin size={14} /> Unpin</>) : (<><PinOff size={14} /> Pin</>)}
                 </button>
               )}
+              {type === 'snippet' && (
+                <button ref={shareBtnRef} type="button" onClick={() => setShowShare((v) => !v)} className="px-2 py-1 text-xs rounded bg-slate-100 dark:bg-slate-800 inline-flex items-center gap-1">
+                  <Share2 size={14} /> Share
+                </button>
+              )}
               <button type="button" onClick={onDelete} className="ml-auto px-2 py-1 text-xs rounded bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-300 inline-flex items-center gap-1">
                 <Trash2 size={14} /> Delete
               </button>
+
+              {type === 'snippet' && showShare && (
+                <div ref={sharePanelRef} style={{ position: 'fixed', top: `${shareStyle.top}px`, left: `${shareStyle.left}px`, width: 'min(560px, 90vw)' }} className="z-[75] p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl">
+                  <div className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2 flex items-center gap-2">
+                    <span>Share snippet</span>
+                    {shareSaving && <Loader2 size={14} className="animate-spin text-slate-500" />}
+                  </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={isPublic} onChange={onTogglePublic} disabled={shareSaving} /> Make public (read-only)
+                    </label>
+                  </div>
+                  {isPublic && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="text-[12px] text-slate-600 dark:text-slate-300 truncate">
+                        {`${window.location.origin}${window.location.pathname}#/s/${publicSlug || ''}`}
+                      </div>
+                      <button
+                        type="button"
+                        className="ml-auto px-2 py-0.5 text-[11px] rounded bg-slate-100 dark:bg-slate-800"
+                        onClick={() => {
+                          const url = `${window.location.origin}${window.location.pathname}#/s/${publicSlug}`;
+                          navigator.clipboard.writeText(url).then(() => {
+                            setCopiedView(true);
+                            setTimeout(() => setCopiedView(false), 1200);
+                          }).catch(() => {});
+                        }}
+                      >
+                        {copiedView ? 'Copied!' : 'Copy view link'}
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={allowWrite} onChange={onToggleAllowWrite} disabled={shareSaving} /> Allow edits via link
+                    </label>
+                  </div>
+                  {isPublic && allowWrite && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="text-[12px] text-slate-600 dark:text-slate-300 truncate">
+                        {`${window.location.origin}${window.location.pathname}#/s/${publicSlug || ''}${editToken ? `?t=${encodeURIComponent(editToken)}` : ''}`}
+                      </div>
+                      <button
+                        type="button"
+                        className="ml-auto px-2 py-0.5 text-[11px] rounded bg-slate-100 dark:bg-slate-800"
+                        onClick={() => {
+                          const params = editToken ? `?t=${encodeURIComponent(editToken)}` : '';
+                          const url = `${window.location.origin}${window.location.pathname}#/s/${publicSlug}${params}`;
+                          navigator.clipboard.writeText(url).then(() => {
+                            setCopiedEdit(true);
+                            setTimeout(() => setCopiedEdit(false), 1200);
+                          }).catch(() => {});
+                        }}
+                      >
+                        {copiedEdit ? 'Copied!' : 'Copy edit link'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex-1 min-h-0">
               {loading ? (
@@ -497,68 +602,17 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
                 />
               )}
             </div>
-            {type === 'snippet' && (
-              <div className="mt-3 p-3 rounded border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-                <div className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2 flex items-center gap-2">
-                  <span>Share</span>
-                  {shareSaving && <Loader2 size={14} className="animate-spin text-slate-500" />}
-                </div>
-                <div className="flex items-center gap-2 mb-2">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={isPublic} onChange={onTogglePublic} disabled={shareSaving} /> Make public (read-only)
-                  </label>
-                  {isPublic && publicSlug ? (
-                    <button
-                      type="button"
-                      className="ml-auto text-[12px] text-indigo-700 dark:text-indigo-300 underline underline-offset-2 hover:opacity-80"
-                      title="Click to copy"
-                      onClick={() => {
-                        const url = `${window.location.origin}${window.location.pathname}#/s/${publicSlug}`;
-                        navigator.clipboard.writeText(url).then(() => {
-                          setCopiedView(true);
-                          setTimeout(() => setCopiedView(false), 1200);
-                        }).catch(() => {});
-                      }}
-                    >
-                      {copiedView ? 'Copied!' : `${window.location.origin}${window.location.pathname}#/s/${publicSlug}`}
-                    </button>
-                  ) : null}
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" checked={allowWrite} onChange={onToggleAllowWrite} disabled={shareSaving || (!isPublic && !selectedId)} /> Allow edits via link
-                  </label>
-                  {isPublic && allowWrite && publicSlug ? (
-                    <button
-                      type="button"
-                      className="ml-auto text-[12px] text-indigo-700 dark:text-indigo-300 underline underline-offset-2 hover:opacity-80"
-                      title="Click to copy"
-                      onClick={() => {
-                        const params = editToken ? `?t=${encodeURIComponent(editToken)}` : '';
-                        const url = `${window.location.origin}${window.location.pathname}#/s/${publicSlug}${params}`;
-                        navigator.clipboard.writeText(url).then(() => {
-                          setCopiedEdit(true);
-                          setTimeout(() => setCopiedEdit(false), 1200);
-                        }).catch(() => {});
-                      }}
-                    >
-                      {copiedEdit ? 'Copied!' : `${window.location.origin}${window.location.pathname}#/s/${publicSlug}${editToken ? `?t=${encodeURIComponent(editToken)}` : ''}`}
-                    </button>
-                  ) : null}
-                </div>
-                <div className="mt-2 text-[11px] text-slate-500">Public content is visible to anyone with the link. Edit link grants write access.</div>
-              </div>
-            )}
+            {/* Share panel moved to the toolbar popover above */}
           </div>
 
           <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
-            <button type="button" onClick={handleClose} className="px-4 py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
+            <button type="button" onClick={handleClose} className="px-3 py-1.5 text-sm rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
               Close
             </button>
             <motion.button
               type="button"
               onClick={onSave}
-              className={`px-4 py-2 rounded text-white inline-flex items-center gap-2 ${saving ? 'bg-indigo-500' : 'bg-indigo-600'}`}
+              className={`px-3 py-1.5 text-sm rounded text-white inline-flex items-center gap-2 ${saving ? 'bg-indigo-500' : 'bg-indigo-600'}`}
               animate={saving ? { scale: [1, 0.98, 1], opacity: [1, 0.8, 1] } : {}}
               transition={{ duration: 0.6, type: 'spring', stiffness: 250, damping: 20 }}
               disabled={saving}
