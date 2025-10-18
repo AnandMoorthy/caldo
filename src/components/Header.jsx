@@ -177,6 +177,13 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
             >
               Notes & Snippets
             </button>
+            <button
+              type="button"
+              onClick={() => onChangeTab && onChangeTab('moments')}
+              className={`${activeTab === 'moments' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'} px-3 py-1 rounded-lg text-sm font-medium`}
+            >
+              Moments
+            </button>
           </nav>
         )}
       </div>

@@ -16,8 +16,14 @@ We use a flat, query-first schema to support fast daily/weekly/monthly views and
 - Snippets: `users/{uid}/snippets/{snippetId}`
   - Developer-focused global notes (code/JSON/markdown). Not date-bound.
 
+- Moments: `users/{uid}/moments/{momentId}`
+  - Micro-blog entries with mood and category. Chronological timeline.
+
 - Meta: `users/{uid}/meta/streakInfo`
   - Single document for streak data.
+
+- Meta: `users/{uid}/meta/momentCategories`
+  - Configurable moment categories for organization.
 
 ## Task document
 ```json
@@ -68,6 +74,36 @@ Notes:
   "copyCount": 0,
   "lastCopiedAt": <timestamp|null>,
   "createdAt": <timestamp>,
+  "updatedAt": <timestamp>
+}
+```
+
+## Moment document
+```json
+{
+  "ownerUid": "<uid>",
+  "content": "What's on your mind...",
+  "mood": "happy|sad|tired|frustrated|excited|calm|anxious|motivated|thoughtful|grateful",
+  "category": "personal|work|health|learning|social|creative",
+  "editCount": 0,
+  "createdAt": <timestamp>,
+  "updatedAt": <timestamp>
+}
+```
+
+## Moment Categories document
+Path: `users/{uid}/meta/momentCategories`
+```json
+{
+  "categories": [
+    { "id": "personal", "name": "Personal" },
+    { "id": "work", "name": "Work" },
+    { "id": "health", "name": "Health" },
+    { "id": "learning", "name": "Learning" },
+    { "id": "social", "name": "Social" },
+    { "id": "creative", "name": "Creative" }
+  ],
+  "ownerUid": "<uid>",
   "updatedAt": <timestamp>
 }
 ```
@@ -149,6 +185,19 @@ service cloud.firestore {
 
     // Snippets
     match /users/{userId}/snippets/{snippetId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.ownerUid == userId;
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && resource.data.ownerUid == userId
+                    && request.resource.data.ownerUid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Moments
+    match /users/{userId}/moments/{momentId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null
                     && request.auth.uid == userId

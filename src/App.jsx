@@ -21,6 +21,7 @@ import TooltipProvider from "./components/Tooltip.jsx";
 import NotesPage from "./components/NotesPage.jsx";
 import SnippetsPage from "./components/SnippetsPage.jsx";
 import SnippetsDrawer from "./components/SnippetsDrawer.jsx";
+import MomentsPage from "./components/MomentsPage.jsx";
 import PublicSnippetView from "./components/PublicSnippetView.jsx";
 import FocusedSnippetView from "./components/FocusedSnippetView.jsx";
 import FocusedDayNoteView from "./components/FocusedDayNoteView.jsx";
@@ -33,6 +34,7 @@ import { DRAG_MIME } from "./constants";
 import { createTaskRepository } from "./services/repositories/taskRepository";
 import { createDayNoteRepository } from "./services/repositories/noteRepository";
 import { createSnippetRepository } from "./services/repositories/snippetRepository";
+import { createMomentRepository } from "./services/repositories/momentRepository";
 import { materializeSeries } from "./utils/recurrence";
 
 
@@ -46,7 +48,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window === 'undefined') return 'tasks';
     try { return localStorage.getItem('caldo_v2_active_tab') || 'tasks'; } catch { return 'tasks'; }
-  }); // 'tasks' | 'notes'
+  }); // 'tasks' | 'notes' | 'moments'
   const [cursor, setCursor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksMap, setTasksMap] = useState(() => loadTasks());
@@ -67,8 +69,10 @@ export default function App() {
   const taskRepoRef = useRef(null);
   const noteRepoRef = useRef(null);
   const snippetRepoRef = useRef(null);
+  const momentRepoRef = useRef(null);
   const [snippetsCache, setSnippetsCache] = useState(() => loadSnippetsCache());
   const [notesCache, setNotesCache] = useState(new Map()); // Cache for day notes
+  const [momentsCache, setMomentsCache] = useState([]); // Cache for moments
   // profile menu moved into Header component
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(monthStart);
@@ -211,11 +215,11 @@ export default function App() {
     }
   }, [recurringSeries, user]);
 
-  // Build search index when tasks or snippets change
+  // Build search index when tasks, snippets, or moments change
   useEffect(() => {
-    const newIndex = buildSearchIndex(tasksMap, snippetsCache);
+    const newIndex = buildSearchIndex(tasksMap, snippetsCache, momentsCache);
     setSearchIndex(newIndex);
-  }, [tasksMap, snippetsCache]);
+  }, [tasksMap, snippetsCache, momentsCache]);
 
   // Persist snippets cache to localStorage
   useEffect(() => {
@@ -576,9 +580,15 @@ export default function App() {
         taskRepoRef.current = createTaskRepository(u.uid);
         noteRepoRef.current = createDayNoteRepository(u.uid);
         snippetRepoRef.current = createSnippetRepository(u.uid);
+        momentRepoRef.current = createMomentRepository(u.uid);
         // Warm snippet cache from cloud (non-blocking) and refresh local cache
         try {
           snippetRepoRef.current.listSnippets({ includeArchived: false, limit: 500 }).then((items) => setSnippetsCache(items)).catch(() => {});
+        } catch {}
+        
+        // Load moments cache
+        try {
+          momentRepoRef.current.fetchMoments({ limit: 500 }).then((items) => setMomentsCache(items)).catch(() => {});
         } catch {}
         
                 // Load current month from Firestore and merge with local
@@ -968,6 +978,30 @@ export default function App() {
         setShowNotes(false);
         setSnippetsDrawerId(result.id);
         setSnippetsDrawerOpen(true);
+        return;
+      }
+
+      // Moment: switch to moments tab and scroll to moment
+      if (result.type === 'moment') {
+        setShowSearch(false);
+        setSearchQuery("");
+        setActiveTab('moments');
+        
+        // Scroll to the specific moment after a short delay to allow tab switch
+        setTimeout(() => {
+          const momentElement = document.getElementById(`moment-${result.id}`);
+          if (momentElement) {
+            momentElement.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center' 
+            });
+            // Add a temporary highlight effect using CSS class
+            momentElement.classList.add('ring-4', 'ring-blue-500', 'ring-opacity-50');
+            setTimeout(() => {
+              momentElement.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-50');
+            }, 2000);
+          }
+        }, 100);
         return;
       }
 
@@ -2131,6 +2165,11 @@ export default function App() {
       setShowAdd(false);
       setShowEdit(false);
       setShowMissed(false);
+    } else if (activeTab === 'moments') {
+      setShowAdd(false);
+      setShowEdit(false);
+      setShowMissed(false);
+      setSnippetsDrawerOpen(false);
     }
   }, [activeTab]);
 
@@ -2422,6 +2461,13 @@ export default function App() {
               setSnippetsDrawerOpen(true); 
             }}
             onSnippetsChanged={(items) => setSnippetsCache(items)}
+          />
+        )}
+
+        {activeTab === 'moments' && (
+          <MomentsPage 
+            user={user} 
+            onMomentsChanged={(moments) => setMomentsCache(moments)}
           />
         )}
 
