@@ -29,7 +29,7 @@ export default function ViewDropdown({ value = 'month', onChange }) {
         onClick={() => setOpen(v => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex items-center h-10 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60"
+        className="inline-flex items-center h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-sm text-slate-800 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 min-w-[44px] min-h-[44px]"
       >
         {current.label}
         <svg className="ml-2 h-4 w-4 text-slate-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" /></svg>
@@ -45,7 +45,7 @@ export default function ViewDropdown({ value = 'month', onChange }) {
                 role="option"
                 aria-selected={v.key === value}
                 onClick={() => { onChange && onChange(v.key); setOpen(false); }}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm ${v.key === value ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                className={`w-full flex items-center justify-between px-3 py-3 rounded-md text-sm min-h-[44px] ${v.key === value ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
               >
                 <span>{v.label}</span>
                 <span className="text-[10px] text-slate-500 dark:text-slate-400">

@@ -53,7 +53,7 @@ export default function Calendar({
   return (
     <section className="md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 sm:gap-3 justify-center sm:justify-start flex-1 sm:flex-none">
           <button onClick={onPrevMonth} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Previous month">
             <ChevronLeft size={18} />
           </button>
@@ -62,7 +62,7 @@ export default function Calendar({
             <ChevronRight size={18} />
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2">
           <button
             onClick={onOpenMissed}
             className="relative text-sm px-3 py-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 inline-flex items-center gap-2"
