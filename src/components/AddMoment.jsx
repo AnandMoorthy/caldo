@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X, Edit2, Trash2, Save } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Save, ChevronDown } from 'lucide-react';
 import { generateId } from '../utils/uid';
 
 const MOOD_EMOJIS = {
@@ -43,6 +43,22 @@ export default function AddMoment({
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const categoryDropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
+        setShowCategoryDropdown(false);
+      }
+    };
+
+    if (showCategoryDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showCategoryDropdown]);
 
   const handleSave = () => {
     if (content.trim() && mood) {
@@ -118,7 +134,7 @@ export default function AddMoment({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 p-6 text-center hover:border-slate-400 dark:hover:border-slate-500 transition-colors cursor-pointer"
+        className="bg-white dark:bg-slate-900 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 p-6 text-center hover:border-slate-400 dark:hover:border-slate-500 transition-colors cursor-pointer"
         onClick={() => setIsExpanded(true)}
       >
         <div className="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
@@ -136,7 +152,7 @@ export default function AddMoment({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm"
+      className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
     >
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -291,18 +307,42 @@ export default function AddMoment({
                 </div>
               </div>
             ) : (
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-slate-100"
-              >
-                <option value="">No category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative" ref={categoryDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                  className="w-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-between"
+                  aria-label="Select category"
+                >
+                  <span className="text-sm">
+                    {category ? categories.find(cat => cat.id === category)?.name || 'Select category' : 'No category'}
+                  </span>
+                  <ChevronDown size={16} className={`transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showCategoryDropdown && (
+                  <div className="absolute right-0 z-10 mt-2 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1">
+                    <button
+                      type="button"
+                      onClick={() => { setCategory(''); setShowCategoryDropdown(false); }}
+                      className={`w-full flex items-center justify-start gap-2 p-2 rounded ${!category ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                      aria-label="No category"
+                    >
+                      <span className="text-sm">No category</span>
+                    </button>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => { setCategory(cat.id); setShowCategoryDropdown(false); }}
+                        className={`w-full flex items-center justify-start gap-2 p-2 rounded ${category === cat.id ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        aria-label={cat.name}
+                      >
+                        <span className="text-sm">{cat.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

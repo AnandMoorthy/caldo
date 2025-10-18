@@ -82,21 +82,32 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   const handleSaveMoment = async (momentData) => {
     if (!user?.uid || !momentRepoRef.current) return;
     
+    const newMoment = {
+      id: generateId(),
+      ...momentData,
+      createdAt: new Date(), // Add local timestamp for immediate display
+      editCount: 0,
+    };
+    
+    // Optimistic update - add to UI immediately
+    const updatedMoments = [newMoment, ...moments];
+    setMoments(updatedMoments);
+    onMomentsChanged?.(updatedMoments);
+    
     try {
       setSaving(true);
       setError(null);
       
-      const newMoment = {
-        id: generateId(),
-        ...momentData,
-      };
-      
+      // Save to Firestore in background
       await momentRepoRef.current.saveMoment(newMoment);
-      setMoments(prev => [newMoment, ...prev]);
-      onMomentsChanged?.([newMoment, ...moments]);
     } catch (err) {
       console.error('Error saving moment:', err);
       setError('Failed to save moment. Please try again.');
+      
+      // Remove the moment from the list if save failed
+      const rollbackMoments = moments.filter(moment => moment.id !== newMoment.id);
+      setMoments(rollbackMoments);
+      onMomentsChanged?.(rollbackMoments);
     } finally {
       setSaving(false);
     }
@@ -109,21 +120,38 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   const handleSaveEdit = async (momentId, updates) => {
     if (!momentRepoRef.current) return;
     
+    // Find the original moment for rollback
+    const originalMoment = moments.find(m => m.id === momentId);
+    if (!originalMoment) return;
+    
+    const updatedMoment = { 
+      ...originalMoment, 
+      ...updates, 
+      editCount: (originalMoment.editCount || 0) + 1 
+    };
+    
+    // Optimistic update - update UI immediately
+    const updatedMoments = moments.map(moment => 
+      moment.id === momentId ? updatedMoment : moment
+    );
+    setMoments(updatedMoments);
+    onMomentsChanged?.(updatedMoments);
+    setEditingId(null);
+    
     try {
       setSaving(true);
       setError(null);
       
+      // Save to Firestore in background
       await momentRepoRef.current.updateMoment(momentId, updates);
-      const updatedMoments = moments.map(moment => 
-        moment.id === momentId 
-          ? { ...moment, ...updates, editCount: (moment.editCount || 0) + 1 }
-          : moment
-      );
-      setMoments(updatedMoments);
-      onMomentsChanged?.(updatedMoments);
-      setEditingId(null);
     } catch (err) {
       console.error('Error updating moment:', err);
+      
+      // Rollback the optimistic update
+      setMoments(moments);
+      onMomentsChanged?.(moments);
+      setEditingId(momentId); // Re-open edit mode
+      
       if (err.message.includes('already been edited')) {
         setError('This moment has already been edited and cannot be modified again.');
       } else {
@@ -141,17 +169,29 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   const handleDeleteMoment = async (momentId) => {
     if (!momentRepoRef.current) return;
     
+    // Find the moment to delete for rollback
+    const momentToDelete = moments.find(m => m.id === momentId);
+    if (!momentToDelete) return;
+    
+    // Optimistic update - remove from UI immediately
+    const updatedMoments = moments.filter(moment => moment.id !== momentId);
+    setMoments(updatedMoments);
+    onMomentsChanged?.(updatedMoments);
+    
     try {
       setSaving(true);
       setError(null);
       
+      // Delete from Firestore in background
       await momentRepoRef.current.deleteMoment(momentId);
-      const updatedMoments = moments.filter(moment => moment.id !== momentId);
-      setMoments(updatedMoments);
-      onMomentsChanged?.(updatedMoments);
     } catch (err) {
       console.error('Error deleting moment:', err);
       setError('Failed to delete moment. Please try again.');
+      
+      // Rollback the optimistic update
+      const rollbackMoments = [...moments, momentToDelete];
+      setMoments(rollbackMoments);
+      onMomentsChanged?.(rollbackMoments);
     } finally {
       setSaving(false);
     }

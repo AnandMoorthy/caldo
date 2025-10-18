@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Edit2, Trash2, Clock, Tag } from 'lucide-react';
+import { Edit2, Trash2, Clock, Tag, ChevronDown } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
 
 const MOOD_EMOJIS = {
@@ -16,18 +16,8 @@ const MOOD_EMOJIS = {
   grateful: '😍',
 };
 
-const MOOD_COLORS = {
-  happy: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800',
-  sad: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800',
-  tired: 'bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800',
-  frustrated: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800',
-  excited: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800',
-  calm: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
-  anxious: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800',
-  motivated: 'bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800',
-  thoughtful: 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-800',
-  grateful: 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800',
-};
+// Use consistent colors like Notes & Snippets
+const MOMENT_CARD_STYLE = 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800';
 
 export default function MomentCard({ 
   moment, 
@@ -42,6 +32,22 @@ export default function MomentCard({
   const [editMood, setEditMood] = useState(moment.mood || '');
   const [editCategory, setEditCategory] = useState(moment.category || '');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showEditCategoryDropdown, setShowEditCategoryDropdown] = useState(false);
+  const editCategoryDropdownRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (editCategoryDropdownRef.current && !editCategoryDropdownRef.current.contains(event.target)) {
+        setShowEditCategoryDropdown(false);
+      }
+    };
+
+    if (showEditCategoryDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showEditCategoryDropdown]);
 
   const handleSave = () => {
     if (editContent.trim() && editMood) {
@@ -77,7 +83,7 @@ export default function MomentCard({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm"
+        className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
       >
         <div className="space-y-4">
           <div>
@@ -123,18 +129,42 @@ export default function MomentCard({
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                 Category
               </label>
-              <select
-                value={editCategory}
-                onChange={(e) => setEditCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-slate-100"
-              >
-                <option value="">No category</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative" ref={editCategoryDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowEditCategoryDropdown(!showEditCategoryDropdown)}
+                  className="w-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-between"
+                  aria-label="Select category"
+                >
+                  <span className="text-sm">
+                    {editCategory ? categories.find(cat => cat.id === editCategory)?.name || 'Select category' : 'No category'}
+                  </span>
+                  <ChevronDown size={16} className={`transition-transform ${showEditCategoryDropdown ? 'rotate-180' : ''}`} />
+                </button>
+                {showEditCategoryDropdown && (
+                  <div className="absolute right-0 z-10 mt-2 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1">
+                    <button
+                      type="button"
+                      onClick={() => { setEditCategory(''); setShowEditCategoryDropdown(false); }}
+                      className={`w-full flex items-center justify-start gap-2 p-2 rounded ${!editCategory ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                      aria-label="No category"
+                    >
+                      <span className="text-sm">No category</span>
+                    </button>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => { setEditCategory(cat.id); setShowEditCategoryDropdown(false); }}
+                        className={`w-full flex items-center justify-start gap-2 p-2 rounded ${editCategory === cat.id ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        aria-label={cat.name}
+                      >
+                        <span className="text-sm">{cat.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -163,28 +193,46 @@ export default function MomentCard({
       id={`moment-${moment.id}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-xl border p-4 shadow-sm transition-all duration-300 ${
-        MOOD_COLORS[moment.mood] || 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-      }`}
+      className={`group rounded-xl border p-5 shadow-sm transition-all duration-300 ${MOMENT_CARD_STYLE}`}
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <span className="text-2xl flex-shrink-0">{MOOD_EMOJIS[moment.mood] || '😊'}</span>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-              <Clock size={14} />
-              <span title={timeInfo.absolute} className="truncate">{timeInfo.relative}</span>
-            </div>
-            {categoryInfo && (
-              <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-500 mt-1">
-                <Tag size={12} />
-                <span className="truncate">{categoryInfo.name}</span>
-              </div>
-            )}
+      {/* Main content - takes center stage */}
+      <div className="mb-4">
+        <div className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap text-base leading-relaxed">
+          {moment.content}
+        </div>
+      </div>
+
+      {/* Metadata and actions - subtle bottom section */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+          {/* Mood emoji - subtle */}
+          <span className="text-lg opacity-70">{MOOD_EMOJIS[moment.mood] || '😊'}</span>
+          
+          {/* Time - subtle */}
+          <div className="flex items-center gap-1">
+            <Clock size={12} />
+            <span title={timeInfo.absolute}>{timeInfo.relative}</span>
           </div>
+          
+          {/* Category - subtle */}
+          {categoryInfo && (
+            <div className="flex items-center gap-1">
+              <Tag size={12} />
+              <span>{categoryInfo.name}</span>
+            </div>
+          )}
+          
+          {/* Edit status - very subtle */}
+          {moment.editCount >= 1 && (
+            <div className="flex items-center gap-1">
+              <span className="opacity-60">•</span>
+              <span className="opacity-60">edited</span>
+            </div>
+          )}
         </div>
         
-        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+        {/* Action buttons - subtle */}
+        <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
           {moment.editCount < 1 && (
             <button
               onClick={() => onEdit(moment.id)}
@@ -192,7 +240,7 @@ export default function MomentCard({
               data-tip="Edit moment (one-time only)"
               data-tip-pos="top"
             >
-              <Edit2 size={16} />
+              <Edit2 size={14} />
             </button>
           )}
           <button
@@ -201,20 +249,10 @@ export default function MomentCard({
             data-tip="Delete moment"
             data-tip-pos="top"
           >
-            <Trash2 size={16} />
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
-
-      <div className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap">
-        {moment.content}
-      </div>
-
-      {moment.editCount >= 1 && (
-        <div className="mt-3 text-xs text-slate-500 dark:text-slate-400 italic">
-          This moment has been edited and cannot be modified further.
-        </div>
-      )}
 
       {showDeleteConfirm && (
         <motion.div
