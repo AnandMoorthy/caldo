@@ -240,6 +240,17 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
                   >
                     <HelpCircle size={16} /> Help & Shortcuts
                   </button>
+                  {canInstall && (
+                    <button
+                      onClick={() => {
+                        onClickInstall();
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2"
+                    >
+                      <InstallIcon size={16} /> Install App
+                    </button>
+                  )}
                   {!user && (
                     <button onClick={onSignInWithGoogle} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
                       <UserIcon size={16} /> Sign in with Google
@@ -425,6 +436,17 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
                 >
                   <HelpCircle size={16} /> Help & Shortcuts
                 </button>
+                {canInstall && (
+                  <button
+                    onClick={() => {
+                      onClickInstall();
+                      setShowProfileMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2"
+                  >
+                    <InstallIcon size={16} /> Install App
+                  </button>
+                )}
                 {!user && (
                   <button onClick={onSignInWithGoogle} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
                     <UserIcon size={16} /> Sign in with Google
