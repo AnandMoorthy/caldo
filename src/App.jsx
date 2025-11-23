@@ -2183,8 +2183,8 @@ export default function App() {
         <FocusedDayNoteView dateKey={focusedRoute.dateKey} />
       )
     ) : (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200 overflow-x-hidden">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200 overflow-x-hidden flex flex-col">
+      <div className="max-w-7xl mx-auto flex-1 flex flex-col">
         <Header
           user={user}
           onSignInWithGoogle={signInWithGoogle}
@@ -2203,6 +2203,7 @@ export default function App() {
           onChangeTab={setActiveTab}
           pomodoroEnabled={pomodoroEnabled}
         />
+        <div className="flex-1 flex flex-col">
         {activeTab === 'tasks' && currentView === 'month' ? (
           <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             <Calendar
@@ -2386,7 +2387,7 @@ export default function App() {
             />
           </main>
         ) : activeTab === 'tasks' ? (
-          <main className="grid grid-cols-1 gap-4 sm:gap-6">
+          <main className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0">
             <DayView
               date={selectedDate}
               onPrevDay={() => prevDay()}
@@ -2470,6 +2471,7 @@ export default function App() {
             onMomentsChanged={(moments) => setMomentsCache(moments)}
           />
         )}
+        </div>
 
         {(snippetsDrawerOpen || showNotes) && (
           <div
@@ -2598,7 +2600,7 @@ export default function App() {
           />
         )}
 
-        <footer className="mt-6 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
+        <footer className="mt-6 mb-6 sm:mb-8 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
         <TooltipProvider />
       </div>
     </div>

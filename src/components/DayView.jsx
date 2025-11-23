@@ -26,7 +26,7 @@ export default function DayView({
   recurringSeries = [],
 }) {
   return (
-    <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+    <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col min-h-full">
       <div className="flex items-center justify-between mb-3">
         <div>
           <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
@@ -93,19 +93,21 @@ export default function DayView({
           </button>
         </div>
       </div>
-      <TaskList
-        tasks={tasks}
-        onDragStartTask={onDragStartTask}
-        onToggleDone={onToggleDone}
-        onOpenEditModal={onOpenEditModal}
-        onDeleteTask={onDeleteTask}
-        onAddSubtask={onAddSubtask}
-        onToggleSubtask={onToggleSubtask}
-        onDeleteSubtask={onDeleteSubtask}
-        density={density}
-        emptyMessage="No tasks. Add a new task to view."
-        recurringSeries={recurringSeries}
-      />
+      <div className="flex-1 min-h-0">
+        <TaskList
+          tasks={tasks}
+          onDragStartTask={onDragStartTask}
+          onToggleDone={onToggleDone}
+          onOpenEditModal={onOpenEditModal}
+          onDeleteTask={onDeleteTask}
+          onAddSubtask={onAddSubtask}
+          onToggleSubtask={onToggleSubtask}
+          onDeleteSubtask={onDeleteSubtask}
+          density={density}
+          emptyMessage="No tasks. Add a new task to view."
+          recurringSeries={recurringSeries}
+        />
+      </div>
     </section>
   );
 }
