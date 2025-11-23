@@ -374,11 +374,12 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
           <div className="p-3 text-sm text-slate-500">No notes or snippets yet.</div>
         )}
         {/** items are derived from itemsRef via applyFilter; nothing to compute here */}
-        <Masonry
-          breakpointCols={{ default: 3, 1024: 3, 768: 2, 0: 1 }}
-          className="-ml-2 sm:-ml-4 flex w-auto"
-          columnClassName="pl-2 sm:pl-4 bg-clip-padding"
-        >
+        <div className="overflow-x-hidden">
+          <Masonry
+            breakpointCols={{ default: 3, 1024: 3, 768: 2, 0: 1 }}
+            className="-ml-2 sm:-ml-4 flex w-auto"
+            columnClassName="pl-2 sm:pl-4 bg-clip-padding"
+          >
           {(() => {
             console.log('🎨 Rendering items:', {
               filterMode,
@@ -468,7 +469,8 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
               );
             });
           })()}
-        </Masonry>
+          </Masonry>
+        </div>
         <div ref={sentinelRef} className="h-8" />
         {loading && (
           <div className="p-3 text-sm text-slate-500 inline-flex items-center gap-2">
