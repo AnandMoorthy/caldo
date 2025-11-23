@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO } from "date-fns";
 import { motion } from "framer-motion";
-import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX } from "lucide-react";
+import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX, CheckSquare, Sparkles } from "lucide-react";
 import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Calendar from "./components/Calendar.jsx";
@@ -2183,7 +2183,7 @@ export default function App() {
         <FocusedDayNoteView dateKey={focusedRoute.dateKey} />
       )
     ) : (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200 overflow-x-hidden flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 pb-20 sm:pb-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200 overflow-x-hidden flex flex-col">
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col gap-4 sm:gap-6">
         <div className="flex-shrink-0 w-full">
           <Header
@@ -2605,6 +2605,50 @@ export default function App() {
         <footer className="mt-6 mb-6 sm:mb-8 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
         <TooltipProvider />
       </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 safe-pb">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-around h-16">
+            <button
+              type="button"
+              onClick={() => setActiveTab('tasks')}
+              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors ${
+                activeTab === 'tasks'
+                  ? 'text-slate-900 dark:text-slate-100'
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              <CheckSquare size={22} className={activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
+              <span className={`text-xs font-medium ${activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Tasks</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('notes')}
+              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors ${
+                activeTab === 'notes'
+                  ? 'text-slate-900 dark:text-slate-100'
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              <StickyNote size={22} className={activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
+              <span className={`text-xs font-medium ${activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Notes</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('moments')}
+              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors ${
+                activeTab === 'moments'
+                  ? 'text-slate-900 dark:text-slate-100'
+                  : 'text-slate-500 dark:text-slate-400'
+              }`}
+            >
+              <Sparkles size={22} className={activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
+              <span className={`text-xs font-medium ${activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Moments</span>
+            </button>
+          </div>
+        </div>
+      </nav>
     </div>
     )
   );

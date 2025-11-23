@@ -311,39 +311,10 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
         )}
       </div>
 
-        {/* Mobile: Bottom row with tabs and view dropdown */}
-        {showTabs && (
-          <div className="flex items-center justify-between gap-3 sm:hidden">
-            <nav className="flex-1 inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-1 py-1">
-              <button
-                type="button"
-                onClick={() => onChangeTab && onChangeTab('tasks')}
-                className={`${activeTab === 'tasks' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'} px-3 py-2 rounded-lg text-sm font-medium min-h-[44px] flex items-center justify-center flex-1`}
-              >
-                Tasks
-              </button>
-              <button
-                type="button"
-                onClick={() => onChangeTab && onChangeTab('notes')}
-                className={`${activeTab === 'notes' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'} px-3 py-2 rounded-lg text-sm font-medium min-h-[44px] flex items-center justify-center flex-1`}
-              >
-                Notes
-              </button>
-              <button
-                type="button"
-                onClick={() => onChangeTab && onChangeTab('moments')}
-                className={`${activeTab === 'moments' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'} px-3 py-2 rounded-lg text-sm font-medium min-h-[44px] flex items-center justify-center flex-1`}
-              >
-                Moments
-              </button>
-            </nav>
-            
-            {/* View Dropdown - Show on mobile for tasks tab */}
-            {activeTab === 'tasks' && (
-              <div className="flex-shrink-0">
-                <ViewDropdown value={currentView} onChange={onChangeView} />
-              </div>
-            )}
+        {/* Mobile: View Dropdown - Show on mobile for tasks tab (moved to header since tabs are now at bottom) */}
+        {showTabs && activeTab === 'tasks' && (
+          <div className="flex items-center justify-center gap-3 sm:hidden">
+            <ViewDropdown value={currentView} onChange={onChangeView} />
           </div>
         )}
 
