@@ -2456,6 +2456,7 @@ export default function App() {
               onAddSubtask={addSubtask}
               onToggleSubtask={toggleSubtask}
               onDeleteSubtask={deleteSubtask}
+              onStartPomodoro={pomodoroEnabled ? openPomodoroTimer : null}
               density={density}
               onAddTask={() => openAddModal(selectedDate)}
               onOpenNotes={() => {
@@ -2468,6 +2469,7 @@ export default function App() {
               onChangeDensity={(d) => setDensity(d)}
               densityMenuRef={densityMenuRef}
               recurringSeries={recurringSeries}
+              pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
             />
           </main>
         ) : null}

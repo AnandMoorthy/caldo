@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { Clock, Play, Pause, Square, X, Grip, Settings } from "lucide-react";
 import { parseISO, isAfter, startOfDay, isBefore, endOfDay } from "date-fns";
@@ -65,20 +65,59 @@ export default function FloatingPomodoro({
     }
   }, [phase]);
 
+  // Get widget dimensions based on screen size
+  const getWidgetDimensions = () => {
+    const isMobile = window.innerWidth < 640; // sm breakpoint
+    return {
+      width: isMobile ? Math.min(320, window.innerWidth - 32) : 288, // w-72 = 288px on desktop
+      height: isMobile ? 140 : 120
+    };
+  };
+
+  // Get default position based on screen size
+  const getDefaultPosition = () => {
+    const isMobile = window.innerWidth < 640;
+    const dimensions = getWidgetDimensions();
+    
+    if (isMobile) {
+      // Center horizontally, position near top on mobile
+      return {
+        x: (window.innerWidth - dimensions.width) / 2,
+        y: 80
+      };
+    } else {
+      // Top right corner on desktop
+      return {
+        x: window.innerWidth - dimensions.width - 20,
+        y: 80
+      };
+    }
+  };
+
   // Load position from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('pomodoro_position');
+    const isMobile = window.innerWidth < 640;
+    const dimensions = getWidgetDimensions();
+    
     if (saved) {
       try {
         const pos = JSON.parse(saved);
-        setPosition(pos);
+        // Validate position is within viewport
+        const maxX = window.innerWidth - dimensions.width;
+        const maxY = window.innerHeight - dimensions.height;
+        
+        // If position is invalid (e.g., from desktop to mobile switch), use default
+        if (pos.x < 0 || pos.x > maxX || pos.y < 0 || pos.y > maxY) {
+          setPosition(getDefaultPosition());
+        } else {
+          setPosition(pos);
+        }
       } catch (e) {
-        // Default position - top right corner with better spacing
-        setPosition({ x: window.innerWidth - 308, y: 80 });
+        setPosition(getDefaultPosition());
       }
     } else {
-      // Default position - top right corner with better spacing
-      setPosition({ x: window.innerWidth - 308, y: 80 });
+      setPosition(getDefaultPosition());
     }
   }, []);
 
@@ -327,10 +366,9 @@ export default function FloatingPomodoro({
     };
     
     // Keep widget within viewport with responsive constraints
-    const widgetWidth = 288; // w-72 = 288px
-    const widgetHeight = 120; // Approximate height for compact design
-    const maxX = window.innerWidth - widgetWidth;
-    const maxY = window.innerHeight - widgetHeight;
+    const dimensions = getWidgetDimensions();
+    const maxX = window.innerWidth - dimensions.width;
+    const maxY = window.innerHeight - dimensions.height;
     
     newPosition.x = Math.max(0, Math.min(newPosition.x, maxX));
     newPosition.y = Math.max(0, Math.min(newPosition.y, maxY));
@@ -345,36 +383,99 @@ export default function FloatingPomodoro({
     }
   };
 
+  const handleTouchMove = useCallback((e) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!e.touches || e.touches.length === 0) return;
+    const touch = e.touches[0];
+    const newPosition = {
+      x: touch.clientX - dragOffset.x,
+      y: touch.clientY - dragOffset.y
+    };
+    
+    const dimensions = getWidgetDimensions();
+    const maxX = window.innerWidth - dimensions.width;
+    const maxY = window.innerHeight - dimensions.height;
+    
+    newPosition.x = Math.max(0, Math.min(newPosition.x, maxX));
+    newPosition.y = Math.max(0, Math.min(newPosition.y, maxY));
+    
+    setPosition(newPosition);
+  }, [isDragging, dragOffset]);
+
+  const handleTouchEnd = useCallback((e) => {
+    if (isDragging) {
+      setIsDragging(false);
+      setPosition(prev => {
+        savePosition(prev);
+        return prev;
+      });
+    }
+  }, [isDragging]);
+
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('touchmove', handleTouchMove, { passive: false });
+      document.addEventListener('touchend', handleTouchEnd, { passive: false });
+      document.addEventListener('touchcancel', handleTouchEnd, { passive: false });
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
+        document.removeEventListener('touchmove', handleTouchMove);
+        document.removeEventListener('touchend', handleTouchEnd);
+        document.removeEventListener('touchcancel', handleTouchEnd);
       };
     }
-  }, [isDragging, dragOffset]);
+  }, [isDragging, dragOffset, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
 
   // Handle window resize to keep widget in bounds
   useEffect(() => {
     const handleResize = () => {
-      const widgetWidth = 288; // w-72 = 288px
-      const widgetHeight = 120; // Approximate height for compact design
-      const maxX = window.innerWidth - widgetWidth;
-      const maxY = window.innerHeight - widgetHeight;
+      const dimensions = getWidgetDimensions();
+      const maxX = window.innerWidth - dimensions.width;
+      const maxY = window.innerHeight - dimensions.height;
       
-      setPosition(prev => ({
-        x: Math.max(0, Math.min(prev.x, maxX)),
-        y: Math.max(0, Math.min(prev.y, maxY))
-      }));
+      setPosition(prev => {
+        // If position is now invalid (e.g., switched from desktop to mobile), reset to default
+        if (prev.x < 0 || prev.x > maxX || prev.y < 0 || prev.y > maxY) {
+          return getDefaultPosition();
+        }
+        return {
+          x: Math.max(0, Math.min(prev.x, maxX)),
+          y: Math.max(0, Math.min(prev.y, maxY))
+        };
+      });
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Validate and fix position when widget becomes visible
+  useEffect(() => {
+    if (isVisible) {
+      const dimensions = getWidgetDimensions();
+      const maxX = window.innerWidth - dimensions.width;
+      const maxY = window.innerHeight - dimensions.height;
+      
+      setPosition(prev => {
+        // If position is invalid, reset to default
+        if (prev.x < 0 || prev.x > maxX || prev.y < 0 || prev.y > maxY) {
+          return getDefaultPosition();
+        }
+        return prev;
+      });
+    }
+  }, [isVisible]);
+
   if (!isVisible) return null;
+
+  const dimensions = getWidgetDimensions();
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
 
   return (
     <motion.div
@@ -386,10 +487,25 @@ export default function FloatingPomodoro({
         position: 'fixed',
         left: position.x,
         top: position.y,
-        zIndex: 1000
+        width: dimensions.width,
+        zIndex: 1000,
+        ...(isMobile && { touchAction: 'none' }),
       }}
-      className={`w-72 border-2 rounded-lg shadow-lg bg-white dark:bg-slate-900 cursor-move select-none ${getPhaseBgColor()}`}
-      onMouseDown={handleMouseDown}
+      className={`border-2 rounded-lg shadow-lg bg-white dark:bg-slate-900 ${isMobile ? 'cursor-default' : 'cursor-move'} select-none ${getPhaseBgColor()}`}
+      onMouseDown={isMobile ? undefined : handleMouseDown}
+      onTouchStart={isMobile ? (e) => {
+        // Allow dragging on mobile with touch
+        if (e.target.closest('button')) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(true);
+        const touch = e.touches[0];
+        const rect = widgetRef.current.getBoundingClientRect();
+        setDragOffset({
+          x: touch.clientX - rect.left,
+          y: touch.clientY - rect.top
+        });
+      } : undefined}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-slate-200 dark:border-slate-700">

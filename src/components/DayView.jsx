@@ -24,6 +24,8 @@ export default function DayView({
   onChangeDensity,
   densityMenuRef,
   recurringSeries = [],
+  onStartPomodoro = null,
+  pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null },
 }) {
   return (
     <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col h-full">
@@ -103,9 +105,11 @@ export default function DayView({
           onAddSubtask={onAddSubtask}
           onToggleSubtask={onToggleSubtask}
           onDeleteSubtask={onDeleteSubtask}
+          onStartPomodoro={onStartPomodoro}
           density={density}
           emptyMessage="No tasks. Add a new task to view."
           recurringSeries={recurringSeries}
+          pomodoroRunningState={pomodoroRunningState}
           fullHeight={true}
         />
       </div>
