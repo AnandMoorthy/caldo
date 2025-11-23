@@ -1,7 +1,9 @@
-import React from "react";
-import { format } from "date-fns";
+import React, { useMemo } from "react";
+import { format, isAfter, startOfDay } from "date-fns";
 import { Plus, StickyNote, List, Grip, Minimize2, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import TaskList from "./TaskList.jsx";
+import { getMotivationalMessageForCount } from "../utils/motivation.js";
+import { keyFor } from "../utils/date.js";
 
 export default function DayView({
   date,
@@ -95,6 +97,31 @@ export default function DayView({
           </button>
         </div>
       </div>
+      {(() => {
+        const incompleteTasks = tasks.filter(t => !t.done);
+        const dateKey = keyFor(date);
+        const today = new Date();
+        const todayStart = startOfDay(today);
+        const dateStart = startOfDay(date);
+        const isDateTodayOrPast = !isAfter(dateStart, todayStart);
+        const shouldShowMessage = incompleteTasks.length > 0 && isDateTodayOrPast;
+        
+        // Memoize the message so it doesn't change on every re-render
+        const motivationalMessage = useMemo(() => {
+          if (!shouldShowMessage) return null;
+          return getMotivationalMessageForCount(incompleteTasks.length);
+        }, [dateKey, incompleteTasks.length, shouldShowMessage]);
+        
+        if (!shouldShowMessage || !motivationalMessage) return null;
+        
+        return (
+          <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50">
+            <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+              {motivationalMessage}
+            </p>
+          </div>
+        );
+      })()}
       <div className="flex-1 min-h-0">
         <TaskList
           tasks={tasks}

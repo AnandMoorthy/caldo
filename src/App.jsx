@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO } from "date-fns";
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO, isAfter, startOfDay, isToday } from "date-fns";
 import { motion } from "framer-motion";
 import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX, CheckSquare, Sparkles } from "lucide-react";
 import { auth, db, googleProvider, firebase } from "./firebase";
@@ -30,6 +30,7 @@ import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, sa
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
 import { buildSearchIndex, searchTasks } from "./utils/search.js";
+import { getMotivationalMessageForCount } from "./utils/motivation.js";
 import { DRAG_MIME } from "./constants";
 import { createTaskRepository } from "./services/repositories/taskRepository";
 import { createDayNoteRepository } from "./services/repositories/noteRepository";
@@ -852,6 +853,39 @@ export default function App() {
     const list = tasksMap[keyFor(date)] || [];
     const { taskList } = splitDayList(list);
     return sortTasksByCreatedDesc(taskList);
+  }
+
+  // Get incomplete tasks for a date
+  function getIncompleteTasksFor(date) {
+    const tasks = tasksFor(date);
+    return tasks.filter(t => !t.done);
+  }
+
+  // Motivational message component - memoizes message to prevent changing on re-renders
+  function MotivationalMessage({ date, incompleteTasks }) {
+    const dateKey = keyFor(date);
+    const today = new Date();
+    const todayStart = startOfDay(today);
+    const dateStart = startOfDay(date);
+    const isDateTodayOrPast = !isAfter(dateStart, todayStart);
+    const shouldShowMessage = incompleteTasks.length > 0 && isDateTodayOrPast;
+    
+    // Memoize the message so it doesn't change on every re-render
+    // Only changes when dateKey or incompleteTasks.length changes
+    const motivationalMessage = useMemo(() => {
+      if (!shouldShowMessage) return null;
+      return getMotivationalMessageForCount(incompleteTasks.length);
+    }, [dateKey, incompleteTasks.length, shouldShowMessage]);
+    
+    if (!shouldShowMessage || !motivationalMessage) return null;
+    
+    return (
+      <div className="mb-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50">
+        <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+          {motivationalMessage}
+        </p>
+      </div>
+    );
   }
 
   // Recurrence materialization
@@ -2317,6 +2351,11 @@ export default function App() {
                   </button>
                 </div>
               </div>
+
+              <MotivationalMessage 
+                date={selectedDate}
+                incompleteTasks={getIncompleteTasksFor(selectedDate)}
+              />
 
               <TaskList
                 tasks={tasksFor(selectedDate)}
