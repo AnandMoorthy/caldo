@@ -2205,6 +2205,59 @@ export default function App() {
           pomodoroEnabled={pomodoroEnabled}
           />
         </div>
+        
+        {/* Mobile: Floating View Switcher */}
+        {activeTab === 'tasks' && (
+          <div className="flex justify-center sm:hidden mb-2">
+            <div className="inline-flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg px-1 py-1">
+              <button
+                type="button"
+                onClick={() => setCurrentView('day')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
+                  currentView === 'day'
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                Day
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentView('week')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
+                  currentView === 'week'
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                Week
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentView('month')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
+                  currentView === 'month'
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                Month
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentView('year')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
+                  currentView === 'year'
+                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                Year
+              </button>
+            </div>
+          </div>
+        )}
+        
         <div className="flex-1 flex flex-col">
         {activeTab === 'tasks' && currentView === 'month' ? (
           <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">

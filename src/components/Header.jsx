@@ -311,12 +311,6 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
         )}
       </div>
 
-        {/* Mobile: View Dropdown - Show on mobile for tasks tab (moved to header since tabs are now at bottom) */}
-        {showTabs && activeTab === 'tasks' && (
-          <div className="flex items-center justify-center gap-3 sm:hidden">
-            <ViewDropdown value={currentView} onChange={onChangeView} />
-          </div>
-        )}
 
         {/* Desktop: Right side actions */}
         <div className="hidden sm:flex items-center gap-3">
