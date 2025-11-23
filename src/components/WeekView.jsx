@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { addDays, format, isSameDay, startOfWeek, isAfter, startOfDay } from "date-fns";
 import { ChevronLeft, ChevronRight, Calendar, ListX, List, CheckCircle, FileText, Code as CodeIcon, StickyNote } from "lucide-react";
 import TaskList from "./TaskList";
@@ -43,6 +43,33 @@ export default function WeekView({
     return Array.from({ length: 7 }).map((_, i) => addDays(start, i));
   }, [anchorDate]);
 
+  // Refs for day elements to enable scrolling to today
+  const dayRefs = useRef({});
+  const containerRef = useRef(null);
+
+  // Scroll to today's day on mount and when week changes (mobile only)
+  useEffect(() => {
+    const today = new Date();
+    const todayDay = days.find(day => isSameDay(day, today));
+    
+    if (todayDay) {
+      // Only scroll on mobile (screen width < 640px)
+      const isMobile = window.innerWidth < 640;
+      if (isMobile) {
+        // Small delay to ensure DOM is ready
+        const timeoutId = setTimeout(() => {
+          const dayKey = format(todayDay, 'yyyy-MM-dd');
+          const dayElement = dayRefs.current[dayKey];
+          if (dayElement) {
+            dayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [days]);
+
   // Weekly summary
   const totalTasks = useMemo(() => days.reduce((acc, d) => acc + (tasksFor ? tasksFor(d).length : 0), 0), [days, tasksFor]);
   const totalDone = useMemo(() => days.reduce((acc, d) => acc + (tasksFor ? tasksFor(d).filter(t => t.done).length : 0), 0), [days, tasksFor]);
@@ -73,43 +100,47 @@ export default function WeekView({
 
   return (
     <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <div>
           <div className="text-sm text-slate-500 dark:text-slate-400">Week</div>
           <div className="font-semibold text-slate-900 dark:text-slate-100">{format(days[0], 'MMM d')} – {format(days[6], 'MMM d, yyyy')}</div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={onOpenMissed}
-            className="ml-2 relative text-sm px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 inline-flex items-center gap-2"
+            className="relative text-sm px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 inline-flex items-center gap-2"
             aria-label="Show missed tasks this week"
             data-tip="Show missed tasks this week"
           >
             <ListX size={16} />
-            <span>Missed</span>
-            <span className="ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 tabular-nums">
+            <span className="hidden sm:inline">Missed</span>
+            <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 tabular-nums">
               {Number(missedCount) || 0}
             </span>
           </button>
-          <button onClick={onPrevWeek} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="Previous week" data-tip="Previous week"><ChevronLeft size={16} /></button>
-          <button onClick={onToday} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="This week" data-tip="This week"><Calendar size={16} /></button>
-          <button onClick={onNextWeek} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="Next week" data-tip="Next week"><ChevronRight size={16} /></button>
+          <div className="flex items-center gap-2">
+            <button onClick={onPrevWeek} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="Previous week" data-tip="Previous week"><ChevronLeft size={16} /></button>
+            <button onClick={onToday} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="This week" data-tip="This week"><Calendar size={16} /></button>
+            <button onClick={onNextWeek} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="Next week" data-tip="Next week"><ChevronRight size={16} /></button>
+          </div>
         </div>
       </div>
       
       {/* Weekly summary chips */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300"><List size={12} /> {totalTasks}</span>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle size={12} /> {totalDone}</span>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-[11px] text-blue-700 dark:text-blue-300"><FileText size={12} /> {notesCount}</span>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-[11px] text-purple-700 dark:text-purple-300"><CodeIcon size={12} /> {snippetsCount}</span>
       </div>
 
-      {/* 7 days task lists in horizontal layout */}
-      <div className="grid grid-cols-7 gap-2">
+      {/* 7 days task lists */}
+      {/* Mobile: Vertical stack, Desktop: Grid */}
+      <div ref={containerRef} className="flex flex-col gap-3 sm:grid sm:grid-cols-7 sm:gap-2">
         {days.map((day) => {
           const tasks = tasksFor ? tasksFor(day) : [];
           const isSelected = selectedDate && isSameDay(selectedDate, day);
+          const isToday = isSameDay(day, new Date());
           const doneCount = tasks.filter((t) => t.done).length;
           const totalCount = tasks.length;
           const hasNote = !!(hasNoteFor && hasNoteFor(day));
@@ -119,75 +150,78 @@ export default function WeekView({
               ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-white dark:ring-offset-slate-900'
               : isSelected
               ? 'ring-2 ring-indigo-500'
+              : isToday
+              ? 'ring-2 ring-indigo-300 dark:ring-indigo-600'
               : '';
 
           return (
             <div
               key={String(day)}
-              className={`group relative border border-slate-200 dark:border-slate-800 rounded-lg p-2 min-h-[600px] flex flex-col ${ringClass}`}
+              ref={(el) => { if (el) dayRefs.current[key] = el; }}
+              className={`group relative border border-slate-200 dark:border-slate-800 rounded-lg p-2 sm:p-2 min-h-[400px] sm:min-h-[600px] flex flex-col ${ringClass}`}
               onDragOver={(e) => { e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch {} setDragOverDayKey && setDragOverDayKey(key); }}
               onDragEnter={() => setDragOverDayKey && setDragOverDayKey(key)}
               onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayKey && setDragOverDayKey((k) => (k === key ? null : k)); }}
               onDrop={(e) => { onDropTaskOnDay && onDropTaskOnDay(e, day); setDragOverDayKey && setDragOverDayKey(null); }}
             >
-              {/* Day header */}
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{format(day, 'EEE')}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">{format(day, 'MMM d')}</div>
+                {/* Day header */}
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{format(day, 'EEE')}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400">{format(day, 'MMM d')}</div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {hasNote && (
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" data-tip="Notes present" />
+                    )}
+                    <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                      {doneCount}/{totalCount}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  {hasNote && (
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500" data-tip="Notes present" />
-                  )}
-                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                    {doneCount}/{totalCount}
-                  </span>
+
+                {/* Add task and notes buttons */}
+                <div className="flex items-center gap-1 mb-2">
+                  <button
+                    onClick={() => onOpenAddForDate && onOpenAddForDate(day)}
+                    className="flex-1 p-1.5 text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-600 rounded-md hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  >
+                    + Add task
+                  </button>
+                  <button
+                    onClick={() => openNotesForDay(day)}
+                    className="p-1.5 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-600 rounded-md hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                    aria-label={`Open notes for ${format(day, 'MMM d')}`}
+                    data-tip={`Open notes for ${format(day, 'MMM d')}`}
+                  >
+                    <StickyNote size={14} />
+                  </button>
+                </div>
+
+                {/* Task list for this day */}
+                <div className="flex-1 min-h-0 overflow-y-auto">
+                  <TaskList
+                    tasks={tasks}
+                    onDragStartTask={onDragStartTask}
+                    onToggleDone={onToggleDone}
+                    onOpenEditModal={onOpenEditModal}
+                    onDeleteTask={onDeleteTask}
+                    onAddSubtask={onAddSubtask}
+                    onToggleSubtask={onToggleSubtask}
+                    onDeleteSubtask={onDeleteSubtask}
+                    onStartPomodoro={onStartPomodoro}
+                    density="minified"
+                    emptyMessage="No tasks for this day"
+                    recurringSeries={recurringSeries}
+                    pomodoroRunningState={pomodoroRunningState}
+                    hidePriorityLabel={true}
+                    hideSubtaskButton={true}
+                  />
                 </div>
               </div>
-
-              {/* Add task and notes buttons */}
-              <div className="flex items-center gap-1 mb-2">
-                <button
-                  onClick={() => onOpenAddForDate && onOpenAddForDate(day)}
-                  className="flex-1 p-1.5 text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-600 rounded-md hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                >
-                  + Add task
-                </button>
-                <button
-                  onClick={() => openNotesForDay(day)}
-                  className="p-1.5 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-600 rounded-md hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                  aria-label={`Open notes for ${format(day, 'MMM d')}`}
-                  data-tip={`Open notes for ${format(day, 'MMM d')}`}
-                >
-                  <StickyNote size={14} />
-                </button>
-              </div>
-
-              {/* Task list for this day */}
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <TaskList
-                  tasks={tasks}
-                  onDragStartTask={onDragStartTask}
-                  onToggleDone={onToggleDone}
-                  onOpenEditModal={onOpenEditModal}
-                  onDeleteTask={onDeleteTask}
-                  onAddSubtask={onAddSubtask}
-                  onToggleSubtask={onToggleSubtask}
-                  onDeleteSubtask={onDeleteSubtask}
-                  onStartPomodoro={onStartPomodoro}
-                  density="minified"
-                  emptyMessage="No tasks for this day"
-                  recurringSeries={recurringSeries}
-                  pomodoroRunningState={pomodoroRunningState}
-                  hidePriorityLabel={true}
-                  hideSubtaskButton={true}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
     </section>
   );
 }
