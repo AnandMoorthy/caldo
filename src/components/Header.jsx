@@ -158,9 +158,9 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
   }
 
   return (
-    <header className={`sticky top-0 z-40 mb-4 sm:mb-6 pb-2 sm:pb-0 header-top-spacing ${isScrolled ? 'bg-white/60 dark:bg-slate-900/70 backdrop-blur-md' : 'bg-transparent'} transition-colors`}>
+    <header className={`sticky top-0 z-40 pb-2 sm:pb-0 header-top-spacing ${isScrolled ? 'bg-white/60 dark:bg-slate-900/70 backdrop-blur-md' : 'bg-transparent'} transition-colors flex-shrink-0 w-full`}>
       {/* Mobile Layout: Stack vertically on small screens */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         {/* Mobile: Top row with title and essential actions */}
         <div className="flex items-center justify-between sm:hidden">
           <div>
@@ -279,13 +279,13 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
         </div>
 
         {/* Desktop: Original horizontal layout */}
-        <div className="hidden sm:flex items-center gap-3">
+        <div className="hidden sm:flex items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">CalDo</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Minimalist calendar todo</p>
         </div>
         {showTabs && (
-          <nav className="ml-3 inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-1 py-1">
+          <nav className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-1 py-1">
             <button
               type="button"
               onClick={() => onChangeTab && onChangeTab('tasks')}
@@ -348,7 +348,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
         )}
 
         {/* Desktop: Right side actions */}
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-3">
         {activeTab === 'tasks' && (
           <div className="hidden sm:inline-block">
             <ViewDropdown value={currentView} onChange={onChangeView} />
