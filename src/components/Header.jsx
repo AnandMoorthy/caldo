@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun, HelpCircle, Search, Timer } from "lucide-react";
 import { loadThemePreference, saveThemePreference } from "../utils/storage";
-import ViewDropdown from "./ViewDropdown.jsx";
 
 function Avatar({ user }) {
   function getInitials() {
@@ -316,38 +315,35 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
 
 
         {/* Desktop: Right side actions */}
-        <div className="hidden sm:flex items-center gap-3">
-        {activeTab === 'tasks' && (
-          <div className="hidden sm:inline-block">
-            <ViewDropdown value={currentView} onChange={onChangeView} />
-          </div>
-        )}
-        <div className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-1.5 py-1">
+        <div className="hidden sm:flex items-center gap-2">
           {showSearch && (
             <button 
               onClick={onOpenSearch} 
-              className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
+              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 p-2.5 rounded-full transition-all min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95"
               data-tip={`Search tasks, notes, snippets (${isMac ? '⌘K' : 'Ctrl+K'})`}
+              aria-label="Search"
             >
-              <Search size={18} />
+              <Search size={20} />
             </button>
           )}
           {pomodoroEnabled && (
             <button 
               onClick={onOpenPomodoro} 
-              className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
+              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 p-2.5 rounded-full transition-all min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95"
               data-tip={`Start Pomodoro timer (P)`}
+              aria-label="Pomodoro timer"
             >
-              <Timer size={18} />
+              <Timer size={20} />
             </button>
           )}
           {canInstall && (
             <button 
               onClick={onClickInstall} 
-              className="text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 p-2 transition-colors"
+              className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 p-2.5 rounded-full transition-all min-w-[44px] min-h-[44px] flex items-center justify-center active:scale-95"
               data-tip="Install app"
+              aria-label="Install app"
             >
-              <InstallIcon size={18} />
+              <InstallIcon size={20} />
             </button>
           )}
           <motion.div
@@ -355,7 +351,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
             initial={{ scale: 0.9, opacity: 0.8 }}
             animate={{ scale: [1, 1.08, 1], opacity: 1 }}
             transition={{ duration: 0.6, type: 'spring', stiffness: 250, damping: 18 }}
-            className={`inline-flex items-center gap-1.5 h-7 px-2 rounded-full text-s bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-900/50 ${streakGlow ? 'ring-2 ring-orange-300/50 dark:ring-orange-400/40 shadow-[0_0_0_6px_rgba(251,146,60,0.15)] transition-shadow' : ''}`}
+            className={`inline-flex items-center gap-1.5 h-8 px-2.5 rounded-full text-xs bg-orange-50 text-orange-700 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-900/50 ${streakGlow ? 'ring-2 ring-orange-300/50 dark:ring-orange-400/40 shadow-[0_0_0_6px_rgba(251,146,60,0.15)] transition-shadow' : ''}`}
             data-tip="Current streak"
             aria-live="polite"
           >
@@ -365,16 +361,17 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
               transition={{ duration: 0.6 }}
               className="inline-flex"
             >
-              <StreakIcon size={16} className="text-orange-600" />
+              <StreakIcon size={16} className="text-orange-600 dark:text-orange-400" />
             </motion.span>
             <span className="font-semibold tabular-nums">{Number(currentStreak) || 0}</span>
           </motion.div>
           <div className="relative" ref={profileMenuRef}>
             <button
               onClick={() => setShowProfileMenu((v) => !v)}
-              className="inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-slate-400/50 dark:focus:ring-slate-500/40"
+              className="inline-flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-slate-400/50 dark:focus:ring-slate-500/40 hover:ring-2 hover:ring-slate-200 dark:hover:ring-slate-700 transition-all min-w-[44px] min-h-[44px] active:scale-95"
               aria-haspopup="menu"
               aria-expanded={showProfileMenu}
+              aria-label="Profile menu"
             >
               <Avatar user={user} />
             </button>
@@ -441,7 +438,6 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
             </div>
           </div>
         </div>
-      </div>
     </header>
   );
 }

@@ -2206,57 +2206,6 @@ export default function App() {
           />
         </div>
         
-        {/* Mobile: Floating View Switcher */}
-        {activeTab === 'tasks' && (
-          <div className="flex justify-center sm:hidden mb-2">
-            <div className="inline-flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg px-1 py-1">
-              <button
-                type="button"
-                onClick={() => setCurrentView('day')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                  currentView === 'day'
-                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                Day
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('week')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                  currentView === 'week'
-                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                Week
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('month')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                  currentView === 'month'
-                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                Month
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('year')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                  currentView === 'year'
-                    ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-                }`}
-              >
-                Year
-              </button>
-            </div>
-          </div>
-        )}
         
         <div className="flex-1 flex flex-col">
         {activeTab === 'tasks' && currentView === 'month' ? (
@@ -2660,6 +2609,62 @@ export default function App() {
         <footer className="mt-6 mb-6 sm:mb-8 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
         <TooltipProvider />
       </div>
+      
+      {/* Task View Switcher - Bottom of screen, above options */}
+      {activeTab === 'tasks' && (
+        <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center sm:bottom-4 safe-pb pointer-events-none">
+          <div className="max-w-7xl mx-auto w-full px-4 sm:px-6">
+            <div className="flex justify-center py-2 sm:py-3">
+              <div className="inline-flex items-center gap-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] px-1.5 py-1.5 pointer-events-auto">
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('day')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[36px] min-w-[48px] ${
+                    currentView === 'day'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  Day
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('week')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[36px] min-w-[48px] ${
+                    currentView === 'week'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  Week
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('month')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[36px] min-w-[48px] ${
+                    currentView === 'month'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  Month
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('year')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[36px] min-w-[48px] ${
+                    currentView === 'year'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                  }`}
+                >
+                  Year
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 safe-pb">
