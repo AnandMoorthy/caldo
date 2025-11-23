@@ -137,125 +137,125 @@ export default function RichTextEditor({ content, onChange, placeholder = "Start
     <div className={`${borderless ? '' : 'border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden'} h-full flex flex-col`}>
       {/* Toolbar */}
       {showToolbar && (
-      <div className="border-b border-slate-200 dark:border-slate-700 p-2 flex flex-wrap gap-1 bg-slate-50 dark:bg-slate-800">
+      <div className="border-b border-slate-200 dark:border-slate-700 p-2 sm:p-2 flex flex-wrap gap-1.5 sm:gap-1 bg-slate-50 dark:bg-slate-800 overflow-x-auto">
         {/* Headers */}
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('heading', { level: 1 }) ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Heading 1"
         >
-          <Heading1 size={16} />
+          <Heading1 size={18} className="sm:w-4 sm:h-4" />
         </button>
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('heading', { level: 2 }) ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Heading 2"
         >
-          <Heading2 size={16} />
+          <Heading2 size={18} className="sm:w-4 sm:h-4" />
         </button>
         <button
           onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('heading', { level: 3 }) ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Heading 3"
         >
-          <Heading3 size={16} />
+          <Heading3 size={18} className="sm:w-4 sm:h-4" />
         </button>
 
-        <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1" />
+        <div className="w-px h-7 sm:h-6 bg-slate-300 dark:bg-slate-600 mx-0.5 sm:mx-1" />
 
         {/* Text Formatting */}
         <button
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('bold') ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Bold"
         >
-          <Bold size={16} />
+          <Bold size={18} className="sm:w-4 sm:h-4" />
         </button>
         <button
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('italic') ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Italic"
         >
-          <Italic size={16} />
+          <Italic size={18} className="sm:w-4 sm:h-4" />
         </button>
         <button
           onClick={() => editor.chain().focus().toggleStrike().run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('strike') ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Strikethrough"
         >
-          <Strikethrough size={16} />
+          <Strikethrough size={18} className="sm:w-4 sm:h-4" />
         </button>
         <button
           onClick={() => editor.chain().focus().toggleCode().run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('code') ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Inline Code"
         >
-          <Code size={16} />
+          <Code size={18} className="sm:w-4 sm:h-4" />
         </button>
         <button
           onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('codeBlock') ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Code Block"
         >
-          <Code2 size={16} />
+          <Code2 size={18} className="sm:w-4 sm:h-4" />
         </button>
 
-        <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1" />
+        <div className="w-px h-7 sm:h-6 bg-slate-300 dark:bg-slate-600 mx-0.5 sm:mx-1" />
 
         {/* Lists */}
         <button
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('bulletList') ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Bullet List"
         >
-          <List size={16} />
+          <List size={18} className="sm:w-4 sm:h-4" />
         </button>
         <button
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('orderedList') ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Numbered List"
         >
-          <ListOrdered size={16} />
+          <ListOrdered size={18} className="sm:w-4 sm:h-4" />
         </button>
 
-        <div className="w-px h-6 bg-slate-300 dark:bg-slate-600 mx-1" />
+        <div className="w-px h-7 sm:h-6 bg-slate-300 dark:bg-slate-600 mx-0.5 sm:mx-1" />
 
         {/* Block Elements */}
         <button
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          className={`p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 ${
+          className={`p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation ${
             editor.isActive('blockquote') ? 'bg-slate-200 dark:bg-slate-700' : ''
           }`}
           title="Quote"
         >
-          <Quote size={16} />
+          <Quote size={18} className="sm:w-4 sm:h-4" />
         </button>
         <button
           onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          className="p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+          className="p-2.5 sm:p-2 rounded hover:bg-slate-200 dark:hover:bg-slate-700 touch-manipulation"
           title="Horizontal Rule"
         >
-          <Minus size={16} />
+          <Minus size={18} className="sm:w-4 sm:h-4" />
         </button>
       </div>
       )}

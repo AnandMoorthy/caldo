@@ -185,68 +185,69 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 420, opacity: 0 }}
           transition={{ type: "spring", stiffness: 280, damping: 28 }}
-          className="fixed right-0 top-0 h-full z-[70] w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
+          className="fixed right-0 top-0 h-full z-[70] w-full sm:max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
           aria-label="Day notes panel"
         >
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <div>
-              <div className="text-sm text-slate-500 dark:text-slate-400">Notes for</div>
-              <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{dateLabel}</div>
+          <div className="p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Notes for</div>
+              <div className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">{dateLabel}</div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               {/* Auto-save indicator */}
               {hasUserModified && mode === 'edit' && (
                 <div className="inline-flex items-center gap-2 px-2 py-1 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 rounded">
                   <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                  Auto-saving...
+                  <span className="hidden sm:inline">Auto-saving...</span>
                 </div>
               )}
               <a
                 href={`#/x/n/${dateLabel?.slice?.(0,10) || ''}`}
                 target="_blank"
                 rel="noreferrer"
-                className="w-auto px-2 py-1 text-xs inline-flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800"
+                className="w-auto px-2 py-1.5 sm:py-1 text-xs inline-flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 touch-manipulation"
               >
-                Open in new tab
+                <span className="hidden sm:inline">Open in new tab</span>
+                <span className="sm:hidden">Open</span>
               </a>
               <button
                 type="button"
                 onClick={handleClose}
-                className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="w-9 h-9 sm:w-8 sm:h-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 touch-manipulation"
                 aria-label="Close notes"
               >
-                <X size={18} />
+                <X size={20} className="sm:w-[18px] sm:h-[18px]" />
               </button>
             </div>
           </div>
 
-          <div className="p-4 flex-1 min-h-0 flex flex-col">
+          <div className="p-3 sm:p-4 flex-1 min-h-0 flex flex-col">
             <div className="flex justify-center mb-2">
               <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <button type="button" onClick={goEdit} className={`px-3 py-1.5 text-xs ${mode==='edit' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>Edit</button>
-                <button type="button" onClick={goPreview} className={`px-3 py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${mode==='preview' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>Preview</button>
+                <button type="button" onClick={goEdit} className={`px-4 py-2 sm:px-3 sm:py-1.5 text-sm sm:text-xs touch-manipulation ${mode==='edit' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>Edit</button>
+                <button type="button" onClick={goPreview} className={`px-4 py-2 sm:px-3 sm:py-1.5 text-sm sm:text-xs border-l border-slate-200 dark:border-slate-700 touch-manipulation ${mode==='preview' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>Preview</button>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1 mb-2">
-              <button type="button" disabled={mode==='preview'} onClick={onBold} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Bold (wrap with **)">
-                <Bold size={14} /> Bold
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-1 mb-2">
+              <button type="button" disabled={mode==='preview'} onClick={onBold} className={`px-2.5 py-2 sm:px-2 sm:py-1 text-xs rounded inline-flex items-center gap-1.5 sm:gap-1 touch-manipulation ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Bold (wrap with **)">
+                <Bold size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="sm:hidden">Bold</span>
               </button>
-              <button type="button" disabled={mode==='preview'} onClick={onItalic} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Italic (wrap with *)">
-                <Italic size={14} /> Italic
+              <button type="button" disabled={mode==='preview'} onClick={onItalic} className={`px-2.5 py-2 sm:px-2 sm:py-1 text-xs rounded inline-flex items-center gap-1.5 sm:gap-1 touch-manipulation ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Italic (wrap with *)">
+                <Italic size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="sm:hidden">Italic</span>
               </button>
-              <button type="button" disabled={mode==='preview'} onClick={onStrike} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Strikethrough (wrap with ~~)">
-                <Strikethrough size={14} /> Strike
+              <button type="button" disabled={mode==='preview'} onClick={onStrike} className={`px-2.5 py-2 sm:px-2 sm:py-1 text-xs rounded inline-flex items-center gap-1.5 sm:gap-1 touch-manipulation ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Strikethrough (wrap with ~~)">
+                <Strikethrough size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="sm:hidden">Strike</span>
               </button>
-              <span className="inline-block w-px h-4 bg-slate-200 dark:border-slate-700 mx-1" />
-              <button type="button" disabled={mode==='preview'} onClick={onUl} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Bullet list (-)">
-                <List size={14} /> Bullets
+              <span className="inline-block w-px h-4 bg-slate-200 dark:border-slate-700 mx-0.5 sm:mx-1" />
+              <button type="button" disabled={mode==='preview'} onClick={onUl} className={`px-2.5 py-2 sm:px-2 sm:py-1 text-xs rounded inline-flex items-center gap-1.5 sm:gap-1 touch-manipulation ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Bullet list (-)">
+                <List size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="sm:hidden">Bullets</span>
               </button>
-              <button type="button" disabled={mode==='preview'} onClick={onOl} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Numbered list (1.)">
-                <ListOrdered size={14} /> Numbers
+              <button type="button" disabled={mode==='preview'} onClick={onOl} className={`px-2.5 py-2 sm:px-2 sm:py-1 text-xs rounded inline-flex items-center gap-1.5 sm:gap-1 touch-manipulation ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Numbered list (1.)">
+                <ListOrdered size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="sm:hidden">Numbers</span>
               </button>
-              <button type="button" disabled={mode==='preview'} onClick={onChecklist} className={`px-2 py-1 text-xs rounded inline-flex items-center gap-1 ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Checklist (- [ ] )">
-                <Square size={14} /> Checklist
+              <button type="button" disabled={mode==='preview'} onClick={onChecklist} className={`px-2.5 py-2 sm:px-2 sm:py-1 text-xs rounded inline-flex items-center gap-1.5 sm:gap-1 touch-manipulation ${mode==='preview' ? 'opacity-60 cursor-not-allowed bg-slate-100 dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700'}`} data-tip="Checklist (- [ ] )">
+                <Square size={16} className="sm:w-3.5 sm:h-3.5" /> <span className="sm:hidden">Checklist</span>
               </button>
             </div>
             <div className="flex-1 min-h-0">
@@ -257,7 +258,7 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
                   value={value}
                   onChange={(e) => updateValue(e.target.value)}
                   placeholder="Write anything about your day..."
-                  className="input w-full h-full resize-none overflow-auto"
+                  className="input w-full h-full resize-none overflow-auto text-base sm:text-sm"
                 />
               ) : (
                 <div className="max-w-none h-full overflow-auto rounded-lg border border-slate-200 dark:border-slate-800 p-3 bg-white dark:bg-slate-900">
@@ -301,22 +302,22 @@ export default function DayNotesDrawer({ open, dateLabel = "", value = "", onCha
             </div>
           </div>
 
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+          <div className="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               {typeof onGoToDay === 'function' && (
-                <button type="button" onClick={onGoToDay} className="px-3 py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
+                <button type="button" onClick={onGoToDay} className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200 touch-manipulation text-sm sm:text-base">
                   Go to day
                 </button>
               )}
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={handleClose} className="px-4 py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
+              <button type="button" onClick={handleClose} className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200 touch-manipulation text-sm sm:text-base">
                 Close
               </button>
               <motion.button
                 type="button"
                 onClick={onSave}
-                className={`px-4 py-2 rounded text-white inline-flex items-center gap-2 ${saving ? 'bg-indigo-500' : 'bg-indigo-600'}`}
+                className={`flex-1 sm:flex-none px-4 py-2.5 sm:py-2 rounded text-white inline-flex items-center justify-center gap-2 touch-manipulation text-sm sm:text-base ${saving ? 'bg-indigo-500' : 'bg-indigo-600'}`}
                 animate={saving ? { scale: [1, 0.98, 1], opacity: [1, 0.8, 1] } : {}}
                 transition={{ duration: 0.6, type: 'spring', stiffness: 250, damping: 20 }}
                 disabled={saving}
