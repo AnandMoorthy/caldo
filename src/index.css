@@ -10,6 +10,17 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 
 .safe-pt { padding-top: max(env(safe-area-inset-top), 0px); }
 .safe-pb { padding-bottom: max(env(safe-area-inset-bottom), 0px); }
 
+/* Header top spacing for mobile */
+.header-top-spacing {
+  padding-top: max(env(safe-area-inset-top, 0px), 1.5rem);
+}
+
+@media (min-width: 640px) {
+  .header-top-spacing {
+    padding-top: max(env(safe-area-inset-top, 0px), 0px);
+  }
+}
+
 /* Prevent double-tap zoom and improve touch target behavior */
 * { touch-action: manipulation; }
 

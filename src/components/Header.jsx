@@ -158,7 +158,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
   }
 
   return (
-    <header className={`sticky top-0 z-40 mb-4 sm:mb-6 pt-4 sm:pt-0 safe-pt ${isScrolled ? 'bg-white/60 dark:bg-slate-900/70 backdrop-blur-md' : 'bg-transparent'} transition-colors`}>
+    <header className={`sticky top-0 z-40 mb-4 sm:mb-6 pb-2 sm:pb-0 header-top-spacing ${isScrolled ? 'bg-white/60 dark:bg-slate-900/70 backdrop-blur-md' : 'bg-transparent'} transition-colors`}>
       {/* Mobile Layout: Stack vertically on small screens */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
         {/* Mobile: Top row with title and essential actions */}
