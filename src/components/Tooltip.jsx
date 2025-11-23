@@ -16,6 +16,11 @@ export default function TooltipProvider() {
   const usingMouseRef = useRef(false);
   const rafRef = useRef(0);
 
+  // Check if device is mobile (screen width < 768px)
+  const isMobile = () => {
+    return window.innerWidth < 768 || ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  };
+
   useEffect(() => {
     function findTipElement(startEl) {
       if (!startEl) return null;
@@ -50,6 +55,8 @@ export default function TooltipProvider() {
 
     let showTimer = 0;
     function onMouseOver(e) {
+      // Disable tooltips on mobile
+      if (isMobile()) return;
       const el = findTipElement(e.target);
       if (!el) return;
       usingMouseRef.current = false;
@@ -76,6 +83,8 @@ export default function TooltipProvider() {
     }
 
     function onFocusIn(e) {
+      // Disable tooltips on mobile
+      if (isMobile()) return;
       const el = findTipElement(e.target);
       if (!el) return;
       usingMouseRef.current = false;
@@ -93,6 +102,12 @@ export default function TooltipProvider() {
     }
 
     function onScrollOrResize() {
+      // Hide tooltips if resized to mobile
+      if (isMobile() && visible) {
+        setVisible(false);
+        anchorRef.current = null;
+        return;
+      }
       if (!visible || !anchorRef.current) return;
       if (usingMouseRef.current) return;
       computePosFromRect(anchorRef.current, placement);

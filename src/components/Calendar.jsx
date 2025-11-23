@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { format, isSameDay, isSameMonth, endOfMonth, isAfter, startOfDay } from "date-fns";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, ListX, List, CheckCircle, FileText, Code as CodeIcon } from "lucide-react";
@@ -20,6 +20,21 @@ export default function Calendar({
   onOpenMissed,
   snippets = [],
 }) {
+  // Check if device is mobile
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.innerWidth < 768 || ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+  });
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Month summary (tasks, done, notes, snippets)
   const monthEndBoundary = endOfMonth(monthStart);
   let totalTasks = 0;
@@ -150,8 +165,8 @@ export default function Calendar({
                 </div>
                 <div className="hidden sm:block text-xs text-slate-400 dark:text-slate-500 relative">{format(day, "MMM")}</div>
               </div>
-              {/* Hover card summary - only show if there are tasks or notes */}
-              {(tasks.length > 0 || hasNote) && (
+              {/* Hover card summary - only show if there are tasks or notes, and not on mobile */}
+              {(tasks.length > 0 || hasNote) && !isMobile && (
                 <div className="pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full z-30">
                   <div className="opacity-0 translate-y-1 scale-95 group-hover:opacity-100 group-hover:translate-y-0 group-hover:scale-100 transition-all duration-150 ease-out">
                     <div className="w-56 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur p-3">
@@ -189,17 +204,18 @@ export default function Calendar({
               )}
               {(tasks.length > 0 || (hasNoteFor && hasNoteFor(day))) && (
                 <div
-                  className="absolute bottom-1 right-1 flex items-center gap-0.5"
+                  className="absolute bottom-0.5 right-0.5 sm:bottom-1 sm:right-1 flex items-center gap-0.5 max-w-[calc(100%-0.25rem)] overflow-hidden"
                 >
                   {hasNoteFor && hasNoteFor(day) && (
                     <span
-                      className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500"
+                      className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0"
                       data-tip="Notes present"
                     />
                   )}
                   {(() => {
                     const hasNote = !!(hasNoteFor && hasNoteFor(day));
-                    const maxDots = 3;
+                    // Show fewer dots on mobile to prevent overflow
+                    const maxDots = isMobile ? 1 : 3;
                     const taskDots = Math.min(maxDots - (hasNote ? 1 : 0), tasks.length);
                     const isFutureDate = isAfter(day, startOfDay(new Date()));
                     return Array.from({ length: taskDots }).map((_, idx) => (
@@ -213,17 +229,17 @@ export default function Calendar({
                               : doneCount === tasks.length 
                                 ? "bg-green-500" 
                                 : "bg-amber-400"
-                        } inline-block w-1.5 h-1.5 rounded-full`}
+                        } inline-block w-1.5 h-1.5 rounded-full flex-shrink-0`}
                       />
                     ));
                   })()}
                   {(() => {
                     const hasNote = !!(hasNoteFor && hasNoteFor(day));
-                    const maxDots = 3;
+                    const maxDots = isMobile ? 1 : 3;
                     const taskDotsShown = Math.min(maxDots - (hasNote ? 1 : 0), tasks.length);
                     const overflow = tasks.length - taskDotsShown;
                     return overflow > 0 ? (
-                      <span className="text-[9px] leading-none text-slate-400 dark:text-slate-500 ml-0.5">+{overflow}</span>
+                      <span className="text-[8px] sm:text-[9px] leading-none text-slate-400 dark:text-slate-500 ml-0.5 flex-shrink-0">+{overflow}</span>
                     ) : null;
                   })()}
                 </div>
