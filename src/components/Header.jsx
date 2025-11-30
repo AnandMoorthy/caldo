@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun, HelpCircle, Search, Timer } from "lucide-react";
 import { loadThemePreference, saveThemePreference } from "../utils/storage";
+import TabSwitcher from "./TabSwitcher";
 
 function Avatar({ user }) {
   function getInitials() {
@@ -163,8 +164,8 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
         {/* Mobile: Top row with title and essential actions */}
         <div className="flex items-center justify-between sm:hidden">
           <div>
-            <h1 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">CalDo</h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Minimalist calendar todo</p>
+            <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">CalDo</h1>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">Plan. Note. Remember.</p>
           </div>
           <div className="flex items-center gap-2">
             {showSearch && (
@@ -281,35 +282,13 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
         </div>
 
         {/* Desktop: Original horizontal layout */}
-        <div className="hidden sm:flex items-center gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">CalDo</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Minimalist calendar todo</p>
+        <div className="hidden sm:flex items-center gap-3">
+        <div className="flex-shrink-0">
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-none">CalDo</h1>
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">Plan. Note. Remember.</p>
         </div>
         {showTabs && (
-          <nav className="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-1 py-1">
-            <button
-              type="button"
-              onClick={() => onChangeTab && onChangeTab('tasks')}
-              className={`${activeTab === 'tasks' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'} px-3 py-1 rounded-lg text-sm font-medium`}
-            >
-              Tasks
-            </button>
-            <button
-              type="button"
-              onClick={() => onChangeTab && onChangeTab('notes')}
-              className={`${activeTab === 'notes' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'} px-3 py-1 rounded-lg text-sm font-medium`}
-            >
-              Notes & Snippets
-            </button>
-            <button
-              type="button"
-              onClick={() => onChangeTab && onChangeTab('moments')}
-              className={`${activeTab === 'moments' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100' : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'} px-3 py-1 rounded-lg text-sm font-medium`}
-            >
-              Moments
-            </button>
-          </nav>
+          <TabSwitcher activeTab={activeTab} onChangeTab={onChangeTab} />
         )}
       </div>
 

@@ -2651,7 +2651,6 @@ export default function App() {
           />
         )}
 
-        <footer className="mt-6 mb-6 sm:mb-8 text-center text-sm text-slate-400 dark:text-slate-500">Imagined by Human, Built by AI.</footer>
         <TooltipProvider />
       </div>
       
@@ -2712,44 +2711,44 @@ export default function App() {
       )}
       
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 safe-pb">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-around h-16">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-700 safe-pb shadow-[0_-2px_10px_rgba(0,0,0,0.05)] dark:shadow-[0_-2px_10px_rgba(0,0,0,0.2)]">
+        <div className="max-w-7xl mx-auto px-2 py-1.5">
+          <div className="flex items-center justify-around gap-0.5">
             <button
               type="button"
               onClick={() => setActiveTab('tasks')}
-              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors ${
+              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-lg transition-all duration-150 touch-manipulation ${
                 activeTab === 'tasks'
-                  ? 'text-slate-900 dark:text-slate-100'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
                   : 'text-slate-500 dark:text-slate-400'
               }`}
             >
-              <CheckSquare size={22} className={activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
-              <span className={`text-xs font-medium ${activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Tasks</span>
+              <CheckSquare size={18} className={activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
+              <span className={`text-[10px] font-medium ${activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Tasks</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('notes')}
-              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors ${
+              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-lg transition-all duration-150 touch-manipulation ${
                 activeTab === 'notes'
-                  ? 'text-slate-900 dark:text-slate-100'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
                   : 'text-slate-500 dark:text-slate-400'
               }`}
             >
-              <StickyNote size={22} className={activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
-              <span className={`text-xs font-medium ${activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Notes</span>
+              <StickyNote size={18} className={activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
+              <span className={`text-[10px] font-medium ${activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Notes</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('moments')}
-              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors ${
+              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-lg transition-all duration-150 touch-manipulation ${
                 activeTab === 'moments'
-                  ? 'text-slate-900 dark:text-slate-100'
+                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
                   : 'text-slate-500 dark:text-slate-400'
               }`}
             >
-              <Sparkles size={22} className={activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
-              <span className={`text-xs font-medium ${activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Moments</span>
+              <Sparkles size={18} className={activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
+              <span className={`text-[10px] font-medium ${activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Moments</span>
             </button>
           </div>
         </div>
