@@ -861,8 +861,14 @@ export default function App() {
     return tasks.filter(t => !t.done);
   }
 
+  // Feature flag to enable/disable motivational messages
+  const ENABLE_MOTIVATIONAL_MESSAGES = false;
+
   // Motivational message component - memoizes message to prevent changing on re-renders
   function MotivationalMessage({ date, incompleteTasks }) {
+    // Disabled via feature flag - can be re-enabled by setting ENABLE_MOTIVATIONAL_MESSAGES to true
+    if (!ENABLE_MOTIVATIONAL_MESSAGES) return null;
+    
     const dateKey = keyFor(date);
     const today = new Date();
     const todayStart = startOfDay(today);
