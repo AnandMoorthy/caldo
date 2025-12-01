@@ -86,6 +86,7 @@ export default function App() {
   const [snippetsDrawerOpen, setSnippetsDrawerOpen] = useState(false);
   const [snippetsDrawerId, setSnippetsDrawerId] = useState(null);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [iconAnimation, setIconAnimation] = useState({ tab: null, key: 0 });
   
   // Pomodoro timer state
   const [showFloatingPomodoro, setShowFloatingPomodoro] = useState(false);
@@ -2213,6 +2214,16 @@ export default function App() {
     }
   }, [activeTab]);
 
+  // Reset icon animation after it completes
+  useEffect(() => {
+    if (iconAnimation.tab) {
+      const timer = setTimeout(() => {
+        setIconAnimation({ tab: null, key: 0 });
+      }, 300); // Match animation duration
+      return () => clearTimeout(timer);
+    }
+  }, [iconAnimation]);
+
   return (
     publicRoute ? (
       <PublicSnippetView slug={publicRoute.slug} token={publicRoute.token} />
@@ -2656,17 +2667,17 @@ export default function App() {
       
       {/* Task View Switcher - Bottom of screen, above options */}
       {activeTab === 'tasks' && (
-        <div className="fixed bottom-16 left-0 right-0 z-40 flex justify-center sm:bottom-4 safe-pb pointer-events-none">
+        <div className="fixed bottom-20 left-0 right-0 z-40 flex justify-center sm:bottom-4 safe-pb pointer-events-none">
           <div className="max-w-7xl mx-auto w-full px-4 sm:px-6">
             <div className="flex justify-center py-2 sm:py-3">
-              <div className="inline-flex items-center gap-0.5 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl border border-slate-200/80 dark:border-slate-700/80 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] px-1.5 py-1.5 pointer-events-auto">
+              <div className="inline-flex items-center gap-1 bg-white dark:bg-slate-800 backdrop-blur-md sm:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-xl sm:shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:sm:shadow-[0_8px_30px_rgb(0,0,0,0.3)] px-2 py-1.5 pointer-events-auto">
                 <button
                   type="button"
                   onClick={() => setCurrentView('day')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[36px] min-w-[48px] ${
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[38px] min-w-[52px] touch-manipulation ${
                     currentView === 'day'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 active:text-slate-900 dark:active:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700/60'
                   }`}
                 >
                   Day
@@ -2674,10 +2685,10 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('week')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[36px] min-w-[48px] ${
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[38px] min-w-[52px] touch-manipulation ${
                     currentView === 'week'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 active:text-slate-900 dark:active:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700/60'
                   }`}
                 >
                   Week
@@ -2685,10 +2696,10 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('month')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[36px] min-w-[48px] ${
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[38px] min-w-[52px] touch-manipulation ${
                     currentView === 'month'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 active:text-slate-900 dark:active:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700/60'
                   }`}
                 >
                   Month
@@ -2696,10 +2707,10 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('year')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[36px] min-w-[48px] ${
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[38px] min-w-[52px] touch-manipulation ${
                     currentView === 'year'
-                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-md scale-105'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                      ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
+                      : 'text-slate-600 dark:text-slate-400 active:text-slate-900 dark:active:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700/60'
                   }`}
                 >
                   Year
@@ -2711,44 +2722,71 @@ export default function App() {
       )}
       
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-t border-slate-200 dark:border-slate-700 safe-pb shadow-[0_-2px_10px_rgba(0,0,0,0.05)] dark:shadow-[0_-2px_10px_rgba(0,0,0,0.2)]">
-        <div className="max-w-7xl mx-auto px-2 py-1.5">
-          <div className="flex items-center justify-around gap-0.5">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white dark:bg-slate-900 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 safe-pb shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
+        <div className="max-w-7xl mx-auto px-2 py-2">
+          <div className="flex items-center justify-around gap-1">
             <button
               type="button"
-              onClick={() => setActiveTab('tasks')}
-              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-lg transition-all duration-150 touch-manipulation ${
+              onClick={() => {
+                setIconAnimation({ tab: 'tasks', key: Date.now() });
+                setActiveTab('tasks');
+              }}
+              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'tasks'
-                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
-                  : 'text-slate-500 dark:text-slate-400'
+                  ? 'text-slate-900 dark:text-slate-100'
+                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
               }`}
             >
-              <CheckSquare size={18} className={activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
-              <span className={`text-[10px] font-medium ${activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Tasks</span>
+              <CheckSquare 
+                size={20} 
+                strokeWidth={activeTab === 'tasks' ? 2.5 : 2}
+                className={`transition-all duration-200 ${
+                  activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
+                } ${iconAnimation.tab === 'tasks' ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
+              />
+              <span className={`text-[11px] font-semibold ${activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Tasks</span>
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('notes')}
-              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-lg transition-all duration-150 touch-manipulation ${
+              onClick={() => {
+                setIconAnimation({ tab: 'notes', key: Date.now() });
+                setActiveTab('notes');
+              }}
+              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'notes'
-                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
-                  : 'text-slate-500 dark:text-slate-400'
+                  ? 'text-slate-900 dark:text-slate-100'
+                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
               }`}
             >
-              <StickyNote size={18} className={activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
-              <span className={`text-[10px] font-medium ${activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Notes</span>
+              <StickyNote 
+                size={20} 
+                strokeWidth={activeTab === 'notes' ? 2.5 : 2}
+                className={`transition-all duration-200 ${
+                  activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
+                } ${iconAnimation.tab === 'notes' ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
+              />
+              <span className={`text-[11px] font-semibold ${activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Notes</span>
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('moments')}
-              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-lg transition-all duration-150 touch-manipulation ${
+              onClick={() => {
+                setIconAnimation({ tab: 'moments', key: Date.now() });
+                setActiveTab('moments');
+              }}
+              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'moments'
-                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
-                  : 'text-slate-500 dark:text-slate-400'
+                  ? 'text-slate-900 dark:text-slate-100'
+                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
               }`}
             >
-              <Sparkles size={18} className={activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'} />
-              <span className={`text-[10px] font-medium ${activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Moments</span>
+              <Sparkles 
+                size={20} 
+                strokeWidth={activeTab === 'moments' ? 2.5 : 2}
+                className={`transition-all duration-200 ${
+                  activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
+                } ${iconAnimation.tab === 'moments' ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
+              />
+              <span className={`text-[11px] font-semibold ${activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Moments</span>
             </button>
           </div>
         </div>
