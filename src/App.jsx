@@ -2234,7 +2234,7 @@ export default function App() {
         <FocusedDayNoteView dateKey={focusedRoute.dateKey} />
       )
     ) : (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 pb-20 sm:pb-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200 overflow-x-hidden flex flex-col">
+    <div className={`min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 ${activeTab === 'tasks' ? 'pb-40' : 'pb-20'} sm:pb-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200 overflow-x-hidden flex flex-col`}>
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col gap-4 sm:gap-6">
         <div className="flex-shrink-0 w-full">
           <Header
@@ -2260,7 +2260,7 @@ export default function App() {
         
         <div className="flex-1 flex flex-col">
         {activeTab === 'tasks' && currentView === 'month' ? (
-          <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 pb-40 sm:pb-0">
             <Calendar
               monthStart={monthStart}
               monthDays={monthDays}
@@ -2392,7 +2392,7 @@ export default function App() {
             </aside>
           </main>
         ) : activeTab === 'tasks' && currentView === 'week' ? (
-          <main className="grid grid-cols-1 gap-4 sm:gap-6">
+          <main className="grid grid-cols-1 gap-4 sm:gap-6 pb-40 sm:pb-0">
             <WeekView
               anchorDate={cursor}
               onPrevWeek={prevWeek}
@@ -2431,7 +2431,7 @@ export default function App() {
             />
           </main>
         ) : activeTab === 'tasks' && currentView === 'year' ? (
-          <main className="grid grid-cols-1 gap-4 sm:gap-6">
+          <main className="grid grid-cols-1 gap-4 sm:gap-6 pb-40 sm:pb-0">
             <YearView
               anchorDate={cursor}
               onPrevYear={prevYear}
@@ -2447,7 +2447,7 @@ export default function App() {
             />
           </main>
         ) : activeTab === 'tasks' ? (
-          <main className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0">
+          <main className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0 pb-40 sm:pb-0">
             <DayView
               date={selectedDate}
               onPrevDay={() => prevDay()}

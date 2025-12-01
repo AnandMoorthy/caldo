@@ -236,7 +236,7 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 px-4 sm:px-0">
+    <div className="max-w-2xl mx-auto space-y-6 px-4 sm:px-0 pb-20 sm:pb-0">
       {error && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}

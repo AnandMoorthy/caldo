@@ -354,7 +354,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
   }, [filterMode]);
 
   return (
-    <main className="grid grid-cols-1 gap-4 sm:gap-6">
+    <main className="grid grid-cols-1 gap-4 sm:gap-6 pb-20 sm:pb-0">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div className="font-semibold flex items-center gap-2 text-base sm:text-lg">{loading ? <Loader2 size={18} className="animate-spin" /> : <StickyNote size={18} />} Notes & Snippets</div>
