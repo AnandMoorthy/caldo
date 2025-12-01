@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { format, isAfter, startOfDay } from "date-fns";
 import { Plus, StickyNote, List, Grip, Minimize2, ChevronLeft, ChevronRight, Calendar } from "lucide-react";
 import TaskList from "./TaskList.jsx";
@@ -29,8 +29,57 @@ export default function DayView({
   onStartPomodoro = null,
   pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null },
 }) {
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  
+  // Minimum swipe distance (in pixels)
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null);
+    const touch = e.targetTouches[0];
+    setTouchStart({ x: touch.clientX, y: touch.clientY });
+  };
+
+  const onTouchMove = (e) => {
+    const touch = e.targetTouches[0];
+    setTouchEnd({ x: touch.clientX, y: touch.clientY });
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    const absDistanceX = Math.abs(distanceX);
+    const absDistanceY = Math.abs(distanceY);
+    
+    // Only trigger if horizontal movement is greater than vertical (swipe is primarily horizontal)
+    if (absDistanceX > absDistanceY && absDistanceX > minSwipeDistance) {
+      if (distanceX > 0) {
+        // Swipe left - go to next day
+        onNextDay();
+      } else {
+        // Swipe right - go to previous day
+        onPrevDay();
+      }
+    }
+    
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  // Check if device is mobile/touch-enabled
+  const isMobile = typeof window !== 'undefined' && 
+    (window.innerWidth < 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0);
+
   return (
-    <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col h-full">
+    <section 
+      className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col h-full"
+      onTouchStart={isMobile ? onTouchStart : undefined}
+      onTouchMove={isMobile ? onTouchMove : undefined}
+      onTouchEnd={isMobile ? onTouchEnd : undefined}
+    >
       <div className="flex items-center justify-between mb-3">
         <div>
           <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
