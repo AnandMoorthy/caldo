@@ -6,9 +6,13 @@ on:
   workflow_dispatch: {}
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
+  # Required to detach the custom domain. pages:write can publish, but
+  # changing the Pages custom domain is a repository administration change.
+  administration: write
 
 concurrency:
   group: "pages"
@@ -47,38 +51,57 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Remove lost custom domain
+      - name: Point Pages at the Actions build
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Pages is still pinned to mycaldo.xyz, so anandhere.xyz/caldo 404s
-          # and a new deploy can fail the DNS check for that dead domain.
-          # Clearing the project custom domain lets the user site serve this
-          # repo at https://anandhere.xyz/caldo/.
+          # mycaldo.xyz used to be this site's custom domain. Publishing from
+          # the branch (no CNAME) already moved the URL to anandhere.xyz/caldo,
+          # but that publish is the unbuilt source. Ask Pages to keep using the
+          # Actions artifact and to leave the custom domain empty.
           api="https://api.github.com/repos/${{ github.repository }}/pages"
           auth=(
             -H "Authorization: Bearer ${GH_TOKEN}"
             -H "Accept: application/vnd.github+json"
             -H "X-GitHub-Api-Version: 2022-11-28"
           )
-          clear_domain() {
-            curl --fail-with-body -sS -X PUT "${auth[@]}" "$api" -d "$1" -o pages.json
-          }
-          if ! clear_domain '{"cname":null}'; then
-            echo "Retrying with an empty custom domain"
+          put_pages() {
+            local payload="$1"
+            local code
+            code="$(curl -sS -o pages.json -w "%{http_code}" -X PUT "${auth[@]}" "$api" -d "$payload" || true)"
+            echo "PUT ${payload} -> HTTP ${code}"
             cat pages.json || true
-            clear_domain '{"cname":""}'
+            echo
+            printf '%s' "$code" > pages.status
+          }
+          put_pages '{"build_type":"workflow","cname":null}'
+          code="$(cat pages.status)"
+          if [ "$code" -ge 400 ]; then
+            put_pages '{"build_type":"workflow","cname":""}'
+            code="$(cat pages.status)"
           fi
-          echo "Pages configuration:"
-          cat pages.json
-          python3 - << 'PY'
-          import json, sys
-          data = json.load(open("pages.json"))
-          cname = data.get("cname") or ""
-          print(f"custom domain: {cname or '(none)'}")
-          if cname:
-              sys.exit(1)
-          PY
+          if [ "$code" -ge 400 ]; then
+            echo "::warning title=Pages settings were not updated::HTTP ${code} $(cat pages.json)"
+          fi
+
+      - name: Wait for the branch publish to finish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A push also starts GitHub's Jekyll "pages build and deployment"
+          # workflow. If it finishes last, it replaces the built app with the
+          # source index.html. Wait it out, then publish the Vite artifact.
+          for i in $(seq 1 30); do
+            running="$(curl -sS -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/runs?event=dynamic&per_page=5" \
+              | python3 -c 'import json,sys; runs=json.load(sys.stdin).get("workflow_runs",[]); print(sum(r["status"] in ("queued","in_progress","waiting") for r in runs))')"
+            echo "dynamic pages runs still going: ${running}"
+            if [ "$running" = "0" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::warning::A branch Pages build was still running; deploying anyway"
 
       - name: Deploy to GitHub Pages
         id: deployment
