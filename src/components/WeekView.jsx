@@ -99,7 +99,7 @@ export default function WeekView({
   }, [days, snippets]);
 
   return (
-    <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+    <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col min-h-0 h-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <div>
           <div className="text-sm text-slate-500 dark:text-slate-400">Week</div>
@@ -136,7 +136,7 @@ export default function WeekView({
 
       {/* 7 days task lists */}
       {/* Mobile: Vertical stack, Desktop: Grid */}
-      <div ref={containerRef} className="flex flex-col gap-3 sm:grid sm:grid-cols-7 sm:gap-2">
+      <div ref={containerRef} className="flex-1 min-h-0 overflow-y-auto sm:overflow-hidden flex flex-col gap-3 sm:grid sm:grid-cols-7 sm:gap-2">
         {days.map((day) => {
           const tasks = tasksFor ? tasksFor(day) : [];
           const isSelected = selectedDate && isSameDay(selectedDate, day);
@@ -158,7 +158,7 @@ export default function WeekView({
             <div
               key={String(day)}
               ref={(el) => { if (el) dayRefs.current[key] = el; }}
-              className={`group relative border border-slate-200 dark:border-slate-800 rounded-lg p-2 sm:p-2 min-h-[400px] sm:min-h-[600px] flex flex-col ${ringClass}`}
+              className={`group relative border border-slate-200 dark:border-slate-800 rounded-lg p-2 sm:p-2 min-h-[220px] sm:min-h-0 sm:h-full flex flex-col ${ringClass}`}
               onDragOver={(e) => { e.preventDefault(); try { e.dataTransfer.dropEffect = 'move'; } catch {} setDragOverDayKey && setDragOverDayKey(key); }}
               onDragEnter={() => setDragOverDayKey && setDragOverDayKey(key)}
               onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayKey && setDragOverDayKey((k) => (k === key ? null : k)); }}

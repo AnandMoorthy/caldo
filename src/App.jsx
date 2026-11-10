@@ -2328,6 +2328,8 @@ export default function App() {
     }
   }, [iconAnimation]);
 
+  const pinAboveIsland = activeTab === 'tasks' && (currentView === 'month' || currentView === 'week');
+
   return (
     publicRoute ? (
       <PublicSnippetView slug={publicRoute.slug} token={publicRoute.token} />
@@ -2338,8 +2340,8 @@ export default function App() {
         <FocusedDayNoteView dateKey={focusedRoute.dateKey} />
       )
     ) : (
-    <div className={`min-h-screen bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 ${activeTab === 'tasks' ? 'pb-40' : 'pb-20'} sm:pb-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200 overflow-x-hidden flex flex-col`}>
-      <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col gap-4 sm:gap-6">
+    <div className={`${pinAboveIsland ? (currentView === 'week' ? 'min-h-screen py-4 pb-[calc(9.5rem+env(safe-area-inset-bottom))] sm:h-dvh sm:overflow-hidden sm:py-0 sm:pt-6 sm:pb-[calc(6.75rem+env(safe-area-inset-bottom))] md:pt-10' : 'min-h-screen py-4 sm:py-6 pb-[calc(9.5rem+env(safe-area-inset-bottom))] md:h-dvh md:overflow-hidden md:py-0 md:pt-10 md:pb-[calc(6.75rem+env(safe-area-inset-bottom))]') : `min-h-screen py-4 sm:py-6 md:py-10 ${activeTab === 'tasks' ? 'pb-40' : 'pb-20'} sm:pb-10 safe-pb`} bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 safe-pt font-sans text-slate-800 dark:text-slate-200 overflow-x-hidden flex flex-col`}>
+      <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col gap-4 sm:gap-6 min-h-0">
         <div className="flex-shrink-0 w-full">
           <Header
             user={user}
@@ -2362,9 +2364,9 @@ export default function App() {
         </div>
         
         
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-h-0">
         {activeTab === 'tasks' && currentView === 'month' ? (
-          <main className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 pb-40 sm:pb-0">
+          <main className={`grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 ${pinAboveIsland ? 'md:h-full md:min-h-0 md:grid-rows-1' : 'pb-40 sm:pb-0'}`}>
             <Calendar
               monthStart={monthStart}
               monthDays={monthDays}
@@ -2393,7 +2395,7 @@ export default function App() {
               snippets={snippetsCache}
             />
 
-            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 min-h-0 overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
@@ -2496,7 +2498,7 @@ export default function App() {
             </aside>
           </main>
         ) : activeTab === 'tasks' && currentView === 'week' ? (
-          <main className="grid grid-cols-1 gap-4 sm:gap-6 pb-40 sm:pb-0">
+          <main className={`grid grid-cols-1 gap-4 sm:gap-6 ${pinAboveIsland ? 'sm:h-full sm:min-h-0' : 'pb-40 sm:pb-0'}`}>
             <WeekView
               anchorDate={cursor}
               onPrevWeek={prevWeek}

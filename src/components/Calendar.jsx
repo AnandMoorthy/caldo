@@ -65,8 +65,9 @@ export default function Calendar({
         }, 0)
       : 0;
   } catch {}
+  const weekRows = Math.max(1, Math.round(monthDays.length / 7));
   return (
-    <section className="md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+    <section className="md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col min-h-0 h-full">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 sm:gap-3 justify-center sm:justify-start flex-1 sm:flex-none">
           <button onClick={onPrevMonth} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Previous month">
@@ -103,7 +104,10 @@ export default function Calendar({
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-[11px] text-purple-700 dark:text-purple-300"><CodeIcon size={12} /> {snippetsCount}</span>
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div
+        className="grid grid-cols-7 gap-1 flex-1 min-h-0"
+        style={{ gridTemplateRows: `auto repeat(${weekRows}, minmax(48px, 1fr))` }}
+      >
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
           <div key={d} className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 text-center py-2">
             {d}
@@ -157,7 +161,7 @@ export default function Calendar({
               }}
               onDrop={(e) => onDropTaskOnDay(e, day)}
               aria-selected={isSelected}
-              className={`group border border-slate-200 dark:border-slate-800 rounded-lg p-1 sm:p-2 min-h-[56px] sm:min-h-[88px] cursor-pointer relative ${baseBg} ${selectedBg} ${ringClass}`}
+              className={`group border border-slate-200 dark:border-slate-800 rounded-lg p-1 sm:p-2 min-h-[48px] md:min-h-0 h-full cursor-pointer relative ${baseBg} ${selectedBg} ${ringClass}`}
             >
               <div className="flex items-start justify-between">
                 <div className={isSelected ? "w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-indigo-600 text-white text-[11px] sm:text-xs flex items-center justify-center font-semibold" : "text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100"}>
