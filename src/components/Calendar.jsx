@@ -67,7 +67,7 @@ export default function Calendar({
   } catch {}
   const weekRows = Math.max(1, Math.round(monthDays.length / 7));
   return (
-    <section className="md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col min-h-0 h-full">
+    <section className="md:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col md:min-h-0 md:h-full">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3 sm:gap-3 justify-center sm:justify-start flex-1 sm:flex-none">
           <button onClick={onPrevMonth} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Previous month">
@@ -105,8 +105,8 @@ export default function Calendar({
       </div>
 
       <div
-        className="grid grid-cols-7 gap-1 flex-1 min-h-0"
-        style={{ gridTemplateRows: `auto repeat(${weekRows}, minmax(48px, 1fr))` }}
+        className="calendar-weeks grid grid-cols-7 gap-1 md:flex-1 md:min-h-0"
+        style={{ "--week-rows": weekRows }}
       >
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
           <div key={d} className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 text-center py-2">

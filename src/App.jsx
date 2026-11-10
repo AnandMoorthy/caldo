@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX, CheckSquare, Sparkles, Target } from "lucide-react";
 import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
+import Sidebar from "./components/Sidebar.jsx";
 import Calendar from "./components/Calendar.jsx";
 import WeekView from "./components/WeekView.jsx";
 import YearView from "./components/YearView.jsx";
@@ -27,7 +28,7 @@ import PublicSnippetView from "./components/PublicSnippetView.jsx";
 import FocusedSnippetView from "./components/FocusedSnippetView.jsx";
 import FocusedDayNoteView from "./components/FocusedDayNoteView.jsx";
 import FloatingPomodoro from "./components/FloatingPomodoro.jsx";
-import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference, loadSnippetsCache, saveSnippetsCache, loadHabbits, saveHabbits } from "./utils/storage";
+import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference, loadSidebarCollapsed, saveSidebarCollapsed, loadSnippetsCache, saveSnippetsCache, loadHabbits, saveHabbits } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
 import { buildSearchIndex, searchTasks } from "./utils/search.js";
@@ -55,6 +56,7 @@ export default function App() {
       return ['tasks', 'notes', 'moments', 'habits'].includes(stored) ? stored : 'tasks';
     } catch { return 'tasks'; }
   }); // 'tasks' | 'notes' | 'moments' | 'habits'
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (typeof window === 'undefined' ? false : loadSidebarCollapsed()));
   const [cursor, setCursor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksMap, setTasksMap] = useState(() => loadTasks());
@@ -413,6 +415,10 @@ export default function App() {
   useEffect(() => {
     try { localStorage.setItem('caldo_v2_active_tab', activeTab); } catch {}
   }, [activeTab]);
+
+  useEffect(() => {
+    saveSidebarCollapsed(sidebarCollapsed);
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     try { saveDensityPreference(density); } catch {}
@@ -2329,6 +2335,11 @@ export default function App() {
   }, [iconAnimation]);
 
   const pinAboveIsland = activeTab === 'tasks' && (currentView === 'month' || currentView === 'week');
+  const contentScrollClass = pinAboveIsland
+    ? (currentView === 'week'
+        ? 'overflow-y-auto overflow-x-hidden sm:overflow-hidden'
+        : 'overflow-y-auto overflow-x-hidden md:overflow-hidden')
+    : 'overflow-y-auto overflow-x-hidden ' + (activeTab === 'tasks' ? 'sm:pb-[calc(6.75rem+env(safe-area-inset-bottom))]' : 'sm:pb-8');
 
   return (
     publicRoute ? (
@@ -2340,7 +2351,9 @@ export default function App() {
         <FocusedDayNoteView dateKey={focusedRoute.dateKey} />
       )
     ) : (
-    <div className={`${pinAboveIsland ? (currentView === 'week' ? 'min-h-screen py-4 pb-[calc(9.5rem+env(safe-area-inset-bottom))] sm:h-dvh sm:overflow-hidden sm:py-0 sm:pt-6 sm:pb-[calc(6.75rem+env(safe-area-inset-bottom))] md:pt-10' : 'min-h-screen py-4 sm:py-6 pb-[calc(9.5rem+env(safe-area-inset-bottom))] md:h-dvh md:overflow-hidden md:py-0 md:pt-10 md:pb-[calc(6.75rem+env(safe-area-inset-bottom))]') : `min-h-screen py-4 sm:py-6 md:py-10 ${activeTab === 'tasks' ? 'pb-40' : 'pb-20'} sm:pb-10 safe-pb`} bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 safe-pt font-sans text-slate-800 dark:text-slate-200 overflow-x-hidden flex flex-col`}>
+    <div className="h-dvh overflow-hidden flex flex-row bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 font-sans text-slate-800 dark:text-slate-200">
+      <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((v) => !v)} />
+      <div className={`flex-1 min-w-0 min-h-0 flex flex-col px-4 sm:px-6 md:px-10 safe-pt ${pinAboveIsland ? 'pb-[calc(9.5rem+env(safe-area-inset-bottom))] sm:pb-[calc(6.75rem+env(safe-area-inset-bottom))]' : ''}`}>
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col gap-4 sm:gap-6 min-h-0">
         <div className="flex-shrink-0 w-full">
           <Header
@@ -2360,13 +2373,15 @@ export default function App() {
           activeTab={activeTab}
           onChangeTab={setActiveTab}
           pomodoroEnabled={pomodoroEnabled}
+          showTabs={false}
+          hideBrand
           />
         </div>
         
         
-        <div className="flex-1 flex flex-col min-h-0">
+        <div className={`flex-1 flex flex-col min-h-0 ${contentScrollClass}`}>
         {activeTab === 'tasks' && currentView === 'month' ? (
-          <main className={`grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 ${pinAboveIsland ? 'md:h-full md:min-h-0 md:grid-rows-1' : 'pb-40 sm:pb-0'}`}>
+          <main className={`grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 ${pinAboveIsland ? 'max-md:shrink-0 md:h-full md:min-h-0 md:grid-rows-1' : 'pb-40 sm:pb-0'}`}>
             <Calendar
               monthStart={monthStart}
               monthDays={monthDays}
@@ -2395,7 +2410,7 @@ export default function App() {
               snippets={snippetsCache}
             />
 
-            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 min-h-0 overflow-y-auto">
+            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 md:min-h-0 md:overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
@@ -2498,7 +2513,7 @@ export default function App() {
             </aside>
           </main>
         ) : activeTab === 'tasks' && currentView === 'week' ? (
-          <main className={`grid grid-cols-1 gap-4 sm:gap-6 ${pinAboveIsland ? 'sm:h-full sm:min-h-0' : 'pb-40 sm:pb-0'}`}>
+          <main className={`grid grid-cols-1 gap-4 sm:gap-6 ${pinAboveIsland ? 'max-sm:shrink-0 sm:h-full sm:min-h-0' : 'pb-40 sm:pb-0'}`}>
             <WeekView
               anchorDate={cursor}
               onPrevWeek={prevWeek}
@@ -2779,10 +2794,11 @@ export default function App() {
 
         <TooltipProvider />
       </div>
+      </div>
       
       {/* Task View Switcher - Bottom of screen, above options */}
       {activeTab === 'tasks' && (
-        <div className="fixed bottom-20 left-0 right-0 z-40 flex justify-center sm:bottom-4 safe-pb pointer-events-none">
+        <div className={`fixed bottom-20 left-0 right-0 z-40 flex justify-center sm:bottom-4 safe-pb pointer-events-none ${sidebarCollapsed ? 'sm:left-[4.5rem]' : 'sm:left-56'}`}>
           <div className="max-w-7xl mx-auto w-full px-4 sm:px-6">
             <div className="flex justify-center py-2 sm:py-3">
               <div className="inline-flex items-center gap-1 bg-white dark:bg-slate-800 backdrop-blur-md sm:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-xl sm:shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:sm:shadow-[0_8px_30px_rgb(0,0,0,0.3)] px-2 py-1.5 pointer-events-auto">

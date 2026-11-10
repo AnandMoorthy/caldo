@@ -25,7 +25,17 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 
 * { touch-action: manipulation; }
 
 /* Enable momentum scrolling in iOS for overflow containers */
-.overflow-auto { -webkit-overflow-scrolling: touch; }
+.overflow-auto, .overflow-y-auto { -webkit-overflow-scrolling: touch; }
+
+/* Month grid fills the card on desktop and keeps a natural height on phones */
+.calendar-weeks {
+  grid-template-rows: auto repeat(var(--week-rows), minmax(48px, auto));
+}
+@media (min-width: 768px) {
+  .calendar-weeks {
+    grid-template-rows: auto repeat(var(--week-rows), minmax(0, 1fr));
+  }
+}
 
 /* App utility classes (moved from inline styles) */
 .btn{padding:.5rem .75rem;border-radius:.5rem;background:transparent;border:1px solid rgba(15,23,42,.06)}

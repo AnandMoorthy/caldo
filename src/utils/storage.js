@@ -54,6 +54,14 @@ export function loadViewPreference() {
   try { return localStorage.getItem('caldo_v2_view') || 'month'; } catch { return 'month'; }
 }
 
+export function loadSidebarCollapsed() {
+  try { return localStorage.getItem('caldo_v2_sidebar_collapsed') === '1'; } catch { return false; }
+}
+
+export function saveSidebarCollapsed(collapsed) {
+  try { localStorage.setItem('caldo_v2_sidebar_collapsed', collapsed ? '1' : '0'); } catch {}
+}
+
 export function loadThemePreference() {
   try {
     const stored = localStorage.getItem(THEME_KEY);

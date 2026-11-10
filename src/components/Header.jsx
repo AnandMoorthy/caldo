@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun, HelpCircle, Search, Timer } from "lucide-react";
 import { loadThemePreference, saveThemePreference } from "../utils/storage";
 import TabSwitcher from "./TabSwitcher";
+import Logo from "./Logo.jsx";
 
 function Avatar({ user }) {
   function getInitials() {
@@ -22,7 +23,7 @@ function Avatar({ user }) {
   return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
-export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, onOpenPomodoro, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks, currentView = 'month', onChangeView, activeTab = 'tasks', onChangeTab, pomodoroEnabled = true, showTabs = true, showSearch = true }) {
+export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, onOpenPomodoro, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks, currentView = 'month', onChangeView, activeTab = 'tasks', onChangeTab, pomodoroEnabled = true, showTabs = true, showSearch = true, hideBrand = false }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const mobileProfileMenuRef = useRef(null);
@@ -163,9 +164,12 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         {/* Mobile: Top row with title and essential actions */}
         <div className="flex items-center justify-between sm:hidden">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">CalDo</h1>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">Plan. Note. Remember.</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <Logo className="h-8 w-8" />
+            <div className="min-w-0">
+              <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-100">CalDo</h1>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">Plan. Note. Remember.</p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {showSearch && (
@@ -281,20 +285,25 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
           </div>
         </div>
 
-        {/* Desktop: Original horizontal layout */}
-        <div className="hidden sm:flex items-center gap-3">
-        <div className="flex-shrink-0">
-          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-none">CalDo</h1>
-          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">Plan. Note. Remember.</p>
-        </div>
-        {showTabs && (
-          <TabSwitcher activeTab={activeTab} onChangeTab={onChangeTab} />
+        {(!hideBrand || showTabs) && (
+          <div className="hidden sm:flex items-center gap-3">
+            {!hideBrand && (
+              <div className="flex items-center gap-2.5 flex-shrink-0">
+                <Logo className="h-8 w-8" />
+                <div>
+                  <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-none">CalDo</h1>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 leading-tight">Plan. Note. Remember.</p>
+                </div>
+              </div>
+            )}
+            {showTabs && (
+              <TabSwitcher activeTab={activeTab} onChangeTab={onChangeTab} />
+            )}
+          </div>
         )}
-      </div>
-
 
         {/* Desktop: Right side actions */}
-        <div className="hidden sm:flex items-center gap-2">
+        <div className="hidden sm:flex items-center gap-2 sm:ml-auto">
           {showSearch && (
             <button 
               onClick={onOpenSearch} 

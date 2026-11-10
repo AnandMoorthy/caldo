@@ -99,7 +99,7 @@ export default function WeekView({
   }, [days, snippets]);
 
   return (
-    <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col min-h-0 h-full">
+    <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col sm:min-h-0 sm:h-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <div>
           <div className="text-sm text-slate-500 dark:text-slate-400">Week</div>
@@ -136,7 +136,7 @@ export default function WeekView({
 
       {/* 7 days task lists */}
       {/* Mobile: Vertical stack, Desktop: Grid */}
-      <div ref={containerRef} className="flex-1 min-h-0 overflow-y-auto sm:overflow-hidden flex flex-col gap-3 sm:grid sm:grid-cols-7 sm:gap-2">
+      <div ref={containerRef} className="flex flex-col gap-3 sm:flex-1 sm:min-h-0 sm:overflow-hidden sm:grid sm:grid-cols-7 sm:gap-2">
         {days.map((day) => {
           const tasks = tasksFor ? tasksFor(day) : [];
           const isSelected = selectedDate && isSameDay(selectedDate, day);
