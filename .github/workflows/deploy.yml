@@ -47,6 +47,39 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Remove lost custom domain
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Pages is still pinned to mycaldo.xyz, so anandhere.xyz/caldo 404s
+          # and a new deploy can fail the DNS check for that dead domain.
+          # Clearing the project custom domain lets the user site serve this
+          # repo at https://anandhere.xyz/caldo/.
+          api="https://api.github.com/repos/${{ github.repository }}/pages"
+          auth=(
+            -H "Authorization: Bearer ${GH_TOKEN}"
+            -H "Accept: application/vnd.github+json"
+            -H "X-GitHub-Api-Version: 2022-11-28"
+          )
+          clear_domain() {
+            curl --fail-with-body -sS -X PUT "${auth[@]}" "$api" -d "$1" -o pages.json
+          }
+          if ! clear_domain '{"cname":null}'; then
+            echo "Retrying with an empty custom domain"
+            cat pages.json || true
+            clear_domain '{"cname":""}'
+          fi
+          echo "Pages configuration:"
+          cat pages.json
+          python3 - << 'PY'
+          import json, sys
+          data = json.load(open("pages.json"))
+          cname = data.get("cname") or ""
+          print(f"custom domain: {cname or '(none)'}")
+          if cname:
+              sys.exit(1)
+          PY
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

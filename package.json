@@ -2,7 +2,7 @@
   "name": "caldo-v2",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://mycaldo.xyz",
+  "homepage": "https://anandhere.xyz/caldo/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
