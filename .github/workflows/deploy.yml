@@ -10,9 +10,6 @@ permissions:
   contents: read
   pages: write
   id-token: write
-  # Required to detach the custom domain. pages:write can publish, but
-  # changing the Pages custom domain is a repository administration change.
-  administration: write
 
 concurrency:
   group: "pages"
