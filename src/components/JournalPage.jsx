@@ -141,7 +141,7 @@ export default function JournalPage({
                     <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{filledCount} block{filledCount === 1 ? "" : "s"} filled</div>
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                    {formatUpdatedAt(entry.updatedAt)}
+                    Updated at {formatUpdatedAt(entry.updatedAt)}
                   </div>
                 </div>
 

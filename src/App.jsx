@@ -103,6 +103,10 @@ export default function App() {
   const [journalDrawerOpen, setJournalDrawerOpen] = useState(false);
   const [journalDrawerId, setJournalDrawerId] = useState(null);
   const [journalInitialDateKey, setJournalInitialDateKey] = useState(() => keyFor(new Date()));
+  const journalRequestCloseRef = useRef(() => setJournalDrawerOpen(false));
+  const bindJournalClose = useCallback((handler) => {
+    journalRequestCloseRef.current = typeof handler === "function" ? handler : () => setJournalDrawerOpen(false);
+  }, []);
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [iconAnimation, setIconAnimation] = useState({ tab: null, key: 0 });
 
@@ -2749,7 +2753,14 @@ export default function App() {
         {(snippetsDrawerOpen || showNotes || journalDrawerOpen) && (
           <div
             className="fixed inset-0 z-[65] bg-slate-900/20 backdrop-blur-sm"
-            onClick={() => { setSnippetsDrawerOpen(false); setShowNotes(false); setJournalDrawerOpen(false); }}
+            onClick={() => {
+              if (journalDrawerOpen) {
+                journalRequestCloseRef.current?.();
+                return;
+              }
+              setSnippetsDrawerOpen(false);
+              setShowNotes(false);
+            }}
           />
         )}
 
@@ -2857,6 +2868,7 @@ export default function App() {
         <JournalDrawer
           open={journalDrawerOpen}
           onClose={() => setJournalDrawerOpen(false)}
+          onBindClose={bindJournalClose}
           repo={journalRepoRef.current}
           user={user}
           journalId={journalDrawerId}

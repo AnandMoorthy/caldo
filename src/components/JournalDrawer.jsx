@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Calendar, ChevronDown, ChevronRight, Loader2, Plus, Save, Trash2, X } from "lucide-react";
 import {
@@ -52,6 +52,7 @@ export default function JournalDrawer({
   journalId = null,
   initialDateKey = null,
   onJournalsChanged,
+  onBindClose,
 }) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -70,6 +71,9 @@ export default function JournalDrawer({
   const [templateNameInput, setTemplateNameInput] = useState("");
   const [applyingTemplateId, setApplyingTemplateId] = useState(null);
   const [applyTemplateWarningOpen, setApplyTemplateWarningOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const closeImplRef = useRef(() => {});
 
   const hasAnyContent = useMemo(() => hasMeaningfulContent(blocks), [blocks]);
 
@@ -334,9 +338,13 @@ export default function JournalDrawer({
     }
   }
 
-  async function handleDelete() {
+  function requestDelete() {
+    if (!repo || !selectedId || selectedId === "__new__" || deleting || saving) return;
+    setDeleteConfirmOpen(true);
+  }
+
+  async function confirmDelete() {
     if (!repo || !selectedId || selectedId === "__new__") return;
-    if (!window.confirm("Delete this journal entry? This cannot be undone.")) return;
     setDeleting(true);
     try {
       await repo.deleteJournal(selectedId);
@@ -344,6 +352,7 @@ export default function JournalDrawer({
         onJournalsChanged && (await onJournalsChanged());
       } catch {}
       setHasChanges(false);
+      setDeleteConfirmOpen(false);
       onClose && onClose();
     } catch (error) {
       console.error("Failed to delete journal", error);
@@ -353,10 +362,27 @@ export default function JournalDrawer({
     }
   }
 
-  function handleClose() {
-    if (hasChanges && !window.confirm("Discard unsaved journal changes?")) return;
+  function requestClose() {
+    if (deleteConfirmOpen || discardConfirmOpen || templateDialogOpen || applyTemplateWarningOpen) return;
+    if (hasChanges) {
+      setDiscardConfirmOpen(true);
+      return;
+    }
     onClose && onClose();
   }
+
+  function confirmDiscard() {
+    setDiscardConfirmOpen(false);
+    setHasChanges(false);
+    onClose && onClose();
+  }
+
+  closeImplRef.current = requestClose;
+
+  useEffect(() => {
+    onBindClose?.(() => closeImplRef.current());
+    return () => onBindClose?.(null);
+  }, [onBindClose]);
 
   return (
     <AnimatePresence>
@@ -380,7 +406,7 @@ export default function JournalDrawer({
               </div>
               <button
                 type="button"
-                onClick={handleClose}
+                onClick={requestClose}
                 className="w-8 h-8 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800"
                 aria-label="Close journal editor"
               >
@@ -563,7 +589,9 @@ export default function JournalDrawer({
                                 <button
                                   type="button"
                                   onClick={() => removeBlock(block.id)}
-                                  className="px-2 py-2 rounded-lg border border-red-300 text-red-700 dark:border-red-800 dark:text-red-300 text-xs"
+                                  disabled={blocks.length <= 1}
+                                  title={blocks.length <= 1 ? "A journal needs at least one block" : "Remove block"}
+                                  className="px-2 py-2 rounded-lg border border-red-300 text-red-700 dark:border-red-800 dark:text-red-300 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                   Remove
                                 </button>
@@ -635,7 +663,7 @@ export default function JournalDrawer({
                 {selectedId && selectedId !== "__new__" ? (
                   <button
                     type="button"
-                    onClick={handleDelete}
+                    onClick={requestDelete}
                     disabled={deleting || saving}
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-60 dark:border-red-900/50 dark:text-red-300 dark:hover:bg-red-900/20"
                   >
@@ -685,6 +713,65 @@ export default function JournalDrawer({
                     className="px-3 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-500"
                   >
                     Save template
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {deleteConfirmOpen && (
+            <div className="fixed inset-0 z-[80] flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/40" onClick={() => !deleting && setDeleteConfirmOpen(false)} />
+              <div className="relative w-full max-w-md mx-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-4">
+                <div className="text-lg font-semibold mb-2 text-slate-900 dark:text-slate-100">Delete journal?</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                  Delete this journal entry? This cannot be undone.
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirmOpen(false)}
+                    disabled={deleting}
+                    className="px-3 py-2 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 disabled:opacity-60"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmDelete}
+                    disabled={deleting}
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded bg-red-600 text-white hover:bg-red-500 disabled:opacity-60"
+                  >
+                    {deleting ? <Loader2 size={14} className="animate-spin" /> : null}
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {discardConfirmOpen && (
+            <div className="fixed inset-0 z-[80] flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setDiscardConfirmOpen(false)} />
+              <div className="relative w-full max-w-md mx-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-4">
+                <div className="text-lg font-semibold mb-2 text-slate-900 dark:text-slate-100">Discard changes?</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                  You have unsaved changes in this journal. Closing now will discard them.
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDiscardConfirmOpen(false)}
+                    className="px-3 py-2 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Keep editing
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmDiscard}
+                    className="px-3 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-500"
+                  >
+                    Discard changes
                   </button>
                 </div>
               </div>
