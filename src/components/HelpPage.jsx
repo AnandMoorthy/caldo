@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Keyboard, HelpCircle, Search, RefreshCcw, Calendar, List, Plus, FileText, Clock, CheckCircle, AlertCircle, Info, Code, Copy } from "lucide-react";
+import { X, Keyboard, HelpCircle, Search, RefreshCcw, Calendar, List, Plus, FileText, Clock, CheckCircle, AlertCircle, Info, Code, Copy, BookOpenText } from "lucide-react";
 
 export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -49,6 +49,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
     { id: 'tasks', label: 'Tasks', icon: List },
     ...(pomodoroEnabled ? [{ id: 'pomodoro', label: 'Pomodoro', icon: Clock }] : []),
     { id: 'snippets', label: 'Snippets', icon: Code },
+    { id: 'journal', label: 'Journal', icon: BookOpenText },
     { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
     { id: 'features', label: 'Features', icon: Info },
     { id: 'faq', label: 'FAQ', icon: HelpCircle }
@@ -441,6 +442,59 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
     </div>
   );
 
+  const renderJournal = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Journal</h2>
+        <p className="text-slate-600 dark:text-slate-300 mb-6">
+          Write richer daily journals with templates, mood tracking, and energy levels.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Getting Started</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <BookOpenText size={16} className="text-cyan-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Pick a template</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Choose Reflection, Gratitude, Wins, or Freeform</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Plus size={16} className="text-indigo-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Create a new journal</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Open the journal editor from the Journal tab</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">What to track</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Info size={16} className="text-purple-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Mood</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Capture how you felt each day</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Clock size={16} className="text-emerald-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Energy level</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Track your daily energy from 1 to 5</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderShortcuts = () => (
     <div className="space-y-6">
       <div className="text-center">
@@ -750,6 +804,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       case 'tasks': return renderTasks();
       case 'pomodoro': return renderPomodoro();
       case 'snippets': return renderSnippets();
+      case 'journal': return renderJournal();
       case 'shortcuts': return renderShortcuts();
       case 'features': return renderFeatures();
       case 'faq': return renderFAQ();

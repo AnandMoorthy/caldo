@@ -1,10 +1,11 @@
 import React from "react";
-import { CheckSquare, StickyNote, Sparkles, Target, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { CheckSquare, StickyNote, Sparkles, Target, PanelLeftClose, PanelLeftOpen, BookOpenText } from "lucide-react";
 import Logo from "./Logo.jsx";
 
 const PAGES = [
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "notes", label: "Notes", icon: StickyNote },
+  { key: "journal", label: "Journal", icon: BookOpenText },
   { key: "moments", label: "Moments", icon: Sparkles },
   { key: "habits", label: "Habits", icon: Target },
 ];

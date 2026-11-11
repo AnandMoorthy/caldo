@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO, isAfter, startOfDay, isToday } from "date-fns";
 import { motion } from "framer-motion";
-import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX, CheckSquare, Sparkles, Target } from "lucide-react";
+import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX, CheckSquare, Sparkles, Target, BookOpenText } from "lucide-react";
 import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Sidebar from "./components/Sidebar.jsx";
@@ -22,6 +22,8 @@ import TooltipProvider from "./components/Tooltip.jsx";
 import NotesPage from "./components/NotesPage.jsx";
 import SnippetsPage from "./components/SnippetsPage.jsx";
 import SnippetsDrawer from "./components/SnippetsDrawer.jsx";
+import JournalPage from "./components/JournalPage.jsx";
+import JournalDrawer from "./components/JournalDrawer.jsx";
 import MomentsPage from "./components/MomentsPage.jsx";
 import HabitTracker from "./components/HabitTracker.jsx";
 import PublicSnippetView from "./components/PublicSnippetView.jsx";
@@ -38,6 +40,7 @@ import { createTaskRepository } from "./services/repositories/taskRepository";
 import { createDayNoteRepository } from "./services/repositories/noteRepository";
 import { createSnippetRepository } from "./services/repositories/snippetRepository";
 import { createMomentRepository } from "./services/repositories/momentRepository";
+import { createJournalRepository } from "./services/repositories/journalRepository";
 import { createHabitRepository } from "./services/repositories/habitRepository";
 import { materializeSeries } from "./utils/recurrence";
 
@@ -53,9 +56,9 @@ export default function App() {
     if (typeof window === 'undefined') return 'tasks';
     try {
       const stored = localStorage.getItem('caldo_v2_active_tab') || 'tasks';
-      return ['tasks', 'notes', 'moments', 'habits'].includes(stored) ? stored : 'tasks';
+      return ['tasks', 'notes', 'journal', 'moments', 'habits'].includes(stored) ? stored : 'tasks';
     } catch { return 'tasks'; }
-  }); // 'tasks' | 'notes' | 'moments' | 'habits'
+  }); // 'tasks' | 'notes' | 'journal' | 'moments' | 'habits'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (typeof window === 'undefined' ? false : loadSidebarCollapsed()));
   const [cursor, setCursor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -78,11 +81,13 @@ export default function App() {
   const noteRepoRef = useRef(null);
   const snippetRepoRef = useRef(null);
   const momentRepoRef = useRef(null);
+  const journalRepoRef = useRef(null);
   const habitRepoRef = useRef(null);
   const habitsSyncReadyRef = useRef(false);
   const [snippetsCache, setSnippetsCache] = useState(() => loadSnippetsCache());
   const [notesCache, setNotesCache] = useState(new Map()); // Cache for day notes
   const [momentsCache, setMomentsCache] = useState([]); // Cache for moments
+  const [journalsCache, setJournalsCache] = useState([]); // Cache for journals
   const [habbits, setHabbits] = useState(() => loadHabbits());
   // profile menu moved into Header component
   const monthStart = startOfMonth(cursor);
@@ -95,6 +100,9 @@ export default function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [snippetsDrawerOpen, setSnippetsDrawerOpen] = useState(false);
   const [snippetsDrawerId, setSnippetsDrawerId] = useState(null);
+  const [journalDrawerOpen, setJournalDrawerOpen] = useState(false);
+  const [journalDrawerId, setJournalDrawerId] = useState(null);
+  const [journalTemplateId, setJournalTemplateId] = useState("reflection");
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [iconAnimation, setIconAnimation] = useState({ tab: null, key: 0 });
   
@@ -227,11 +235,11 @@ export default function App() {
     }
   }, [recurringSeries, user]);
 
-  // Build search index when tasks, snippets, or moments change
+  // Build search index when tasks, snippets, journals, or moments change
   useEffect(() => {
-    const newIndex = buildSearchIndex(tasksMap, snippetsCache, momentsCache);
+    const newIndex = buildSearchIndex(tasksMap, snippetsCache, momentsCache, journalsCache);
     setSearchIndex(newIndex);
-  }, [tasksMap, snippetsCache, momentsCache]);
+  }, [tasksMap, snippetsCache, momentsCache, journalsCache]);
 
   // Persist snippets cache to localStorage
   useEffect(() => {
@@ -304,6 +312,7 @@ export default function App() {
         if (showAdd) setShowAdd(false);
         if (showEdit) setShowEdit(false);
         if (showNotes) setShowNotes(false);
+        if (journalDrawerOpen) setJournalDrawerOpen(false);
         if (showMissed) setShowMissed(false);
         if (showHelp) setShowHelp(false);
         if (showSearch) setShowSearch(false);
@@ -321,7 +330,7 @@ export default function App() {
       }
       
       // Disable other shortcuts when in snippets or notes sections
-      if (activeTab === 'snippets' || activeTab === 'notes' || snippetsDrawerOpen || showNotes) {
+      if (activeTab === 'snippets' || activeTab === 'notes' || activeTab === 'journal' || snippetsDrawerOpen || showNotes || journalDrawerOpen) {
         return;
       }
 
@@ -333,6 +342,7 @@ export default function App() {
       } else if (key === 'n') {
         e.preventDefault();
         // Close snippets drawer if open to avoid conflicts
+        setJournalDrawerOpen(false);
         setSnippetsDrawerOpen(false);
         setShowNotes(true);
       } else if (key === 'm') {
@@ -406,7 +416,7 @@ export default function App() {
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlurWindow);
     };
-  }, [selectedDate, showAdd, showEdit, showNotes, showMissed, showHelp, showSearch, currentView]);
+  }, [selectedDate, showAdd, showEdit, showNotes, showMissed, showHelp, showSearch, currentView, activeTab, snippetsDrawerOpen, journalDrawerOpen]);
 
   useEffect(() => {
     saveStreak(streak);
@@ -600,6 +610,12 @@ export default function App() {
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (u) => {
       setUser(u);
+      // DEV MODE: Mock user for testing
+      if (!u && import.meta.env.DEV) {
+        const mockUser = { uid: 'test-user-123', email: 'test@example.com', displayName: 'Test User' };
+        setUser(mockUser);
+        u = mockUser;
+      }
       if (u) {
         habitsSyncReadyRef.current = false;
         // Initialize repositories for the new user
@@ -607,6 +623,7 @@ export default function App() {
         noteRepoRef.current = createDayNoteRepository(u.uid);
         snippetRepoRef.current = createSnippetRepository(u.uid);
         momentRepoRef.current = createMomentRepository(u.uid);
+        journalRepoRef.current = createJournalRepository(u.uid);
         habitRepoRef.current = createHabitRepository(u.uid);
         // Warm snippet cache from cloud (non-blocking) and refresh local cache
         try {
@@ -616,6 +633,11 @@ export default function App() {
         // Load moments cache
         try {
           momentRepoRef.current.fetchMoments({ limit: 500 }).then((items) => setMomentsCache(items)).catch(() => {});
+        } catch {}
+
+        // Load journals cache
+        try {
+          journalRepoRef.current.listJournals({ limit: 500 }).then((items) => setJournalsCache(items)).catch(() => {});
         } catch {}
 
         // Load habits cache and merge with local
@@ -763,9 +785,11 @@ export default function App() {
         noteRepoRef.current = null;
         snippetRepoRef.current = null;
         momentRepoRef.current = null;
+        journalRepoRef.current = null;
         habitRepoRef.current = null;
         habitsSyncReadyRef.current = false;
         setSnippetsCache([]);
+        setJournalsCache([]);
         setRecurringEnabled(false); // Disable recurring tasks when not logged in
         setDeleteAllTasksEnabled(false);
         setStreak((s) => ensureStreakUpToDate(s));
@@ -1121,8 +1145,25 @@ export default function App() {
         setSearchQuery("");
         // Close day notes drawer if open to avoid conflicts
         setShowNotes(false);
+        setJournalDrawerOpen(false);
         setSnippetsDrawerId(result.id);
         setSnippetsDrawerOpen(true);
+        return;
+      }
+
+      // Journal: open journal editor for the selected entry
+      if (result.type === 'journal') {
+        setShowSearch(false);
+        setSearchQuery("");
+        setShowNotes(false);
+        setSnippetsDrawerOpen(false);
+        setShowAdd(false);
+        setShowEdit(false);
+        setShowMissed(false);
+        setActiveTab('journal');
+        setJournalTemplateId(result.templateId || 'reflection');
+        setJournalDrawerId(result.id || '__new__');
+        setJournalDrawerOpen(true);
         return;
       }
 
@@ -1130,6 +1171,7 @@ export default function App() {
       if (result.type === 'moment') {
         setShowSearch(false);
         setSearchQuery("");
+        setJournalDrawerOpen(false);
         setActiveTab('moments');
         
         // Scroll to the specific moment after a short delay to allow tab switch
@@ -1161,6 +1203,7 @@ export default function App() {
 
       if (result.type === 'note') {
         // Close snippets drawer if open to avoid conflicts
+        setJournalDrawerOpen(false);
         setSnippetsDrawerOpen(false);
         setShowNotes(true);
       }
@@ -2306,20 +2349,30 @@ export default function App() {
   useEffect(() => {
     if (activeTab === 'tasks') {
       setSnippetsDrawerOpen(false);
+      setJournalDrawerOpen(false);
     } else if (activeTab === 'notes') {
       setShowAdd(false);
       setShowEdit(false);
       setShowMissed(false);
+      setJournalDrawerOpen(false);
+    } else if (activeTab === 'journal') {
+      setShowAdd(false);
+      setShowEdit(false);
+      setShowMissed(false);
+      setShowNotes(false);
+      setSnippetsDrawerOpen(false);
     } else if (activeTab === 'moments') {
       setShowAdd(false);
       setShowEdit(false);
       setShowMissed(false);
       setSnippetsDrawerOpen(false);
+      setJournalDrawerOpen(false);
     } else if (activeTab === 'habits') {
       setShowAdd(false);
       setShowEdit(false);
       setShowMissed(false);
       setSnippetsDrawerOpen(false);
+      setJournalDrawerOpen(false);
       setShowNotes(false);
     }
   }, [activeTab]);
@@ -2462,6 +2515,7 @@ export default function App() {
                   <button
                     onClick={() => {
                       // Close snippets drawer if open to avoid conflicts
+                      setJournalDrawerOpen(false);
                       setSnippetsDrawerOpen(false);
                       setShowNotes(true);
                     }}
@@ -2532,6 +2586,7 @@ export default function App() {
                   setCursor(day);
                 }
                 // Close snippets drawer if open to avoid conflicts
+                setJournalDrawerOpen(false);
                 setSnippetsDrawerOpen(false);
                 setShowNotes(true);
               }}
@@ -2587,6 +2642,7 @@ export default function App() {
               onAddTask={() => openAddModal(selectedDate)}
               onOpenNotes={() => {
                 // Close snippets drawer if open to avoid conflicts
+                setJournalDrawerOpen(false);
                 setSnippetsDrawerOpen(false);
                 setShowNotes(true);
               }}
@@ -2612,21 +2668,42 @@ export default function App() {
                 setCursor(d);
                 setDraftDayNote(n?.content || '');
                 // Close snippets drawer if open to avoid conflicts
+                setJournalDrawerOpen(false);
                 setSnippetsDrawerOpen(false);
                 setShowNotes(true);
               } catch {
                 // Close snippets drawer if open to avoid conflicts
+                setJournalDrawerOpen(false);
                 setSnippetsDrawerOpen(false);
                 setShowNotes(true);
               }
             }}
             onOpenSnippetEditor={(id) => { 
               // Close other drawers to avoid conflicts
+              setJournalDrawerOpen(false);
               setShowNotes(false);
               setShowMissed(false);
               setShowHelp(false);
               setSnippetsDrawerId(id || '__new__'); 
               setSnippetsDrawerOpen(true); 
+            }}
+          />
+        )}
+
+        {activeTab === 'journal' && (
+          <JournalPage
+            repo={journalRepoRef.current}
+            user={user}
+            journals={journalsCache}
+            onJournalsChanged={(items) => setJournalsCache(items || [])}
+            onOpenJournalEditor={(id, template = 'reflection') => {
+              setShowNotes(false);
+              setSnippetsDrawerOpen(false);
+              setShowMissed(false);
+              setShowHelp(false);
+              setJournalTemplateId(template || 'reflection');
+              setJournalDrawerId(id || '__new__');
+              setJournalDrawerOpen(true);
             }}
           />
         )}
@@ -2638,6 +2715,7 @@ export default function App() {
             initialSnippets={snippetsCache}
             onOpenEditor={(id) => { 
               // Close other drawers to avoid conflicts
+              setJournalDrawerOpen(false);
               setShowNotes(false);
               setShowMissed(false);
               setShowHelp(false);
@@ -2665,10 +2743,10 @@ export default function App() {
         )}
         </div>
 
-        {(snippetsDrawerOpen || showNotes) && (
+        {(snippetsDrawerOpen || showNotes || journalDrawerOpen) && (
           <div
             className="fixed inset-0 z-[65] bg-slate-900/20 backdrop-blur-sm"
-            onClick={() => { setSnippetsDrawerOpen(false); setShowNotes(false); }}
+            onClick={() => { setSnippetsDrawerOpen(false); setShowNotes(false); setJournalDrawerOpen(false); }}
           />
         )}
 
@@ -2768,6 +2846,23 @@ export default function App() {
             try {
               if (snippetRepoRef.current && user) {
                 snippetRepoRef.current.listSnippets({ includeArchived: false, limit: 500 }).then((items) => setSnippetsCache(items)).catch(() => {});
+              }
+            } catch {}
+          }}
+        />
+
+        <JournalDrawer
+          open={journalDrawerOpen}
+          onClose={() => setJournalDrawerOpen(false)}
+          repo={journalRepoRef.current}
+          user={user}
+          journalId={journalDrawerId}
+          initialTemplateId={journalTemplateId}
+          onJournalsChanged={async () => {
+            try {
+              if (journalRepoRef.current && user) {
+                const items = await journalRepoRef.current.listJournals({ limit: 500 });
+                setJournalsCache(items);
               }
             } catch {}
           }}
@@ -2897,6 +2992,27 @@ export default function App() {
                 } ${iconAnimation.tab === 'notes' ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
               />
               <span className={`text-[11px] font-semibold ${activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Notes</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIconAnimation({ tab: 'journal', key: Date.now() });
+                setActiveTab('journal');
+              }}
+              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
+                activeTab === 'journal'
+                  ? 'text-slate-900 dark:text-slate-100'
+                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
+              }`}
+            >
+              <BookOpenText
+                size={20}
+                strokeWidth={activeTab === 'journal' ? 2.5 : 2}
+                className={`transition-all duration-200 ${
+                  activeTab === 'journal' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
+                } ${iconAnimation.tab === 'journal' ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
+              />
+              <span className={`text-[11px] font-semibold ${activeTab === 'journal' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Journal</span>
             </button>
             <button
               type="button"
