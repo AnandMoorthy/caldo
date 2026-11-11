@@ -610,12 +610,6 @@ export default function App() {
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (u) => {
       setUser(u);
-      // DEV MODE: Mock user for testing
-      if (!u && import.meta.env.DEV) {
-        const mockUser = { uid: 'test-user-123', email: 'test@example.com', displayName: 'Test User' };
-        setUser(mockUser);
-        u = mockUser;
-      }
       if (u) {
         habitsSyncReadyRef.current = false;
         // Initialize repositories for the new user
