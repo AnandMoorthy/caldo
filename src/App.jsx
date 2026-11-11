@@ -102,7 +102,6 @@ export default function App() {
   const [snippetsDrawerId, setSnippetsDrawerId] = useState(null);
   const [journalDrawerOpen, setJournalDrawerOpen] = useState(false);
   const [journalDrawerId, setJournalDrawerId] = useState(null);
-  const [journalTemplateId, setJournalTemplateId] = useState("reflection");
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [iconAnimation, setIconAnimation] = useState({ tab: null, key: 0 });
 
@@ -1159,7 +1158,6 @@ export default function App() {
         setShowEdit(false);
         setShowMissed(false);
         setActiveTab('journal');
-        setJournalTemplateId(result.templateId || 'reflection');
         setJournalDrawerId(result.id || '__new__');
         setJournalDrawerOpen(true);
         return;
@@ -2694,12 +2692,11 @@ export default function App() {
             user={user}
             journals={journalsCache}
             onJournalsChanged={handleJournalsChanged}
-            onOpenJournalEditor={(id, template = 'reflection') => {
+            onOpenJournalEditor={(id) => {
               setShowNotes(false);
               setSnippetsDrawerOpen(false);
               setShowMissed(false);
               setShowHelp(false);
-              setJournalTemplateId(template || 'reflection');
               setJournalDrawerId(id || '__new__');
               setJournalDrawerOpen(true);
             }}
@@ -2855,7 +2852,6 @@ export default function App() {
           repo={journalRepoRef.current}
           user={user}
           journalId={journalDrawerId}
-          initialTemplateId={journalTemplateId}
           onJournalsChanged={async () => {
             try {
               if (journalRepoRef.current && user) {

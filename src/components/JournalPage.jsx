@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { BookOpenText, Calendar, Flame, Loader2, PenSquare } from "lucide-react";
-import { JOURNAL_TEMPLATES, getJournalTemplateById } from "../utils/journalTemplates";
+import { countFilledJournalSections, normalizeJournalSections } from "../utils/journalTemplates";
 
 function formatJournalDate(dateKey) {
   try {
@@ -44,14 +44,8 @@ export default function JournalPage({
   onOpenJournalEditor,
   onJournalsChanged,
 }) {
-  const [selectedTemplateId, setSelectedTemplateId] = useState("reflection");
   const [items, setItems] = useState(Array.isArray(journals) ? journals : []);
   const [loading, setLoading] = useState(false);
-
-  const selectedTemplate = useMemo(
-    () => getJournalTemplateById(selectedTemplateId),
-    [selectedTemplateId]
-  );
 
   useEffect(() => {
     setItems(Array.isArray(journals) ? journals : []);
@@ -96,41 +90,17 @@ export default function JournalPage({
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">Journal</h1>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Pick a template, write with prompts, and keep your daily reflections in one place.
+              Create one journal entry with optional sections and fill only what you need.
             </p>
           </div>
           <button
             type="button"
-            onClick={() => onOpenJournalEditor && onOpenJournalEditor("__new__", selectedTemplateId)}
+            onClick={() => onOpenJournalEditor && onOpenJournalEditor("__new__")}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
           >
             <PenSquare size={16} />
             New journal
           </button>
-        </div>
-
-        <div className="mt-5">
-          <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Templates</div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {JOURNAL_TEMPLATES.map((template) => (
-              <button
-                key={template.id}
-                type="button"
-                onClick={() => setSelectedTemplateId(template.id)}
-                className={`text-left rounded-xl border p-3 transition-colors ${
-                  template.id === selectedTemplateId
-                    ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30"
-                    : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
-              >
-                <div className="font-medium text-slate-900 dark:text-slate-100">{template.name}</div>
-                <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">{template.description}</div>
-              </button>
-            ))}
-          </div>
-          <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-            Selected: <span className="font-medium">{selectedTemplate.name}</span>
-          </div>
         </div>
       </div>
 
@@ -151,11 +121,14 @@ export default function JournalPage({
           </div>
         ) : (
           <div className="space-y-3">
-            {items.map((entry) => (
+            {items.map((entry) => {
+              const sections = normalizeJournalSections(entry.sections, entry.content || "");
+              const filledCount = countFilledJournalSections(sections);
+              return (
               <button
                 key={entry.id}
                 type="button"
-                onClick={() => onOpenJournalEditor && onOpenJournalEditor(entry.id, entry.templateId)}
+                onClick={() => onOpenJournalEditor && onOpenJournalEditor(entry.id)}
                 className="w-full text-left rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 hover:shadow-md transition-all"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -163,9 +136,7 @@ export default function JournalPage({
                     <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                       {entry.title || "Journal Entry"}
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {entry.templateName || getJournalTemplateById(entry.templateId).name}
-                    </div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{filledCount} section{filledCount === 1 ? "" : "s"} filled</div>
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     {formatUpdatedAt(entry.updatedAt)}
@@ -192,7 +163,8 @@ export default function JournalPage({
                   </span>
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

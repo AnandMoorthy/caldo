@@ -98,9 +98,13 @@ Notes:
 ```json
 {
   "ownerUid": "<uid>",
-  "templateId": "reflection|gratitude|wins|freeform",
-  "templateName": "Daily Reflection",
   "title": "Journal title",
+  "sections": {
+    "reflection": "Optional reflection text",
+    "gratitude": "Optional gratitude text",
+    "wins": "Optional wins/learnings text",
+    "freeform": "Optional freeform text"
+  },
   "content": "Long-form journal entry",
   "mood": "happy|calm|grateful|tired|anxious|frustrated|null",
   "energyLevel": 1,

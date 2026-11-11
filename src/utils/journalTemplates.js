@@ -1,57 +1,63 @@
-export const JOURNAL_TEMPLATES = [
+export const JOURNAL_SECTIONS = [
   {
     id: "reflection",
-    name: "Daily Reflection",
+    title: "Daily Reflection",
     description: "Reflect on what happened and how it felt.",
-    defaultTitle: "Daily Reflection",
-    prompt: `Highlights from today:
-- 
-
-Challenges I faced:
-- 
-
-What I learned:
-- 
-
-What I want to improve tomorrow:
-- `,
+    placeholder: "Highlights, challenges, learnings, and what to improve tomorrow...",
   },
   {
     id: "gratitude",
-    name: "Gratitude",
-    description: "Capture the moments and people you are thankful for.",
-    defaultTitle: "Gratitude Journal",
-    prompt: `Three things I am grateful for:
-1. 
-2. 
-3. 
-
-Why they mattered:
-- `,
+    title: "Gratitude",
+    description: "Capture moments or people you are thankful for.",
+    placeholder: "Three things you're grateful for and why they mattered...",
   },
   {
     id: "wins",
-    name: "Wins & Learnings",
-    description: "Track progress with small wins and meaningful learnings.",
-    defaultTitle: "Wins & Learnings",
-    prompt: `Today's wins:
-- 
-
-Today's learnings:
-- 
-
-Next small step:
-- `,
+    title: "Wins & Learnings",
+    description: "Track progress with wins, lessons, and next steps.",
+    placeholder: "Today's wins, what you learned, and your next small step...",
   },
   {
     id: "freeform",
-    name: "Freeform",
-    description: "A blank page to write freely.",
-    defaultTitle: "Journal Entry",
-    prompt: "",
+    title: "Freeform",
+    description: "Write anything else you want to remember.",
+    placeholder: "Write your journal entry...",
   },
 ];
 
-export function getJournalTemplateById(templateId) {
-  return JOURNAL_TEMPLATES.find((template) => template.id === templateId) || JOURNAL_TEMPLATES[0];
+export function createEmptyJournalSections() {
+  return JOURNAL_SECTIONS.reduce((acc, section) => {
+    acc[section.id] = "";
+    return acc;
+  }, {});
+}
+
+export function normalizeJournalSections(sections, fallbackContent = "") {
+  const normalized = createEmptyJournalSections();
+  if (sections && typeof sections === "object") {
+    Object.keys(normalized).forEach((key) => {
+      normalized[key] = String(sections[key] || "");
+    });
+    return normalized;
+  }
+  normalized.freeform = String(fallbackContent || "");
+  return normalized;
+}
+
+export function composeJournalContentFromSections(sections) {
+  const normalized = normalizeJournalSections(sections);
+  return JOURNAL_SECTIONS.map((section) => {
+    const value = String(normalized[section.id] || "").trim();
+    if (!value) return null;
+    return `${section.title}:\n${value}`;
+  })
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+export function countFilledJournalSections(sections) {
+  const normalized = normalizeJournalSections(sections);
+  return JOURNAL_SECTIONS.reduce((count, section) => {
+    return count + (String(normalized[section.id] || "").trim() ? 1 : 0);
+  }, 0);
 }

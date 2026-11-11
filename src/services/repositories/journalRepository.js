@@ -11,11 +11,10 @@ export class JournalRepository {
 
   async createJournal(journal) {
     const docRef = journal?.id ? this.journalsRef().doc(journal.id) : this.journalsRef().doc();
-    const payload = {
+    const payload = Object.fromEntries(Object.entries({
       ownerUid: this.userId,
-      templateId: journal?.templateId || "reflection",
-      templateName: journal?.templateName || "Daily Reflection",
       title: String(journal?.title || "Journal Entry").trim(),
+      sections: journal?.sections && typeof journal.sections === "object" ? journal.sections : undefined,
       content: String(journal?.content || ""),
       mood: journal?.mood || null,
       energyLevel: Number(journal?.energyLevel) || 3,
@@ -23,7 +22,7 @@ export class JournalRepository {
       pinned: !!journal?.pinned,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-    };
+    }).filter(([, value]) => value !== undefined));
     await docRef.set(payload, { merge: true });
     return { id: docRef.id, ...payload };
   }
