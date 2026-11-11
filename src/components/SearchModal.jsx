@@ -226,9 +226,9 @@ function SearchResult({ result, isSelected, query, onClick }) {
                 {result.mood.charAt(0).toUpperCase() + result.mood.slice(1)}
               </span>
             )}
-            {result.type === 'journal' && result.templateName && (
+            {result.type === 'journal' && Array.isArray(result.headings) && result.headings.length > 0 && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
-                {result.templateName}
+                {result.headings[0]}
               </span>
             )}
           </div>
