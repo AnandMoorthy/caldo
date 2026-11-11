@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { CheckSquare, StickyNote, Sparkles, Target } from "lucide-react";
+import { CheckSquare, StickyNote, Sparkles, Target, BookOpenText } from "lucide-react";
 
 export default function TabSwitcher({ activeTab, onChangeTab }) {
   const tabs = [
@@ -15,6 +15,12 @@ export default function TabSwitcher({ activeTab, onChangeTab }) {
       label: 'Notes & Snippets',
       icon: StickyNote,
       shortLabel: 'Notes'
+    },
+    {
+      key: 'journal',
+      label: 'Journal',
+      icon: BookOpenText,
+      shortLabel: 'Journal'
     },
     {
       key: 'moments',

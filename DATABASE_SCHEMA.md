@@ -19,6 +19,9 @@ We use a flat, query-first schema to support fast daily/weekly/monthly views and
 - Moments: `users/{uid}/moments/{momentId}`
   - Micro-blog entries with mood and category. Chronological timeline.
 
+- Journals: `users/{uid}/journals/{journalId}`
+  - Rich daily journal entries with templates, mood, and energy level.
+
 - Meta: `users/{uid}/meta/streakInfo`
   - Single document for streak data.
 
@@ -86,6 +89,23 @@ Notes:
   "mood": "happy|sad|tired|frustrated|excited|calm|anxious|motivated|thoughtful|grateful",
   "category": "personal|work|health|learning|social|creative",
   "editCount": 0,
+  "createdAt": <timestamp>,
+  "updatedAt": <timestamp>
+}
+```
+
+## Journal document
+```json
+{
+  "ownerUid": "<uid>",
+  "templateId": "reflection|gratitude|wins|freeform",
+  "templateName": "Daily Reflection",
+  "title": "Journal title",
+  "content": "Long-form journal entry",
+  "mood": "happy|calm|grateful|tired|anxious|frustrated|null",
+  "energyLevel": 1,
+  "dateKey": "YYYY-MM-DD",
+  "pinned": false,
   "createdAt": <timestamp>,
   "updatedAt": <timestamp>
 }
@@ -198,6 +218,19 @@ service cloud.firestore {
 
     // Moments
     match /users/{userId}/moments/{momentId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data.ownerUid == userId;
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && resource.data.ownerUid == userId
+                    && request.resource.data.ownerUid == userId;
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Journals
+    match /users/{userId}/journals/{journalId} {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow create: if request.auth != null
                     && request.auth.uid == userId

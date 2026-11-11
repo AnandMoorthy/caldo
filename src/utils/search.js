@@ -1,5 +1,5 @@
 // Build searchable index from tasksMap
-export function buildSearchIndex(tasksMap, snippets = [], moments = []) {
+export function buildSearchIndex(tasksMap, snippets = [], moments = [], journals = []) {
   const index = [];
   
   Object.entries(tasksMap).forEach(([dateKey, dayTasks]) => {
@@ -63,10 +63,29 @@ export function buildSearchIndex(tasksMap, snippets = [], moments = []) {
     });
   });
 
+  // Index journals
+  (Array.isArray(journals) ? journals : []).forEach((journal) => {
+    if (!journal) return;
+    index.push({
+      id: journal.id,
+      type: "journal",
+      title: journal.title || "Journal Entry",
+      content: journal.content || "",
+      templateId: journal.templateId || "reflection",
+      templateName: journal.templateName || "",
+      mood: journal.mood || null,
+      energyLevel: journal.energyLevel || null,
+      dateKey: journal.dateKey || null,
+      createdAt: journal.createdAt || null,
+      updatedAt: journal.updatedAt || null,
+      searchableText: `${journal.title || ""} ${journal.content || ""} ${journal.templateName || ""} ${journal.mood || ""}`.toLowerCase(),
+    });
+  });
+
   return index;
 }
 
-// Search tasks, notes, snippets, and moments based on query
+// Search tasks, notes, snippets, journals, and moments based on query
 export function searchTasks(query, searchIndex) {
   if (!query.trim()) return [];
   

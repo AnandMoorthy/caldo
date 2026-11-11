@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Calendar, StickyNote, CheckCircle, Circle, Clock, Code2, Heart } from "lucide-react";
+import { Search, Calendar, StickyNote, CheckCircle, Circle, Clock, Code2, Heart, BookOpenText } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { highlightText } from "../utils/search.js";
 
@@ -106,7 +106,7 @@ export default function SearchModal({
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search tasks, notes, snippets, and moments..."
+            placeholder="Search tasks, notes, snippets, journals, and moments..."
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             className="w-full pl-10 pr-4 py-3 text-base bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white"
@@ -164,6 +164,7 @@ export default function SearchModal({
 function SearchResult({ result, isSelected, query, onClick }) {
   const getIcon = () => {
     if (result.type === 'snippet') return <Code2 size={16} />;
+    if (result.type === 'journal') return <BookOpenText size={16} />;
     if (result.type === 'note') return <StickyNote size={16} />;
     if (result.type === 'moment') return <Heart size={16} />;
     if (result.completed) return <CheckCircle size={16} />;
@@ -172,6 +173,7 @@ function SearchResult({ result, isSelected, query, onClick }) {
 
   const getPriorityColor = () => {
     if (result.type === 'snippet') return 'text-indigo-500';
+    if (result.type === 'journal') return 'text-cyan-500';
     if (result.type === 'note') return 'text-blue-500';
     if (result.type === 'moment') return 'text-pink-500';
     if (result.priority === 'high') return 'text-red-500';
@@ -206,6 +208,7 @@ function SearchResult({ result, isSelected, query, onClick }) {
             <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
               {result.type === 'note' ? 'Day Note' : 
                result.type === 'snippet' ? (result.title || 'Snippet') : 
+               result.type === 'journal' ? (result.title || 'Journal Entry') :
                result.type === 'moment' ? 'Moment' : 
                result.title}
             </span>
@@ -223,6 +226,11 @@ function SearchResult({ result, isSelected, query, onClick }) {
                 {result.mood.charAt(0).toUpperCase() + result.mood.slice(1)}
               </span>
             )}
+            {result.type === 'journal' && result.templateName && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
+                {result.templateName}
+              </span>
+            )}
           </div>
           
           {result.content && (
@@ -236,6 +244,17 @@ function SearchResult({ result, isSelected, query, onClick }) {
           
           {result.type === 'snippet' ? (
             <div className="text-xs text-slate-500 dark:text-slate-400">Snippet</div>
+          ) : result.type === 'journal' ? (
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <Calendar size={12} />
+              <span>{result.dateKey ? formatDate(result.dateKey) : 'Journal entry'}</span>
+              {result.mood && (
+                <span className="text-cyan-500">• {result.mood}</span>
+              )}
+              {result.energyLevel ? (
+                <span className="text-emerald-500">• Energy {result.energyLevel}/5</span>
+              ) : null}
+            </div>
           ) : result.type === 'moment' ? (
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <Calendar size={12} />
