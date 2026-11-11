@@ -105,6 +105,10 @@ export default function App() {
   const [journalTemplateId, setJournalTemplateId] = useState("reflection");
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [iconAnimation, setIconAnimation] = useState({ tab: null, key: 0 });
+
+  const handleJournalsChanged = useCallback((items) => {
+    setJournalsCache(Array.isArray(items) ? items : []);
+  }, []);
   
   // Pomodoro timer state
   const [showFloatingPomodoro, setShowFloatingPomodoro] = useState(false);
@@ -2689,7 +2693,7 @@ export default function App() {
             repo={journalRepoRef.current}
             user={user}
             journals={journalsCache}
-            onJournalsChanged={(items) => setJournalsCache(items || [])}
+            onJournalsChanged={handleJournalsChanged}
             onOpenJournalEditor={(id, template = 'reflection') => {
               setShowNotes(false);
               setSnippetsDrawerOpen(false);

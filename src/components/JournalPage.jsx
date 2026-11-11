@@ -77,7 +77,7 @@ export default function JournalPage({
     return () => {
       mounted = false;
     };
-  }, [repo, user, onJournalsChanged]);
+  }, [repo, user]);
 
   if (!user) {
     return (
