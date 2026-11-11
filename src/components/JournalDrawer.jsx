@@ -73,6 +73,7 @@ export default function JournalDrawer({
   const [applyTemplateWarningOpen, setApplyTemplateWarningOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [emptySaveOpen, setEmptySaveOpen] = useState(false);
   const closeImplRef = useRef(() => {});
 
   const hasAnyContent = useMemo(() => hasMeaningfulContent(blocks), [blocks]);
@@ -305,7 +306,7 @@ export default function JournalDrawer({
   async function handleSave() {
     if (!repo || !user) return;
     if (!hasAnyContent) {
-      alert("Please add at least one block before saving your journal.");
+      setEmptySaveOpen(true);
       return;
     }
 
@@ -363,7 +364,7 @@ export default function JournalDrawer({
   }
 
   function requestClose() {
-    if (deleteConfirmOpen || discardConfirmOpen || templateDialogOpen || applyTemplateWarningOpen) return;
+    if (deleteConfirmOpen || discardConfirmOpen || templateDialogOpen || applyTemplateWarningOpen || emptySaveOpen) return;
     if (hasChanges) {
       setDiscardConfirmOpen(true);
       return;
@@ -713,6 +714,27 @@ export default function JournalDrawer({
                     className="px-3 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-500"
                   >
                     Save template
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {emptySaveOpen && (
+            <div className="fixed inset-0 z-[80] flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setEmptySaveOpen(false)} />
+              <div className="relative w-full max-w-md mx-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg p-4">
+                <div className="text-lg font-semibold mb-2 text-slate-900 dark:text-slate-100">Add a block first</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300 mb-4">
+                  Please add at least one block before saving your journal.
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setEmptySaveOpen(false)}
+                    className="px-3 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-500"
+                  >
+                    OK
                   </button>
                 </div>
               </div>
