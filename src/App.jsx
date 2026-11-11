@@ -102,6 +102,7 @@ export default function App() {
   const [snippetsDrawerId, setSnippetsDrawerId] = useState(null);
   const [journalDrawerOpen, setJournalDrawerOpen] = useState(false);
   const [journalDrawerId, setJournalDrawerId] = useState(null);
+  const [journalInitialDateKey, setJournalInitialDateKey] = useState(() => keyFor(new Date()));
   const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
   const [iconAnimation, setIconAnimation] = useState({ tab: null, key: 0 });
 
@@ -1158,6 +1159,7 @@ export default function App() {
         setShowEdit(false);
         setShowMissed(false);
         setActiveTab('journal');
+        setJournalInitialDateKey(result.dateKey || keyFor(new Date()));
         setJournalDrawerId(result.id || '__new__');
         setJournalDrawerOpen(true);
         return;
@@ -2692,12 +2694,18 @@ export default function App() {
             user={user}
             journals={journalsCache}
             onJournalsChanged={handleJournalsChanged}
-            onOpenJournalEditor={(id) => {
+            onOpenJournalEditor={(id, targetDateKey = keyFor(new Date())) => {
               setShowNotes(false);
               setSnippetsDrawerOpen(false);
               setShowMissed(false);
               setShowHelp(false);
-              setJournalDrawerId(id || '__new__');
+              setJournalInitialDateKey(targetDateKey || keyFor(new Date()));
+              if (!id || id === '__new__') {
+                const existingForDate = (journalsCache || []).find((entry) => entry?.dateKey === targetDateKey);
+                setJournalDrawerId(existingForDate?.id || '__new__');
+              } else {
+                setJournalDrawerId(id);
+              }
               setJournalDrawerOpen(true);
             }}
           />
@@ -2852,6 +2860,7 @@ export default function App() {
           repo={journalRepoRef.current}
           user={user}
           journalId={journalDrawerId}
+          initialDateKey={journalInitialDateKey}
           onJournalsChanged={async () => {
             try {
               if (journalRepoRef.current && user) {

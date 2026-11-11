@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { BookOpenText, Calendar, Flame, Loader2, PenSquare } from "lucide-react";
-import { countFilledJournalSections, normalizeJournalSections } from "../utils/journalTemplates";
+import { countFilledJournalBlocks, extractJournalBlockHeadings, normalizeJournalBlocks } from "../utils/journalTemplates";
+import { keyFor } from "../utils/date";
 
 function formatJournalDate(dateKey) {
   try {
@@ -90,12 +91,12 @@ export default function JournalPage({
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">Journal</h1>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Create one journal entry with optional sections and fill only what you need.
+              Build one journal entry per day with optional blocks and fill only what you need.
             </p>
           </div>
           <button
             type="button"
-            onClick={() => onOpenJournalEditor && onOpenJournalEditor("__new__")}
+            onClick={() => onOpenJournalEditor && onOpenJournalEditor("__new__", keyFor(new Date()))}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
           >
             <PenSquare size={16} />
@@ -122,8 +123,9 @@ export default function JournalPage({
         ) : (
           <div className="space-y-3">
             {items.map((entry) => {
-              const sections = normalizeJournalSections(entry.sections, entry.content || "");
-              const filledCount = countFilledJournalSections(sections);
+              const blocks = normalizeJournalBlocks(entry.blocks, entry.content || "", entry.sections);
+              const filledCount = countFilledJournalBlocks(blocks);
+              const headings = extractJournalBlockHeadings(blocks);
               return (
               <button
                 key={entry.id}
@@ -136,15 +138,15 @@ export default function JournalPage({
                     <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                       {entry.title || "Journal Entry"}
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{filledCount} section{filledCount === 1 ? "" : "s"} filled</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{filledCount} block{filledCount === 1 ? "" : "s"} filled</div>
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     {formatUpdatedAt(entry.updatedAt)}
                   </div>
                 </div>
 
-                <p className="mt-3 text-sm text-slate-700 dark:text-slate-300 line-clamp-3 whitespace-pre-wrap">
-                  {entry.content || "No content"}
+                <p className="mt-3 text-sm text-slate-700 dark:text-slate-300 line-clamp-2 whitespace-pre-wrap">
+                  {headings.length ? headings.join(" • ") : "No headings"}
                 </p>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">

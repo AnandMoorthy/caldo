@@ -20,7 +20,8 @@ We use a flat, query-first schema to support fast daily/weekly/monthly views and
   - Micro-blog entries with mood and category. Chronological timeline.
 
 - Journals: `users/{uid}/journals/{journalId}`
-  - Rich daily journal entries with templates, mood, and energy level.
+  - Rich daily journal entries with dynamic blocks, mood, and energy level.
+  - One entry per day per user (`dateKey` + `ownerUid` uniqueness enforced in repository).
 
 - Meta: `users/{uid}/meta/streakInfo`
   - Single document for streak data.
@@ -99,18 +100,44 @@ Notes:
 {
   "ownerUid": "<uid>",
   "title": "Journal title",
-  "sections": {
-    "reflection": "Optional reflection text",
-    "gratitude": "Optional gratitude text",
-    "wins": "Optional wins/learnings text",
-    "freeform": "Optional freeform text"
-  },
+  "blocks": [
+    {
+      "id": "block-id",
+      "type": "text|todo|numbered",
+      "heading": "Block heading",
+      "text": "Only for text blocks",
+      "items": [
+        { "id": "item-id", "text": "List item", "checked": false }
+      ]
+    }
+  ],
   "content": "Long-form journal entry",
   "mood": "happy|calm|grateful|tired|anxious|frustrated|null",
-  "energyLevel": 1,
+  "energyLevel": 1-5,
   "dateKey": "YYYY-MM-DD",
-  "pinned": false,
   "createdAt": <timestamp>,
+  "updatedAt": <timestamp>
+}
+```
+
+## Journal templates document (private)
+Path: `users/{uid}/meta/journalTemplates`
+```json
+{
+  "ownerUid": "<uid>",
+  "templates": [
+    {
+      "id": "tpl_...",
+      "name": "Daily reset",
+      "structure": [
+        { "type": "text", "heading": "Reflection" },
+        { "type": "todo", "heading": "Food log" },
+        { "type": "numbered", "heading": "Top priorities" }
+      ],
+      "createdAt": "<ISO timestamp>",
+      "updatedAt": "<ISO timestamp>"
+    }
+  ],
   "updatedAt": <timestamp>
 }
 ```
@@ -167,6 +194,7 @@ dayNotes.where('ownerUid','==',uid)
 ## Indexes
 
 - Composite: `users/{uid}/tasks` on `(ownerUid ASC, dueDate ASC)`
+- Composite: `users/{uid}/journals` on `(ownerUid ASC, updatedAt DESC)` for recent journal listing.
 - Optionally, composite on `(ownerUid ASC, monthKey ASC)` if you prefer equality over range (not required).
 
 ## Security rules
@@ -259,6 +287,7 @@ service cloud.firestore {
 - Repositories
   - `TaskRepository` (flat tasks API)
   - `DayNoteRepository` (day notes API)
+  - `JournalRepository` (daily journals + private template structures)
 - Month view: one tasks range query + one notes range query, merged client-side by `dateKey`.
 - Day view: equality by `dateKey` + single note doc.
 
