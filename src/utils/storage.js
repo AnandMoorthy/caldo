@@ -1,6 +1,7 @@
 export const STORAGE_KEY = "caldo_v2_tasks";
 export const STREAK_KEY = "caldo_v2_streak";
 export const THEME_KEY = "caldo_v2_theme"; // 'light' | 'dark'
+export const PALETTE_KEY = "caldo_v2_palette"; // palette id, defaults to 'classic'
 export const DENSITY_KEY = "caldo_v2_density"; // 'normal' | 'compact' | 'minified'
 export const RECURRENCE_KEY = "caldo_v2_recurring_series";
 export const NOTES_MODE_KEY = "caldo_v2_notes_mode"; // 'edit' | 'preview'
@@ -78,6 +79,20 @@ export function loadThemePreference() {
 export function saveThemePreference(theme) {
   try {
     if (theme === 'light' || theme === 'dark') localStorage.setItem(THEME_KEY, theme);
+  } catch {}
+}
+
+export function loadPalettePreference() {
+  try {
+    return localStorage.getItem(PALETTE_KEY) || "classic";
+  } catch {
+    return "classic";
+  }
+}
+
+export function savePalettePreference(palette) {
+  try {
+    if (typeof palette === "string" && palette) localStorage.setItem(PALETTE_KEY, palette);
   } catch {}
 }
 

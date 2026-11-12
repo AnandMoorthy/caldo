@@ -30,6 +30,7 @@ import PublicSnippetView from "./components/PublicSnippetView.jsx";
 import FocusedSnippetView from "./components/FocusedSnippetView.jsx";
 import FocusedDayNoteView from "./components/FocusedDayNoteView.jsx";
 import FloatingPomodoro from "./components/FloatingPomodoro.jsx";
+import SettingsPage from "./components/settings/SettingsPage.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference, loadSidebarCollapsed, saveSidebarCollapsed, loadSnippetsCache, saveSnippetsCache, loadHabbits, saveHabbits } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
@@ -56,9 +57,9 @@ export default function App() {
     if (typeof window === 'undefined') return 'tasks';
     try {
       const stored = localStorage.getItem('caldo_v2_active_tab') || 'tasks';
-      return ['tasks', 'notes', 'journal', 'moments', 'habits'].includes(stored) ? stored : 'tasks';
+      return ['tasks', 'notes', 'journal', 'moments', 'habits', 'settings'].includes(stored) ? stored : 'tasks';
     } catch { return 'tasks'; }
-  }); // 'tasks' | 'notes' | 'journal' | 'moments' | 'habits'
+  }); // 'tasks' | 'notes' | 'journal' | 'moments' | 'habits' | 'settings'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (typeof window === 'undefined' ? false : loadSidebarCollapsed()));
   const [cursor, setCursor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -338,7 +339,7 @@ export default function App() {
       }
       
       // Disable other shortcuts when in snippets or notes sections
-      if (activeTab === 'snippets' || activeTab === 'notes' || activeTab === 'journal' || snippetsDrawerOpen || showNotes || journalDrawerOpen) {
+      if (activeTab === 'snippets' || activeTab === 'notes' || activeTab === 'journal' || activeTab === 'settings' || snippetsDrawerOpen || showNotes || journalDrawerOpen) {
         return;
       }
 
@@ -2376,6 +2377,13 @@ export default function App() {
       setSnippetsDrawerOpen(false);
       setJournalDrawerOpen(false);
       setShowNotes(false);
+    } else if (activeTab === 'settings') {
+      setShowAdd(false);
+      setShowEdit(false);
+      setShowMissed(false);
+      setSnippetsDrawerOpen(false);
+      setJournalDrawerOpen(false);
+      setShowNotes(false);
     }
   }, [activeTab]);
 
@@ -2418,6 +2426,7 @@ export default function App() {
           onExportJSON={exportJSON}
           onImportJSON={importJSON}
           onOpenHelp={() => setShowHelp(true)}
+          onOpenSettings={() => setActiveTab('settings')}
           onOpenSearch={() => setShowSearch(true)}
           onOpenPomodoro={() => openPomodoroTimer()}
           currentStreak={streak?.current || 0}
@@ -2747,6 +2756,10 @@ export default function App() {
             onToggleHabitForDay={toggleHabitForDay}
             onDeleteHabit={deleteHabit}
           />
+        )}
+
+        {activeTab === 'settings' && (
+          <SettingsPage />
         )}
         </div>
 

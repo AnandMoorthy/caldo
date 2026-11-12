@@ -11,7 +11,34 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="CalDo" />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="theme-color" content="#f8fafc" />
+    <script>
+      // Apply the saved theme before paint. Palette ids match src/themes.js.
+      (function () {
+        try {
+          var palettes = {
+            classic: { light: "#f8fafc", dark: "#020617" },
+            ocean: { light: "#f1f7fc", dark: "#06101c" },
+            forest: { light: "#f4f7f4", dark: "#08120c" },
+            dusk: { light: "#f6f5fa", dark: "#0e0c1a" },
+            paper: { light: "#fafaf9", dark: "#0c0a09" },
+            rose: { light: "#fdf6f8", dark: "#180a10" }
+          };
+          var mode = localStorage.getItem("caldo_v2_theme");
+          var palette = localStorage.getItem("caldo_v2_palette");
+          if (!palettes[palette]) palette = "classic";
+          if (mode !== "light" && mode !== "dark") {
+            mode = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          var root = document.documentElement;
+          root.setAttribute("data-palette", palette);
+          root.classList.toggle("dark", mode === "dark");
+          root.style.colorScheme = mode;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", palettes[palette][mode]);
+        } catch (e) {}
+      })();
+    </script>
     <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
     <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png" />
   </head>

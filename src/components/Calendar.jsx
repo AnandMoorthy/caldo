@@ -185,7 +185,7 @@ export default function Calendar({
                         )}
                       </div>
                       <div className="mt-2 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                        <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${percent}%` }} />
+                        <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-300" style={{ width: `${percent}%` }} />
                       </div>
                       {totalCount > 0 ? (
                         <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-600 dark:text-slate-400">

@@ -1,5 +1,5 @@
 import React from "react";
-import { CheckSquare, StickyNote, Sparkles, Target, PanelLeftClose, PanelLeftOpen, BookOpenText } from "lucide-react";
+import { CheckSquare, StickyNote, Sparkles, Target, PanelLeftClose, PanelLeftOpen, BookOpenText, Settings } from "lucide-react";
 import Logo from "./Logo.jsx";
 
 const PAGES = [
@@ -60,6 +60,26 @@ export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = 
           );
         })}
       </nav>
+      <div className={`mt-auto border-t border-slate-200 dark:border-slate-800 ${collapsed ? "px-2 py-3 flex justify-center" : "px-3 py-3"}`}>
+        <button
+          type="button"
+          onClick={() => onChangeTab && onChangeTab("settings")}
+          aria-current={activeTab === "settings" ? "page" : undefined}
+          aria-label="Settings"
+          data-tip={collapsed ? "Settings" : undefined}
+          data-tip-pos="right"
+          className={`flex items-center rounded-xl text-sm font-medium transition-colors ${
+            collapsed ? "justify-center h-10 w-10" : "gap-3 px-3 py-2.5 text-left w-full"
+          } ${
+            activeTab === "settings"
+              ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"
+          }`}
+        >
+          <Settings size={18} strokeWidth={activeTab === "settings" ? 2.25 : 2} className="shrink-0" />
+          {!collapsed && <span>Settings</span>}
+        </button>
+      </div>
     </aside>
   );
 }
