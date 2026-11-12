@@ -11,7 +11,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="CalDo" />
-    <meta name="theme-color" content="#f8fafc" />
+    <meta name="theme-color" content="#ffffff" />
     <script>
       // Apply the saved theme before paint. Palette ids match src/themes.js.
       (function () {
@@ -35,8 +35,10 @@
           root.classList.toggle("dark", mode === "dark");
           root.style.colorScheme = mode;
           var pageColor = palettes[palette][mode];
+          var chromeColor = mode === "dark" ? "#09090b" : "#ffffff";
+          root.style.setProperty("--chrome-bg", chromeColor);
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute("content", pageColor);
+          if (meta) meta.setAttribute("content", chromeColor);
           root.style.backgroundColor = pageColor;
           if (document.body) document.body.style.backgroundColor = pageColor;
         } catch (e) {}

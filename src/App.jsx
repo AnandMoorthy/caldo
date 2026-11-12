@@ -3037,115 +3037,46 @@ export default function App() {
         </div>
       )}
       
-      {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 safe-pb shadow-[0_-4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]">
-        <div className="max-w-7xl mx-auto px-2 py-2 bg-slate-50 dark:bg-slate-950">
+      {/* Mobile Bottom Navigation — zinc/white stay palette-neutral (slate is remapped per theme and can go violet). */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 sm:hidden border-t border-zinc-200 dark:border-zinc-800 safe-pb shadow-[0_-4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]"
+        style={{ backgroundColor: 'var(--chrome-bg, #ffffff)' }}
+      >
+        <div className="max-w-7xl mx-auto px-2 py-2" style={{ backgroundColor: 'var(--chrome-bg, #ffffff)' }}>
           <div className="flex items-center justify-around gap-1">
-            <button
-              type="button"
-              onClick={() => {
-                setIconAnimation({ tab: 'tasks', key: Date.now() });
-                setActiveTab('tasks');
-              }}
-              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
-                activeTab === 'tasks'
-                  ? 'text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800'
-                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-900'
-              }`}
-            >
-              <CheckSquare 
-                size={20} 
-                strokeWidth={activeTab === 'tasks' ? 2.5 : 2}
-                className={`transition-all duration-200 ${
-                  activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
-                } ${iconAnimation.tab === 'tasks' ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
-              />
-              <span className={`text-[11px] font-semibold ${activeTab === 'tasks' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Tasks</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIconAnimation({ tab: 'notes', key: Date.now() });
-                setActiveTab('notes');
-              }}
-              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
-                activeTab === 'notes'
-                  ? 'text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800'
-                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-900'
-              }`}
-            >
-              <StickyNote 
-                size={20} 
-                strokeWidth={activeTab === 'notes' ? 2.5 : 2}
-                className={`transition-all duration-200 ${
-                  activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
-                } ${iconAnimation.tab === 'notes' ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
-              />
-              <span className={`text-[11px] font-semibold ${activeTab === 'notes' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Notes</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIconAnimation({ tab: 'journal', key: Date.now() });
-                setActiveTab('journal');
-              }}
-              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
-                activeTab === 'journal'
-                  ? 'text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800'
-                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-900'
-              }`}
-            >
-              <BookOpenText
-                size={20}
-                strokeWidth={activeTab === 'journal' ? 2.5 : 2}
-                className={`transition-all duration-200 ${
-                  activeTab === 'journal' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
-                } ${iconAnimation.tab === 'journal' ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
-              />
-              <span className={`text-[11px] font-semibold ${activeTab === 'journal' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Journal</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIconAnimation({ tab: 'moments', key: Date.now() });
-                setActiveTab('moments');
-              }}
-              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
-                activeTab === 'moments'
-                  ? 'text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800'
-                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-900'
-              }`}
-            >
-              <Sparkles 
-                size={20} 
-                strokeWidth={activeTab === 'moments' ? 2.5 : 2}
-                className={`transition-all duration-200 ${
-                  activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
-                } ${iconAnimation.tab === 'moments' ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
-              />
-              <span className={`text-[11px] font-semibold ${activeTab === 'moments' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Moments</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setIconAnimation({ tab: 'habits', key: Date.now() });
-                setActiveTab('habits');
-              }}
-              className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
-                activeTab === 'habits'
-                  ? 'text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800'
-                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-900'
-              }`}
-            >
-              <Target
-                size={20}
-                strokeWidth={activeTab === 'habits' ? 2.5 : 2}
-                className={`transition-all duration-200 ${
-                  activeTab === 'habits' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
-                } ${iconAnimation.tab === 'habits' ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
-              />
-              <span className={`text-[11px] font-semibold ${activeTab === 'habits' ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>Habits</span>
-            </button>
+            {[
+              { id: 'tasks', label: 'Tasks', Icon: CheckSquare },
+              { id: 'notes', label: 'Notes', Icon: StickyNote },
+              { id: 'journal', label: 'Journal', Icon: BookOpenText },
+              { id: 'moments', label: 'Moments', Icon: Sparkles },
+              { id: 'habits', label: 'Habits', Icon: Target },
+            ].map(({ id, label, Icon }) => {
+              const active = activeTab === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    setIconAnimation({ tab: id, key: Date.now() });
+                    setActiveTab(id);
+                  }}
+                  className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
+                    active
+                      ? 'text-zinc-900 dark:text-zinc-50 bg-zinc-100 dark:bg-zinc-800 shadow-sm border border-zinc-200 dark:border-zinc-700'
+                      : 'text-zinc-500 dark:text-zinc-400 active:bg-zinc-100 dark:active:bg-zinc-900 border border-transparent'
+                  }`}
+                >
+                  <Icon
+                    size={20}
+                    strokeWidth={active ? 2.5 : 2}
+                    className={`transition-all duration-200 ${
+                      active ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400'
+                    } ${iconAnimation.tab === id ? 'animate-[iconPulse_0.3s_ease-out]' : ''}`}
+                  />
+                  <span className={`text-[11px] font-semibold ${active ? 'text-zinc-900 dark:text-zinc-50' : 'text-zinc-500 dark:text-zinc-400'}`}>{label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </nav>
