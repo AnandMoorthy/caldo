@@ -12,10 +12,12 @@ export function applyAppearance(mode, paletteId) {
   root.dataset.palette = palette.id;
   root.classList.toggle("dark", resolvedMode === "dark");
   root.style.colorScheme = resolvedMode;
+  // Tab bar + system chrome stay neutral white/black so palette accents never tint them violet.
+  const chromeColor = resolvedMode === "dark" ? "#09090b" : "#ffffff";
   const pageColor = palette.themeColor[resolvedMode];
+  root.style.setProperty("--chrome-bg", chromeColor);
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", pageColor);
-  // Keep system / home-indicator chrome aligned with the app surface (not accent violet).
+  if (meta) meta.setAttribute("content", chromeColor);
   document.documentElement.style.backgroundColor = pageColor;
   if (document.body) document.body.style.backgroundColor = pageColor;
 }
