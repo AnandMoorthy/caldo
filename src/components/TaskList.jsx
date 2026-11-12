@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Check, RotateCcw, Trash, ChevronDown, ChevronRight, Plus, RefreshCcw, Timer } from "lucide-react";
+import { Pencil, Check, Trash, ChevronDown, ChevronRight, Plus, RefreshCcw, Timer } from "lucide-react";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { generateId } from "../utils/uid";
 import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
@@ -303,17 +303,6 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
             </div>
 
             <div className="flex items-center shrink-0 -mr-1.5">
-              {isDone && (
-                <button
-                  type="button"
-                  onClick={() => onToggleDone(t)}
-                  className={`${actionBtn} text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800`}
-                  data-tip="Undo"
-                  aria-label="Undo"
-                >
-                  <RotateCcw size={iconSize} />
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => onOpenEditModal(t)}
