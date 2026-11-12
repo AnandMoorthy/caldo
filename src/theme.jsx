@@ -12,8 +12,12 @@ export function applyAppearance(mode, paletteId) {
   root.dataset.palette = palette.id;
   root.classList.toggle("dark", resolvedMode === "dark");
   root.style.colorScheme = resolvedMode;
+  const pageColor = palette.themeColor[resolvedMode];
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", palette.themeColor[resolvedMode]);
+  if (meta) meta.setAttribute("content", pageColor);
+  // Keep system / home-indicator chrome aligned with the app surface (not accent violet).
+  document.documentElement.style.backgroundColor = pageColor;
+  if (document.body) document.body.style.backgroundColor = pageColor;
 }
 
 export function ThemeProvider({ children }) {

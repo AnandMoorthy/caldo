@@ -34,8 +34,11 @@
           root.setAttribute("data-palette", palette);
           root.classList.toggle("dark", mode === "dark");
           root.style.colorScheme = mode;
+          var pageColor = palettes[palette][mode];
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute("content", palettes[palette][mode]);
+          if (meta) meta.setAttribute("content", pageColor);
+          root.style.backgroundColor = pageColor;
+          if (document.body) document.body.style.backgroundColor = pageColor;
         } catch (e) {}
       })();
     </script>
