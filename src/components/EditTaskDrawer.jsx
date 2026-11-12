@@ -29,16 +29,15 @@ export default function EditTaskDrawer({ open, editForm, setEditForm, onSubmit, 
       } catch {}
     }, 0);
   }
-  if (!open) return null;
   return (
     <AnimatePresence>
       {open && (
         <motion.aside
-          initial={{ x: 420, opacity: 0 }}
+          initial={{ x: "100%", opacity: 0.96 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 420, opacity: 0 }}
+          exit={{ x: "100%", opacity: 0.96 }}
           transition={{ type: "spring", stiffness: 280, damping: 28 }}
-          className="fixed right-0 top-0 h-full z-[70] w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
+          className="fixed right-0 top-0 h-dvh z-[70] w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
           aria-label="Edit task panel"
         >
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -48,7 +47,7 @@ export default function EditTaskDrawer({ open, editForm, setEditForm, onSubmit, 
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 touch-manipulation"
               aria-label="Close edit task"
             >
               <X size={18} />
@@ -144,7 +143,7 @@ export default function EditTaskDrawer({ open, editForm, setEditForm, onSubmit, 
                         </button>
                       </div>
                     ))}
-                    <div className="sticky bottom-0 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 flex items-center gap-2 pt-2 pb-1 pr-1">
+                    <div className="sticky bottom-0 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-700 flex items-center gap-2 pt-2 pr-1 drawer-safe-footer">
                       <input
                         ref={inputRef}
                         value={newSubTitle}
@@ -168,11 +167,11 @@ export default function EditTaskDrawer({ open, editForm, setEditForm, onSubmit, 
                 </div>
               </details>
 
-              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 mt-2 flex items-center justify-end gap-2">
-                <button type="button" onClick={onClose} className="px-4 py-2 rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 mt-2 flex items-center justify-end gap-2 drawer-safe-footer">
+                <button type="button" onClick={onClose} className="px-4 py-2.5 min-h-[44px] rounded-lg bg-slate-50 dark:bg-slate-800 dark:text-slate-200 touch-manipulation">
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 rounded bg-indigo-600 text-white">
+                <button type="submit" className="px-4 py-2.5 min-h-[44px] rounded-lg bg-indigo-600 text-white touch-manipulation">
                   Save
                 </button>
               </div>

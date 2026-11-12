@@ -23,7 +23,7 @@ function Avatar({ user }) {
   return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
-export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSettings, onOpenSearch, onOpenPomodoro, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks, currentView = 'month', onChangeView, activeTab = 'tasks', onChangeTab, pomodoroEnabled = true, showTabs = true, showSearch = true, hideBrand = false }) {
+export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSettings, onOpenSearch, onOpenPomodoro, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks, currentView = 'month', onChangeView, activeTab = 'tasks', onChangeTab, pomodoroEnabled = true, showTabs = true, showSearch = true, hideBrand = false, scrollContainerRef = null }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const mobileProfileMenuRef = useRef(null);
@@ -56,15 +56,23 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  // Header scroll divider
+  // Header scroll divider — follow the app content scroller, not the window
   useEffect(() => {
+    const el = scrollContainerRef?.current;
     function onScroll() {
-      try { setIsScrolled((window.scrollY || 0) > 2); } catch {}
+      try {
+        const top = el ? el.scrollTop : (window.scrollY || 0);
+        setIsScrolled(top > 2);
+      } catch {}
     }
     onScroll();
+    if (el) {
+      el.addEventListener('scroll', onScroll, { passive: true });
+      return () => el.removeEventListener('scroll', onScroll);
+    }
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+  }, [scrollContainerRef]);
 
   // Gentle glow on streak increment
   useEffect(() => {
@@ -208,7 +216,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
                 <Avatar user={user} />
               </button>
               {showProfileMenu && (
-                <div className="absolute right-0 sm:right-0 -right-2 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg rounded-lg p-2 z-50">
+                <div className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-lg rounded-lg p-2 z-50">
                   <div className="px-2 py-1.5 text-xs text-slate-500 dark:text-slate-400">
                     {user ? (
                       <span>

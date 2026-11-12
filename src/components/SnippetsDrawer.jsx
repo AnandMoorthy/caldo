@@ -465,11 +465,11 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
     <AnimatePresence>
       {open && (
         <motion.aside
-          initial={{ x: 896, opacity: 0 }}
+          initial={{ x: "100%", opacity: 0.96 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 896, opacity: 0 }}
+          exit={{ x: "100%", opacity: 0.96 }}
           transition={{ type: "spring", stiffness: 280, damping: 28 }}
-          className="fixed right-0 top-0 h-full z-[70] w-full max-w-4xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
+          className="fixed right-0 top-0 h-dvh z-[70] w-full max-w-4xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
           aria-label={type === 'note' ? 'Notes panel' : 'Snippets panel'}
         >
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -485,7 +485,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
               <button
                 type="button"
                 onClick={handleClose}
-                className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 touch-manipulation"
                 aria-label="Close snippets"
               >
                 <X size={18} />
@@ -615,7 +615,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
             {/* Share panel moved to the toolbar popover above */}
           </div>
 
-          <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2 drawer-safe-footer">
             <button type="button" onClick={handleClose} className="px-3 py-1.5 text-sm rounded bg-slate-50 dark:bg-slate-800 dark:text-slate-200">
               Close
             </button>

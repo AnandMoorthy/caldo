@@ -34,7 +34,7 @@ export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitFor
   }
 
   return (
-    <main className="grid grid-cols-1 gap-4 sm:gap-6 pb-24 sm:pb-0">
+    <main className="grid grid-cols-1 gap-4 sm:gap-6">
       <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 sm:p-5 border border-transparent dark:border-slate-800">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>

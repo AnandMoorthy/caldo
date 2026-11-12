@@ -232,11 +232,11 @@ export default function MomentCard({
         </div>
         
         {/* Action buttons - subtle */}
-        <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-60 sm:group-hover:opacity-100 transition-opacity">
           {moment.editCount < 1 && (
             <button
               onClick={() => onEdit(moment.id)}
-              className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 p-1.5 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors touch-manipulation"
               data-tip="Edit moment (one-time only)"
               data-tip-pos="top"
             >
@@ -245,7 +245,7 @@ export default function MomentCard({
           )}
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 p-1.5 inline-flex items-center justify-center text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors touch-manipulation"
             data-tip="Delete moment"
             data-tip-pos="top"
           >

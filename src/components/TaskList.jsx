@@ -91,8 +91,12 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   const topGapCls = density === 'minified' ? 'gap-1' : 'gap-2';
   const titleLeftMarginCls = density === 'minified' ? 'ml-0.5' : '';
   const metaMarginTopCls = density === 'minified' ? 'mt-1' : 'mt-2';
-  const actionPadCls = density === 'minified' ? 'p-1' : density === 'compact' ? 'p-1.5' : 'p-2';
-  const iconSize = density === 'minified' ? 12 : density === 'compact' ? 14 : 16;
+  const actionPadCls = density === 'minified'
+    ? 'p-2 sm:p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0'
+    : density === 'compact'
+      ? 'p-2.5 sm:p-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0'
+      : 'p-2.5 sm:p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0';
+  const iconSize = density === 'minified' ? 14 : density === 'compact' ? 16 : 16;
   const showNotesPreview = !!notes && density !== 'minified';
 
   return (
@@ -337,7 +341,10 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
   }
 
   return (
-    <div className={fullHeight ? `${density === 'minified' ? 'space-y-1.5' : density === 'compact' ? 'space-y-2' : 'space-y-3'} h-full overflow-auto pr-2` : `${density === 'minified' ? 'space-y-1.5' : density === 'compact' ? 'space-y-2' : 'space-y-3'} max-h-[40vh] sm:max-h-[60vh] overflow-auto pr-2`}>
+    <div className={fullHeight
+      ? `${density === 'minified' ? 'space-y-1.5' : density === 'compact' ? 'space-y-2' : 'space-y-3'} h-full overflow-auto pr-1 sm:pr-2`
+      : `${density === 'minified' ? 'space-y-1.5' : density === 'compact' ? 'space-y-2' : 'space-y-3'} sm:max-h-[60vh] sm:overflow-auto pr-1 sm:pr-2`
+    }>
       {tasks.map((t) => (
         <TaskCard
           key={t.id}

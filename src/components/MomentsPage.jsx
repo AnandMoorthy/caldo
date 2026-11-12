@@ -236,7 +236,7 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 px-4 sm:px-0 pb-20 sm:pb-0">
+    <div className="max-w-2xl mx-auto space-y-6">
       {error && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -304,7 +304,7 @@ export default function MomentsPage({ user, onMomentsChanged }) {
       </div>
 
       {saving && (
-        <div className="fixed bottom-4 right-4 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 rounded-lg shadow-lg">
+        <div className="fixed right-4 z-[55] bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 rounded-lg shadow-lg" style={{ bottom: 'calc(var(--content-pb) + 0.5rem)' }}>
           <div className="flex items-center gap-2">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
             <span className="text-sm">Saving...</span>
