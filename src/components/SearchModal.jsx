@@ -83,21 +83,22 @@ export default function SearchModal({
     }
   }, [selectedIndex, searchResults.length]);
 
-  if (!isOpen) return null;
-
   return (
+    <AnimatePresence>
+      {isOpen && (
     <motion.div
+      key="search-modal"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-[75] bg-black/50 backdrop-blur-sm"
       onClick={onClose}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: -20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: -20 }}
-        className="absolute top-24 left-0 right-0 mx-auto w-[32rem] max-w-[90vw]"
+        className="absolute top-20 sm:top-24 left-0 right-0 mx-auto w-[32rem] max-w-[calc(100vw-1.5rem)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input */}
@@ -158,6 +159,8 @@ export default function SearchModal({
         </div>
       </motion.div>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO, isAfter, startOfDay, isToday } from "date-fns";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX, CheckSquare, Sparkles, Target, BookOpenText } from "lucide-react";
 import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
@@ -53,6 +53,8 @@ import { materializeSeries } from "./utils/recurrence";
 
 export default function App() {
   const [currentView, setCurrentView] = useState(() => (typeof window === 'undefined' ? 'month' : loadViewPreference()));
+  const [isPhone, setIsPhone] = useState(() => (typeof window === 'undefined' ? true : window.matchMedia('(max-width: 639px)').matches));
+  const contentScrollRef = useRef(null);
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window === 'undefined') return 'tasks';
     try {
@@ -61,6 +63,8 @@ export default function App() {
     } catch { return 'tasks'; }
   }); // 'tasks' | 'notes' | 'journal' | 'moments' | 'habits' | 'settings'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (typeof window === 'undefined' ? false : loadSidebarCollapsed()));
+  // Phones always use Day for Tasks; desktop keeps the saved preference.
+  const effectiveView = isPhone ? 'day' : currentView;
   const [cursor, setCursor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksMap, setTasksMap] = useState(() => loadTasks());
@@ -237,6 +241,19 @@ export default function App() {
     try { saveViewPreference(currentView); } catch {}
   }, [currentView]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 639px)');
+    const sync = () => setIsPhone(!!mq.matches);
+    sync();
+    if (mq.addEventListener) mq.addEventListener('change', sync);
+    else if (mq.addListener) mq.addListener(sync);
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', sync);
+      else if (mq.removeListener) mq.removeListener(sync);
+    };
+  }, []);
+
   // Load recurring series from localStorage on mount (only when not logged in)
   useEffect(() => {
     if (!user) {
@@ -355,15 +372,18 @@ export default function App() {
         setSnippetsDrawerOpen(false);
         setShowNotes(true);
       } else if (key === 'm') {
+        if (isPhone) return;
         e.preventDefault();
         setCurrentView('month');
       } else if (key === 'w') {
+        if (isPhone) return;
         e.preventDefault();
         setCurrentView('week');
       } else if (key === 'd') {
         e.preventDefault();
         setCurrentView('day');
       } else if (key === 'y') {
+        if (isPhone) return;
         e.preventDefault();
         setCurrentView('year');
       } else if (key === 'o') {
@@ -393,12 +413,15 @@ export default function App() {
         e.preventDefault();
         setCurrentView('day');
       } else if (key === '2') {
+        if (isPhone) return;
         e.preventDefault();
         setCurrentView('week');
       } else if (key === '3') {
+        if (isPhone) return;
         e.preventDefault();
         setCurrentView('month');
       } else if (key === '4') {
+        if (isPhone) return;
         e.preventDefault();
         setCurrentView('year');
       } else if (e.key === '?') {
@@ -425,7 +448,7 @@ export default function App() {
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onBlurWindow);
     };
-  }, [selectedDate, showAdd, showEdit, showNotes, showMissed, showHelp, showSearch, currentView, activeTab, snippetsDrawerOpen, journalDrawerOpen]);
+  }, [selectedDate, showAdd, showEdit, showNotes, showMissed, showHelp, showSearch, currentView, activeTab, snippetsDrawerOpen, journalDrawerOpen, isPhone]);
 
   useEffect(() => {
     saveStreak(streak);
@@ -2397,12 +2420,15 @@ export default function App() {
     }
   }, [iconAnimation]);
 
-  const pinAboveIsland = activeTab === 'tasks' && (currentView === 'month' || currentView === 'week');
+  const needsIslandPad = !isPhone && activeTab === 'tasks';
+  const pinAboveIsland = needsIslandPad && (effectiveView === 'month' || effectiveView === 'week');
   const contentScrollClass = pinAboveIsland
-    ? (currentView === 'week'
+    ? (effectiveView === 'week'
         ? 'overflow-y-auto overflow-x-hidden sm:overflow-hidden'
         : 'overflow-y-auto overflow-x-hidden md:overflow-hidden')
-    : 'overflow-y-auto overflow-x-hidden ' + (activeTab === 'tasks' ? 'sm:pb-[calc(6.75rem+env(safe-area-inset-bottom))]' : 'sm:pb-8');
+    : needsIslandPad
+      ? 'overflow-y-auto overflow-x-hidden'
+      : 'overflow-y-auto overflow-x-hidden content-pb';
 
   return (
     publicRoute ? (
@@ -2416,7 +2442,7 @@ export default function App() {
     ) : (
     <div className="h-dvh overflow-hidden flex flex-row bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 font-sans text-slate-800 dark:text-slate-200">
       <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((v) => !v)} />
-      <div className={`flex-1 min-w-0 min-h-0 flex flex-col px-4 sm:px-6 md:px-10 safe-pt ${pinAboveIsland ? 'pb-[calc(9.5rem+env(safe-area-inset-bottom))] sm:pb-[calc(6.75rem+env(safe-area-inset-bottom))]' : ''}`}>
+      <div className={`flex-1 min-w-0 min-h-0 flex flex-col px-4 sm:px-6 md:px-10 safe-pt ${needsIslandPad ? 'sm:pb-[var(--island-pb)]' : ''}`}>
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col gap-4 sm:gap-6 min-h-0">
         <div className="flex-shrink-0 w-full">
           <Header
@@ -2432,20 +2458,30 @@ export default function App() {
           currentStreak={streak?.current || 0}
           deleteAllTasksEnabled={!!deleteAllTasksEnabled}
           onDeleteAllTasks={deleteAllTasksFromCloud}
-          currentView={currentView}
-          onChangeView={(v) => setCurrentView(v)}
+          currentView={effectiveView}
+          onChangeView={(v) => { if (!isPhone) setCurrentView(v); }}
           activeTab={activeTab}
           onChangeTab={setActiveTab}
           pomodoroEnabled={pomodoroEnabled}
           showTabs={false}
           hideBrand
+          scrollContainerRef={contentScrollRef}
           />
         </div>
         
         
-        <div className={`flex-1 flex flex-col min-h-0 ${contentScrollClass}`}>
-        {activeTab === 'tasks' && currentView === 'month' ? (
-          <main className={`grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 ${pinAboveIsland ? 'max-md:shrink-0 md:h-full md:min-h-0 md:grid-rows-1' : 'pb-40 sm:pb-0'}`}>
+        <div ref={contentScrollRef} className={`flex-1 flex flex-col min-h-0 ${contentScrollClass}`}>
+        <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={activeTab === 'tasks' ? `tasks-${effectiveView}` : activeTab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="flex-1 flex flex-col min-h-0"
+        >
+        {activeTab === 'tasks' && effectiveView === 'month' ? (
+          <main className={`grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 ${pinAboveIsland ? 'max-md:shrink-0 md:h-full md:min-h-0 md:grid-rows-1' : ''}`}>
             <Calendar
               monthStart={monthStart}
               monthDays={monthDays}
@@ -2577,8 +2613,8 @@ export default function App() {
               />
             </aside>
           </main>
-        ) : activeTab === 'tasks' && currentView === 'week' ? (
-          <main className={`grid grid-cols-1 gap-4 sm:gap-6 ${pinAboveIsland ? 'max-sm:shrink-0 sm:h-full sm:min-h-0' : 'pb-40 sm:pb-0'}`}>
+        ) : activeTab === 'tasks' && effectiveView === 'week' ? (
+          <main className={`grid grid-cols-1 gap-4 sm:gap-6 ${pinAboveIsland ? 'max-sm:shrink-0 sm:h-full sm:min-h-0' : ''}`}>
             <WeekView
               anchorDate={cursor}
               onPrevWeek={prevWeek}
@@ -2617,8 +2653,8 @@ export default function App() {
               pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
             />
           </main>
-        ) : activeTab === 'tasks' && currentView === 'year' ? (
-          <main className="grid grid-cols-1 gap-4 sm:gap-6 pb-40 sm:pb-0">
+        ) : activeTab === 'tasks' && effectiveView === 'year' ? (
+          <main className="grid grid-cols-1 gap-4 sm:gap-6">
             <YearView
               anchorDate={cursor}
               onPrevYear={prevYear}
@@ -2634,7 +2670,7 @@ export default function App() {
             />
           </main>
         ) : activeTab === 'tasks' ? (
-          <main className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0 pb-40 sm:pb-0">
+          <main className="flex flex-col gap-4 sm:gap-6 flex-1 min-h-0">
             <DayView
               date={selectedDate}
               onPrevDay={() => prevDay()}
@@ -2657,6 +2693,8 @@ export default function App() {
                 setSnippetsDrawerOpen(false);
                 setShowNotes(true);
               }}
+              onOpenMissed={() => setShowMissed(true)}
+              missedCount={missedTasksThisMonth.length}
               showDensityMenu={showDensityMenu}
               setShowDensityMenu={setShowDensityMenu}
               onChangeDensity={(d) => setDensity(d)}
@@ -2761,9 +2799,11 @@ export default function App() {
         {activeTab === 'settings' && (
           <SettingsPage />
         )}
+        </motion.div>
+        </AnimatePresence>
         </div>
 
-        {(snippetsDrawerOpen || showNotes || journalDrawerOpen) && (
+        {(snippetsDrawerOpen || showNotes || journalDrawerOpen || showAdd || showEdit || showMissed) && (
           <div
             className="fixed inset-0 z-[65] bg-slate-900/20 backdrop-blur-sm"
             onClick={() => {
@@ -2771,6 +2811,9 @@ export default function App() {
                 journalRequestCloseRef.current?.();
                 return;
               }
+              if (showAdd) { setShowAdd(false); return; }
+              if (showEdit) { setShowEdit(false); return; }
+              if (showMissed) { setShowMissed(false); return; }
               setSnippetsDrawerOpen(false);
               setShowNotes(false);
             }}
@@ -2919,17 +2962,17 @@ export default function App() {
       </div>
       </div>
       
-      {/* Task View Switcher - Bottom of screen, above options */}
+      {/* Task View Switcher — desktop only; phones stay on Day */}
       {activeTab === 'tasks' && (
-        <div className={`fixed bottom-20 left-0 right-0 z-40 flex justify-center sm:bottom-4 safe-pb pointer-events-none ${sidebarCollapsed ? 'sm:left-[4.5rem]' : 'sm:left-56'}`}>
+        <div className={`hidden sm:flex fixed bottom-4 left-0 right-0 z-40 justify-center pointer-events-none ${sidebarCollapsed ? 'sm:left-[4.5rem]' : 'sm:left-56'}`}>
           <div className="max-w-7xl mx-auto w-full px-4 sm:px-6">
             <div className="flex justify-center py-2 sm:py-3">
               <div className="inline-flex items-center gap-1 bg-white dark:bg-slate-800 backdrop-blur-md sm:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-xl sm:shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:sm:shadow-[0_8px_30px_rgb(0,0,0,0.3)] px-2 py-1.5 pointer-events-auto">
                 <button
                   type="button"
                   onClick={() => setCurrentView('day')}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[38px] min-w-[52px] touch-manipulation ${
-                    currentView === 'day'
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[44px] min-w-[52px] touch-manipulation ${
+                    effectiveView === 'day'
                       ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
                       : 'text-slate-600 dark:text-slate-400 active:text-slate-900 dark:active:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700/60'
                   }`}
@@ -2939,8 +2982,8 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('week')}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[38px] min-w-[52px] touch-manipulation ${
-                    currentView === 'week'
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[44px] min-w-[52px] touch-manipulation ${
+                    effectiveView === 'week'
                       ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
                       : 'text-slate-600 dark:text-slate-400 active:text-slate-900 dark:active:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700/60'
                   }`}
@@ -2950,8 +2993,8 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('month')}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[38px] min-w-[52px] touch-manipulation ${
-                    currentView === 'month'
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[44px] min-w-[52px] touch-manipulation ${
+                    effectiveView === 'month'
                       ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
                       : 'text-slate-600 dark:text-slate-400 active:text-slate-900 dark:active:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700/60'
                   }`}
@@ -2961,8 +3004,8 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('year')}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[38px] min-w-[52px] touch-manipulation ${
-                    currentView === 'year'
+                  className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 min-h-[44px] min-w-[52px] touch-manipulation ${
+                    effectiveView === 'year'
                       ? 'bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm'
                       : 'text-slate-600 dark:text-slate-400 active:text-slate-900 dark:active:text-slate-200 active:bg-slate-100 dark:active:bg-slate-700/60'
                   }`}
@@ -2987,7 +3030,7 @@ export default function App() {
               }}
               className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'tasks'
-                  ? 'text-slate-900 dark:text-slate-100'
+                  ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
                   : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
               }`}
             >
@@ -3008,7 +3051,7 @@ export default function App() {
               }}
               className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'notes'
-                  ? 'text-slate-900 dark:text-slate-100'
+                  ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
                   : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
               }`}
             >
@@ -3029,7 +3072,7 @@ export default function App() {
               }}
               className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'journal'
-                  ? 'text-slate-900 dark:text-slate-100'
+                  ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
                   : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
               }`}
             >
@@ -3050,7 +3093,7 @@ export default function App() {
               }}
               className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'moments'
-                  ? 'text-slate-900 dark:text-slate-100'
+                  ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
                   : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
               }`}
             >
@@ -3071,7 +3114,7 @@ export default function App() {
               }}
               className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'habits'
-                  ? 'text-slate-900 dark:text-slate-100'
+                  ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
                   : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
               }`}
             >

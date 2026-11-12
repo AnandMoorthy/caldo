@@ -23,11 +23,11 @@ export default function MissedTasksDrawer({
     <AnimatePresence>
       {open && (
         <motion.aside
-          initial={{ x: 420, opacity: 0 }}
+          initial={{ x: "100%", opacity: 0.96 }}
           animate={{ x: 0, opacity: 1 }}
-          exit={{ x: 420, opacity: 0 }}
+          exit={{ x: "100%", opacity: 0.96 }}
           transition={{ type: "spring", stiffness: 280, damping: 28 }}
-          className="fixed right-0 top-0 h-full z-[70] w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
+          className="fixed right-0 top-0 h-dvh z-[70] w-full max-w-md bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
           aria-label="Missed tasks panel"
         >
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -40,7 +40,7 @@ export default function MissedTasksDrawer({
             <button
               type="button"
               onClick={onClose}
-              className="w-8 h-8 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 touch-manipulation"
               aria-label="Close missed tasks"
             >
               <X size={18} />

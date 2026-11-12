@@ -354,7 +354,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
   }, [filterMode]);
 
   return (
-    <main className="grid grid-cols-1 gap-4 sm:gap-6 pb-20 sm:pb-0">
+    <main className="grid grid-cols-1 gap-4 sm:gap-6">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div className="font-semibold flex items-center gap-2 text-base sm:text-lg">{loading ? <Loader2 size={18} className="animate-spin" /> : <StickyNote size={18} />} Notes & Snippets</div>
@@ -400,7 +400,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                         <span className="truncate">{n.dateKey ? format(parseISO(n.dateKey), 'EEE, MMM d, yyyy') : 'Unknown date'}</span>
                       </span>
                       <span className="shrink-0 flex items-center gap-2">
-                        <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleNotePin(n); }} className={`w-8 h-8 sm:w-6 sm:h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity touch-manipulation ${n.pinned ? '' : 'opacity-0 group-hover:opacity-100 sm:opacity-0'}`} title={n.pinned ? 'Unpin' : 'Pin'}>
+                        <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleNotePin(n); }} className={`min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-6 sm:h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity touch-manipulation ${n.pinned ? '' : 'sm:opacity-0 sm:group-hover:opacity-100'}`} title={n.pinned ? 'Unpin' : 'Pin'}>
                           {n.pinned ? <Pin size={16} className="sm:w-3.5 sm:h-3.5 text-amber-600" /> : <PinOff size={16} className="sm:w-3.5 sm:h-3.5 text-slate-400" />}
                         </button>
                         <a
@@ -409,7 +409,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation?.()}
                           title="Open in new tab"
-                          className="w-8 h-8 sm:w-6 sm:h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 sm:opacity-0 transition-opacity touch-manipulation"
+                          className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-6 sm:h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
                         >
                           <span className="text-sm sm:text-xs">↗</span>
                         </a>
@@ -439,10 +439,10 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                       <span className="truncate">{isNaN(updated.getTime()) ? '—' : format(updated, 'PPp')}</span>
                     </span>
                     <span className="shrink-0 flex items-center gap-2">
-                      <button type="button" onClick={(e) => { e.stopPropagation?.(); onOpenSnippetEditor && onOpenSnippetEditor(sn.id); }} className="w-8 h-8 sm:w-6 sm:h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 sm:opacity-0 transition-opacity touch-manipulation" title="Edit">
+                      <button type="button" onClick={(e) => { e.stopPropagation?.(); onOpenSnippetEditor && onOpenSnippetEditor(sn.id); }} className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-6 sm:h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation" title="Edit">
                         <span className="sr-only">Edit</span>
                       </button>
-                      <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleSnippetPin(sn); }} className={`w-8 h-8 sm:w-6 sm:h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity touch-manipulation ${sn.pinned ? '' : 'opacity-0 group-hover:opacity-100 sm:opacity-0'}`} title={sn.pinned ? 'Unpin' : 'Pin'}>
+                      <button type="button" onClick={(e) => { e.stopPropagation?.(); handleToggleSnippetPin(sn); }} className={`min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-6 sm:h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-opacity touch-manipulation ${sn.pinned ? '' : 'sm:opacity-0 sm:group-hover:opacity-100'}`} title={sn.pinned ? 'Unpin' : 'Pin'}>
                         {sn.pinned ? <Pin size={16} className="sm:w-3.5 sm:h-3.5 text-indigo-600" /> : <PinOff size={16} className="sm:w-3.5 sm:h-3.5 text-indigo-400" />}
                       </button>
                       <a
@@ -451,7 +451,7 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation?.()}
                         title="Open in new tab"
-                        className="w-8 h-8 sm:w-6 sm:h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 opacity-0 group-hover:opacity-100 sm:opacity-0 transition-opacity touch-manipulation"
+                        className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-6 sm:h-6 inline-flex items-center justify-center rounded hover:bg-slate-100 dark:hover:bg-slate-800 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation"
                       >
                         <span className="text-sm sm:text-xs">↗</span>
                       </a>

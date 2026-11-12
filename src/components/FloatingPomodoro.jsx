@@ -74,6 +74,13 @@ export default function FloatingPomodoro({
     };
   };
 
+  // Keep the widget above the bottom nav (and view island on desktop tasks)
+  const getMaxY = (dimensions = getWidgetDimensions()) => {
+    const isMobile = window.innerWidth < 640;
+    const bottomReserve = isMobile ? 88 : 72; // nav / island clearance
+    return Math.max(0, window.innerHeight - dimensions.height - bottomReserve);
+  };
+
   // Get default position based on screen size
   const getDefaultPosition = () => {
     const isMobile = window.innerWidth < 640;
@@ -105,7 +112,7 @@ export default function FloatingPomodoro({
         const pos = JSON.parse(saved);
         // Validate position is within viewport
         const maxX = window.innerWidth - dimensions.width;
-        const maxY = window.innerHeight - dimensions.height;
+        const maxY = getMaxY(dimensions);
         
         // If position is invalid (e.g., from desktop to mobile switch), use default
         if (pos.x < 0 || pos.x > maxX || pos.y < 0 || pos.y > maxY) {
@@ -368,7 +375,7 @@ export default function FloatingPomodoro({
     // Keep widget within viewport with responsive constraints
     const dimensions = getWidgetDimensions();
     const maxX = window.innerWidth - dimensions.width;
-    const maxY = window.innerHeight - dimensions.height;
+    const maxY = getMaxY(dimensions);
     
     newPosition.x = Math.max(0, Math.min(newPosition.x, maxX));
     newPosition.y = Math.max(0, Math.min(newPosition.y, maxY));
@@ -397,7 +404,7 @@ export default function FloatingPomodoro({
     
     const dimensions = getWidgetDimensions();
     const maxX = window.innerWidth - dimensions.width;
-    const maxY = window.innerHeight - dimensions.height;
+    const maxY = getMaxY(dimensions);
     
     newPosition.x = Math.max(0, Math.min(newPosition.x, maxX));
     newPosition.y = Math.max(0, Math.min(newPosition.y, maxY));
@@ -437,7 +444,7 @@ export default function FloatingPomodoro({
     const handleResize = () => {
       const dimensions = getWidgetDimensions();
       const maxX = window.innerWidth - dimensions.width;
-      const maxY = window.innerHeight - dimensions.height;
+      const maxY = getMaxY(dimensions);
       
       setPosition(prev => {
         // If position is now invalid (e.g., switched from desktop to mobile), reset to default
@@ -460,7 +467,7 @@ export default function FloatingPomodoro({
     if (isVisible) {
       const dimensions = getWidgetDimensions();
       const maxX = window.innerWidth - dimensions.width;
-      const maxY = window.innerHeight - dimensions.height;
+      const maxY = getMaxY(dimensions);
       
       setPosition(prev => {
         // If position is invalid, reset to default
@@ -488,7 +495,7 @@ export default function FloatingPomodoro({
         left: position.x,
         top: position.y,
         width: dimensions.width,
-        zIndex: 1000,
+        zIndex: 60,
         ...(isMobile && { touchAction: 'none' }),
       }}
       className={`border-2 rounded-lg shadow-lg bg-white dark:bg-slate-900 ${isMobile ? 'cursor-default' : 'cursor-move'} select-none ${getPhaseBgColor()}`}
@@ -531,14 +538,14 @@ export default function FloatingPomodoro({
         <div className="flex items-center gap-1">
           <button
             onClick={() => setShowSettings(!showSettings)}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+            className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1 inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors touch-manipulation"
             aria-label="Settings"
           >
-            <Settings size={12} className="text-slate-600 dark:text-slate-400" />
+            <Settings size={16} className="text-slate-600 dark:text-slate-400" />
           </button>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+            className="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1 inline-flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors touch-manipulation"
             aria-label="Close"
           >
             <X size={12} className="text-slate-600 dark:text-slate-400" />

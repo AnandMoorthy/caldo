@@ -835,7 +835,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
             <button
               type="button"
               onClick={handleClose}
-              className="w-9 h-9 inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors touch-manipulation"
               aria-label="Close help"
               data-tip="Close (Esc)"
             >
@@ -843,9 +843,33 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
             </button>
           </div>
 
-          <div className="flex h-full pt-16">
-            {/* Sidebar Navigation */}
-            <div className="w-64 border-r border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+          <div className="flex flex-col sm:flex-row h-full pt-16">
+            {/* Mobile tab strip */}
+            <div className="sm:hidden border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60">
+              <div className="flex gap-1 overflow-x-auto px-3 py-2 safe-pb">
+                {tabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-medium touch-manipulation ${
+                        activeTab === tab.id
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                          : 'text-slate-600 dark:text-slate-300'
+                      }`}
+                    >
+                      <Icon size={16} />
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Desktop sidebar */}
+            <div className="hidden sm:block w-64 shrink-0 border-r border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
               <nav className="p-4">
                 <div className="space-y-1">
                   {tabs.map((tab) => {
@@ -853,8 +877,9 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
                     return (
                       <button
                         key={tab.id}
+                        type="button"
                         onClick={() => setActiveTab(tab.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-lg text-left transition-colors ${
                           activeTab === tab.id
                             ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                             : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'
@@ -870,8 +895,8 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="max-w-4xl mx-auto p-6">
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="max-w-4xl mx-auto p-4 sm:p-6 content-pb sm:pb-6">
                 {renderContent()}
               </div>
             </div>

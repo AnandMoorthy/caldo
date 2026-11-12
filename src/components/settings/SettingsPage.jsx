@@ -15,7 +15,7 @@ const SECTIONS = [
 
 export default function SettingsPage() {
   return (
-    <div className="max-w-3xl pb-20 sm:pb-4">
+    <div className="max-w-3xl">
       <div className="mb-5">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Settings</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
