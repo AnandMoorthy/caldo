@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Check, RotateCcw, Trash, Clock, ChevronDown, ChevronRight, Plus, RefreshCcw, Timer } from "lucide-react";
+import { Pencil, Check, RotateCcw, Trash, ChevronDown, ChevronRight, Plus, RefreshCcw, Timer } from "lucide-react";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { generateId } from "../utils/uid";
 import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
@@ -11,7 +11,6 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
   const isDone = t.done || false;
   const dueDate = t.due || t.dateKey || null;
-  const createdAt = t.createdAt || new Date().toISOString();
   const priority = t.priority || "medium";
   const title = t.title || "Untitled";
   const notes = t.notes || "";
@@ -300,11 +299,6 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
                   <Plus size={12} />
                   <span>Subtask</span>
                 </button>
-              )}
-              {!isMinified && (
-                <div className="hidden sm:inline-flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 ml-1">
-                  <Clock size={11} /> {format(parseISO(createdAt), "PP p")}
-                </div>
               )}
             </div>
 
