@@ -118,12 +118,15 @@ export default function DayView({
   const isMobile = typeof window !== 'undefined' &&
     (window.innerWidth < 640 || 'ontouchstart' in window || navigator.maxTouchPoints > 0);
 
+  // Feature flag — set true to bring motivational quotes back
+  const ENABLE_MOTIVATIONAL_MESSAGES = false;
+
   const incompleteTasks = tasks.filter((t) => !t.done);
   const dateKey = keyFor(date);
   const todayStart = startOfDay(new Date());
   const dateStart = startOfDay(date);
   const isDateTodayOrPast = !isAfter(dateStart, todayStart);
-  const shouldShowMessage = incompleteTasks.length > 0 && isDateTodayOrPast;
+  const shouldShowMessage = ENABLE_MOTIVATIONAL_MESSAGES && incompleteTasks.length > 0 && isDateTodayOrPast;
   const motivationalMessage = useMemo(() => {
     if (!shouldShowMessage) return null;
     return getMotivationalMessageForCount(incompleteTasks.length);
