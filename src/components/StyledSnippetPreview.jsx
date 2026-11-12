@@ -58,7 +58,7 @@ export default function StyledSnippetPreview({ content, maxLength = 200 }) {
     : styledText;
 
   return (
-    <div className="text-xs text-slate-500 line-clamp-5 whitespace-pre-wrap">
+    <div className="max-w-full overflow-hidden text-xs text-slate-500 line-clamp-5 break-all">
       {preview}
     </div>
   );
