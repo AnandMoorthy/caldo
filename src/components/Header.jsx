@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun, HelpCircle, Search, Timer } from "lucide-react";
-import { loadThemePreference, saveThemePreference } from "../utils/storage";
+import { FileUp as ImportIcon, FileDown as ExportIcon, User as UserIcon, Download as InstallIcon, Flame as StreakIcon, Moon, Sun, HelpCircle, Search, Timer, Settings } from "lucide-react";
+import { useTheme } from "../theme.jsx";
 import TabSwitcher from "./TabSwitcher";
 import Logo from "./Logo.jsx";
 
@@ -23,7 +23,7 @@ function Avatar({ user }) {
   return <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200 flex items-center justify-center text-xs font-semibold">{getInitials()}</div>;
 }
 
-export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSearch, onOpenPomodoro, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks, currentView = 'month', onChangeView, activeTab = 'tasks', onChangeTab, pomodoroEnabled = true, showTabs = true, showSearch = true, hideBrand = false }) {
+export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJSON, onImportJSON, onOpenHelp, onOpenSettings, onOpenSearch, onOpenPomodoro, currentStreak = 0, deleteAllTasksEnabled = false, onDeleteAllTasks, currentView = 'month', onChangeView, activeTab = 'tasks', onChangeTab, pomodoroEnabled = true, showTabs = true, showSearch = true, hideBrand = false }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const mobileProfileMenuRef = useRef(null);
@@ -31,7 +31,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
   const deferredPromptRef = useRef(null);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [theme, setTheme] = useState(() => (typeof window === 'undefined' ? 'light' : loadThemePreference()));
+  const { mode, toggleMode } = useTheme();
   const [isScrolled, setIsScrolled] = useState(false);
   const [streakGlow, setStreakGlow] = useState(false);
   const prevStreakRef = useRef(Number(currentStreak) || 0);
@@ -56,16 +56,6 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  // Theme mount + persistence
-  useEffect(() => {
-    try {
-      const root = document.documentElement;
-      if (theme === 'dark') root.classList.add('dark');
-      else root.classList.remove('dark');
-      saveThemePreference(theme);
-    } catch {}
-  }, [theme]);
-
   // Header scroll divider
   useEffect(() => {
     function onScroll() {
@@ -87,10 +77,6 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
     }
     prevStreakRef.current = curr;
   }, [currentStreak]);
-
-  function toggleTheme() {
-    setTheme((t) => (t === 'dark' ? 'light' : 'dark'));
-  }
 
   useEffect(() => {
     // Pick up any deferred prompt captured before React mounted
@@ -233,9 +219,19 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
                     )}
                   </div>
                   <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
-                  <button onClick={toggleTheme} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
-                    {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-                    {theme === 'dark' ? 'Light' : 'Dark'} Mode
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onOpenSettings && onOpenSettings();
+                      setShowProfileMenu(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2"
+                  >
+                    <Settings size={16} /> Settings
+                  </button>
+                  <button type="button" onClick={toggleMode} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
+                    {mode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                    {mode === 'dark' ? 'Light' : 'Dark'} Mode
                   </button>
                   <button
                     onClick={() => {
@@ -375,9 +371,19 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
                   )}
                 </div>
                 <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
-                <button onClick={toggleTheme} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
-                  {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-                  {theme === 'dark' ? 'Light' : 'Dark'} Mode
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenSettings && onOpenSettings();
+                    setShowProfileMenu(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2"
+                >
+                  <Settings size={16} /> Settings
+                </button>
+                <button type="button" onClick={toggleMode} className="w-full text-left px-3 py-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-2">
+                  {mode === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                  {mode === 'dark' ? 'Light' : 'Dark'} Mode
                 </button>
                 <button
                   onClick={() => {

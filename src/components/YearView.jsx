@@ -154,7 +154,7 @@ export default function YearView({
                   <div className="w-64 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur p-3">
                     <div className="text-[11px] text-slate-500 dark:text-slate-400">{format(m, 'MMMM yyyy')}</div>
                     <div className="mt-1 h-2 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                      <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500" style={{ width: `${percent}%` }} />
+                      <div className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-indigo-300" style={{ width: `${percent}%` }} />
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-600 dark:text-slate-400">
                       <div className="inline-flex items-center gap-1"><List size={12} /> Tasks: <span className="font-medium text-slate-800 dark:text-slate-200">{totalTasks}</span></div>
