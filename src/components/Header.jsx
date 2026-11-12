@@ -153,7 +153,7 @@ export default function Header({ user, onSignInWithGoogle, onSignOut, onExportJS
   }
 
   return (
-    <header className={`sticky top-0 z-40 pb-2 sm:pb-0 header-top-spacing ${isScrolled ? 'bg-white/60 dark:bg-slate-900/70 backdrop-blur-md' : 'bg-transparent'} transition-colors flex-shrink-0 w-full`}>
+    <header className={`pb-2 sm:pb-0 header-top-spacing flex-shrink-0 w-full ${isScrolled ? 'border-b border-slate-200/70 dark:border-slate-800/80' : 'border-b border-transparent'} transition-colors`}>
       {/* Mobile Layout: Stack vertically on small screens */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         {/* Mobile: Top row with title and essential actions */}

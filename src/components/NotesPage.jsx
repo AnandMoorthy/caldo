@@ -356,18 +356,20 @@ export default function NotesPage({ repo, user, onOpenDayNotes, snippetRepo, onO
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-          <div className="font-semibold flex items-center gap-2 text-base sm:text-lg">{loading ? <Loader2 size={18} className="animate-spin" /> : <StickyNote size={18} />} Notes & Snippets</div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden w-full sm:w-auto">
-              <button type="button" onClick={() => setFilterMode('all')} className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs sm:text-xs ${filterMode==='all' ? 'bg-slate-200 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>All</button>
-              <button type="button" onClick={() => setFilterMode('pinned')} className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${filterMode==='pinned' ? 'bg-slate-200 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>Pinned</button>
-              <button type="button" onClick={() => setFilterMode('notes')} className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${filterMode==='notes' ? 'bg-slate-200 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>Notes</button>
-              <button type="button" onClick={() => setFilterMode('snippets')} className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${filterMode==='snippets' ? 'bg-slate-200 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>Snippets</button>
+        <div className="sticky top-0 z-20 -mx-3 px-3 sm:-mx-4 sm:px-4 -mt-3 pt-3 sm:-mt-4 sm:pt-4 pb-3 mb-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="font-semibold flex items-center gap-2 text-base sm:text-lg">{loading ? <Loader2 size={18} className="animate-spin" /> : <StickyNote size={18} />} Notes & Snippets</div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden w-full sm:w-auto">
+                <button type="button" onClick={() => setFilterMode('all')} className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs sm:text-xs ${filterMode==='all' ? 'bg-slate-200 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>All</button>
+                <button type="button" onClick={() => setFilterMode('pinned')} className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${filterMode==='pinned' ? 'bg-slate-200 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>Pinned</button>
+                <button type="button" onClick={() => setFilterMode('notes')} className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${filterMode==='notes' ? 'bg-slate-200 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>Notes</button>
+                <button type="button" onClick={() => setFilterMode('snippets')} className={`flex-1 sm:flex-none px-3 py-2 sm:py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${filterMode==='snippets' ? 'bg-slate-200 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'}`}>Snippets</button>
+              </div>
+              <button type="button" onClick={() => onOpenSnippetEditor && onOpenSnippetEditor('__new__')} disabled={!user} className="inline-flex items-center justify-center gap-1 px-3 py-2 sm:px-2.5 sm:py-1.5 text-xs sm:text-xs rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation">
+                <Plus size={14} className="sm:w-3 sm:h-3" /> <span>Snippet</span>
+              </button>
             </div>
-            <button type="button" onClick={() => onOpenSnippetEditor && onOpenSnippetEditor('__new__')} disabled={!user} className="inline-flex items-center justify-center gap-1 px-3 py-2 sm:px-2.5 sm:py-1.5 text-xs sm:text-xs rounded bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation">
-              <Plus size={14} className="sm:w-3 sm:h-3" /> <span>Snippet</span>
-            </button>
           </div>
         </div>
         {items.length === 0 && !loading && (
