@@ -1,9 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CalDo">
   <rect width="64" height="64" rx="14" fill="#4F46E5"/>
-  <rect x="21" y="13" width="6" height="16" rx="3" fill="#FFFFFF"/>
-  <rect x="37" y="13" width="6" height="16" rx="3" fill="#FFFFFF"/>
-  <rect x="14" y="22" width="36" height="30" rx="6" fill="#FFFFFF"/>
-  <rect x="23" y="15.25" width="2" height="5.5" rx="1" fill="#4F46E5"/>
-  <rect x="39" y="15.25" width="2" height="5.5" rx="1" fill="#4F46E5"/>
-  <path d="M23 38.2 29.6 44.6 42 30.4" fill="none" stroke="#4F46E5" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path fill="#FFFFFF" d="M 27.93 17.25 A 16.17 16.17 0 1 0 27.93 49.07 L 27.93 42.86 A 10.12 10.12 0 1 1 27.93 23.47 Z"/>
+  <path fill="#FFFFFF" d="M 30.72 16.99 L 38.98 16.99 A 16.17 16.17 0 0 1 38.98 49.34 L 30.72 49.34 L 30.72 43.29 L 38.98 43.29 A 10.12 10.12 0 0 0 38.98 23.04 L 30.72 23.04 Z"/>
+  <rect fill="#FFFFFF" x="30.72" y="29.09" width="5.82" height="20.25"/>
 </svg>
