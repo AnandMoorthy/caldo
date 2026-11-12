@@ -86,7 +86,7 @@ export default function JournalPage({
 
   return (
     <div className="max-w-4xl mx-auto w-full px-1">
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-6">
+      <div className="sticky top-0 z-20 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 shadow-sm">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">Journal</h1>

@@ -16,7 +16,7 @@ const SECTIONS = [
 export default function SettingsPage() {
   return (
     <div className="max-w-3xl">
-      <div className="mb-5">
+      <div className="sticky top-0 z-20 -mx-1 px-1 py-3 mb-2 bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80 backdrop-blur-md">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Settings</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Choose how CalDo looks. More preferences can be added here later.

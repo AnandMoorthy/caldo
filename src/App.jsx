@@ -2444,7 +2444,7 @@ export default function App() {
       <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((v) => !v)} />
       <div className={`flex-1 min-w-0 min-h-0 flex flex-col px-4 sm:px-6 md:px-10 safe-pt ${needsIslandPad ? 'sm:pb-[var(--island-pb)]' : ''}`}>
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col gap-4 sm:gap-6 min-h-0">
-        <div className="flex-shrink-0 w-full">
+        <div className="flex-shrink-0 w-full sticky top-0 z-40 bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80 backdrop-blur-md">
           <Header
             user={user}
           onSignInWithGoogle={signInWithGoogle}

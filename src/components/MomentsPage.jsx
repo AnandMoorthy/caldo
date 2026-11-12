@@ -253,7 +253,7 @@ export default function MomentsPage({ user, onMomentsChanged }) {
         </motion.div>
       )}
 
-      <div className="text-center mb-8">
+      <div className="sticky top-0 z-20 -mx-2 px-2 py-3 mb-5 text-center bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80 backdrop-blur-md">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
           Moments
         </h1>
