@@ -3,14 +3,28 @@
 @tailwind utilities;
 
 /* small app tweaks */
-/* Keep the app shell (header + bottom nav) pinned; pages scroll inside. */
+/* Keep the app shell (header + bottom nav) pinned; pages scroll inside.
+   Pull-to-refresh is handled in JS on the content scroller because body scroll is locked. */
 html, body, #root {
   height: 100%;
   max-height: 100dvh;
   overflow-x: hidden;
   overflow-y: hidden;
+  background-color: #f8fafc;
 }
-body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+html.dark, html.dark body, html.dark #root {
+  background-color: #020617;
+}
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Soften global touch-action so vertical pull gestures still work */
+.overflow-auto, .overflow-y-auto {
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+}
 
 /* iOS safe-area helpers */
 .safe-pt { padding-top: max(env(safe-area-inset-top), 0px); }
@@ -49,8 +63,8 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 
   }
 }
 
-/* Prevent double-tap zoom and improve touch target behavior */
-* { touch-action: manipulation; }
+/* Prevent double-tap zoom on controls without blocking vertical pan/pull */
+button, a, [role="button"], input, select, textarea { touch-action: manipulation; }
 
 /* Enable momentum scrolling in iOS for overflow containers */
 .overflow-auto, .overflow-y-auto { -webkit-overflow-scrolling: touch; }

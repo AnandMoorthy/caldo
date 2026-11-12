@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO, isAfter, startOfDay, isToday } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX, CheckSquare, Sparkles, Target, BookOpenText } from "lucide-react";
+import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX, CheckSquare, Sparkles, Target, BookOpenText, Loader2 } from "lucide-react";
+import usePullToRefresh from "./hooks/usePullToRefresh";
 import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Sidebar from "./components/Sidebar.jsx";
@@ -2430,6 +2431,12 @@ export default function App() {
       ? 'overflow-y-auto overflow-x-hidden'
       : 'overflow-y-auto overflow-x-hidden content-pb';
 
+  const { pull: pullDistance, refreshing: pullRefreshing, threshold: pullThreshold } = usePullToRefresh(contentScrollRef, {
+    onRefresh: () => {
+      window.location.reload();
+    },
+  });
+
   return (
     publicRoute ? (
       <PublicSnippetView slug={publicRoute.slug} token={publicRoute.token} />
@@ -2470,7 +2477,19 @@ export default function App() {
         </div>
         
         
-        <div ref={contentScrollRef} className={`flex-1 flex flex-col min-h-0 ${contentScrollClass}`}>
+        <div ref={contentScrollRef} className={`relative flex-1 flex flex-col min-h-0 ${contentScrollClass}`}>
+        {(pullDistance > 0 || pullRefreshing) && (
+          <div
+            className="pointer-events-none absolute left-0 right-0 z-30 flex items-center justify-center text-slate-500 dark:text-slate-400"
+            style={{ top: Math.max(8, pullDistance - 28), opacity: Math.min(1, pullDistance / pullThreshold) }}
+            aria-hidden
+          >
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 px-3 py-1.5 shadow-sm text-xs font-medium">
+              <Loader2 size={14} className={pullRefreshing || pullDistance >= pullThreshold ? 'animate-spin' : ''} />
+              {pullRefreshing ? 'Refreshing…' : pullDistance >= pullThreshold ? 'Release to refresh' : 'Pull to refresh'}
+            </div>
+          </div>
+        )}
         <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={activeTab === 'tasks' ? `tasks-${effectiveView}` : activeTab}
@@ -3019,8 +3038,8 @@ export default function App() {
       )}
       
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-white dark:bg-slate-900 backdrop-blur-md border-t border-slate-200 dark:border-slate-700 safe-pb shadow-[0_-4px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
-        <div className="max-w-7xl mx-auto px-2 py-2">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 safe-pb shadow-[0_-4px_20px_rgba(0,0,0,0.06)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]">
+        <div className="max-w-7xl mx-auto px-2 py-2 bg-slate-50 dark:bg-slate-950">
           <div className="flex items-center justify-around gap-1">
             <button
               type="button"
@@ -3030,8 +3049,8 @@ export default function App() {
               }}
               className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'tasks'
-                  ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
-                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
+                  ? 'text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800'
+                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-900'
               }`}
             >
               <CheckSquare 
@@ -3051,8 +3070,8 @@ export default function App() {
               }}
               className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'notes'
-                  ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
-                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
+                  ? 'text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800'
+                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-900'
               }`}
             >
               <StickyNote 
@@ -3072,8 +3091,8 @@ export default function App() {
               }}
               className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'journal'
-                  ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
-                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
+                  ? 'text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800'
+                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-900'
               }`}
             >
               <BookOpenText
@@ -3093,8 +3112,8 @@ export default function App() {
               }}
               className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'moments'
-                  ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
-                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
+                  ? 'text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800'
+                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-900'
               }`}
             >
               <Sparkles 
@@ -3114,8 +3133,8 @@ export default function App() {
               }}
               className={`relative flex flex-col items-center justify-center gap-1 flex-1 h-14 rounded-xl transition-all duration-200 touch-manipulation active:scale-95 ${
                 activeTab === 'habits'
-                  ? 'text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-800'
-                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-50 dark:active:bg-slate-800/50'
+                  ? 'text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900 shadow-sm border border-slate-200/80 dark:border-slate-800'
+                  : 'text-slate-500 dark:text-slate-400 active:bg-slate-100 dark:active:bg-slate-900'
               }`}
             >
               <Target
