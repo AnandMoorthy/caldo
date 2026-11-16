@@ -58,9 +58,7 @@ export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = 
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           data-tip={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           data-tip-pos="right"
-          className={`mt-3 mb-3 inline-flex items-center justify-center h-9 w-9 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors ${
-            collapsed ? "mx-auto" : ""
-          }`}
+          className="mt-3 mb-3 mx-auto flex items-center justify-center h-9 w-9 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </button>
