@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Calendar, StickyNote, CheckCircle, Circle, Clock, Code2, Heart, BookOpenText } from "lucide-react";
+import { Search, Calendar, StickyNote, CheckCircle, Circle, Clock, Heart, BookOpenText } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { highlightText } from "../utils/search.js";
 
@@ -107,7 +107,7 @@ export default function SearchModal({
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search tasks, notes, snippets, journals, and moments..."
+            placeholder="Search tasks, notes, journals, and moments..."
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             className="w-full pl-10 pr-4 py-3 text-base bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:text-white"
@@ -166,7 +166,7 @@ export default function SearchModal({
 
 function SearchResult({ result, isSelected, query, onClick }) {
   const getIcon = () => {
-    if (result.type === 'snippet') return <Code2 size={16} />;
+    if (result.type === 'snippet') return <StickyNote size={16} />;
     if (result.type === 'journal') return <BookOpenText size={16} />;
     if (result.type === 'note') return <StickyNote size={16} />;
     if (result.type === 'moment') return <Heart size={16} />;
@@ -210,7 +210,7 @@ function SearchResult({ result, isSelected, query, onClick }) {
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
               {result.type === 'note' ? 'Day Note' : 
-               result.type === 'snippet' ? (result.title || 'Snippet') : 
+               result.type === 'snippet' ? (result.title || 'Note') : 
                result.type === 'journal' ? (result.title || 'Journal Entry') :
                result.type === 'moment' ? 'Moment' : 
                result.title}
@@ -246,7 +246,7 @@ function SearchResult({ result, isSelected, query, onClick }) {
           )}
           
           {result.type === 'snippet' ? (
-            <div className="text-xs text-slate-500 dark:text-slate-400">Snippet</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">Note</div>
           ) : result.type === 'journal' ? (
             <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <Calendar size={12} />

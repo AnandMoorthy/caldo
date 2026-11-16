@@ -40,7 +40,7 @@ export class SnippetRepository {
     const docRef = this.snippetsRef().doc();
     const payload = {
       ownerUid: this.userId,
-      title: (title || 'Untitled snippet').trim(),
+      title: (title || 'Untitled note').trim(),
       content: String(content || ''),
       tags: Array.isArray(tags) ? tags : [],
       language: language || null,
@@ -138,7 +138,7 @@ export class SnippetRepository {
     const mirror = {
       ownerUid,
       snippetId,
-      title: data.title || 'Untitled snippet',
+      title: data.title || 'Untitled note',
       content: String(data.content || ''),
       createdAt: data.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -191,7 +191,7 @@ export class SnippetRepository {
     const mirror = {
       ownerUid: this.userId,
       snippetId,
-      title: data.title || 'Untitled snippet',
+      title: data.title || 'Untitled note',
       content: String(data.content || ''),
       createdAt: data.createdAt || firebase.firestore.FieldValue.serverTimestamp(),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),

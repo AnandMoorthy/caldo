@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { addDays, format, isSameDay, startOfWeek, isAfter, startOfDay } from "date-fns";
-import { ChevronLeft, ChevronRight, Calendar, ListX, List, CheckCircle, FileText, Code as CodeIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, ListX, List, CheckCircle, FileText, StickyNote } from "lucide-react";
 
 export default function WeekView({
   anchorDate,
@@ -82,7 +82,7 @@ export default function WeekView({
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300"><List size={12} /> {totalTasks}</span>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle size={12} /> {totalDone}</span>
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-[11px] text-blue-700 dark:text-blue-300"><FileText size={12} /> {notesCount}</span>
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-[11px] text-purple-700 dark:text-purple-300"><CodeIcon size={12} /> {snippetsCount}</span>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-[11px] text-purple-700 dark:text-purple-300"><StickyNote size={12} /> {snippetsCount}</span>
       </div>
       <div className="grid grid-cols-7 gap-2">
         {days.map((day) => {

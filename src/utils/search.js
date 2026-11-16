@@ -43,7 +43,7 @@ export function buildSearchIndex(tasksMap, snippets = [], moments = [], journals
     index.push({
       id: snippet.id,
       type: 'snippet',
-      title: snippet.title || 'Snippet',
+      title: snippet.title || 'Note',
       content: snippet.content || '',
       updatedAt: snippet.updatedAt || null,
       searchableText: `${snippet.title || ''} ${snippet.content || ''}`.toLowerCase(),
@@ -88,7 +88,7 @@ export function buildSearchIndex(tasksMap, snippets = [], moments = [], journals
   return index;
 }
 
-// Search tasks, notes, snippets, journals, and moments based on query
+// Search tasks, day notes, notes, journals, and moments based on query
 export function searchTasks(query, searchIndex) {
   if (!query.trim()) return [];
   

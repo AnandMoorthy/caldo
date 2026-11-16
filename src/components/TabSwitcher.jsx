@@ -12,7 +12,7 @@ export default function TabSwitcher({ activeTab, onChangeTab }) {
     },
     {
       key: 'notes',
-      label: 'Notes & Snippets',
+      label: 'Notes',
       icon: StickyNote,
       shortLabel: 'Notes'
     },

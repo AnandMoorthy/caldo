@@ -36,7 +36,7 @@ lowlight.register('java', java);
 lowlight.register('css', css);
 lowlight.register('html', html);
 
-export default function RichTextEditor({ content, onChange, placeholder = "Start typing your snippet…", readOnly = false, showToolbar = true, borderless = false }) {
+export default function RichTextEditor({ content, onChange, placeholder = "Start typing your note…", readOnly = false, showToolbar = true, borderless = false }) {
   console.log('RichTextEditor received content:', content);
   const [isEditorReady, setIsEditorReady] = useState(false);
   

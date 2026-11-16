@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { startOfYear, addMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, format, isAfter, startOfDay } from "date-fns";
-import { ChevronLeft, ChevronRight, Calendar, List, CheckCircle, FileText, Code as CodeIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, List, CheckCircle, FileText, StickyNote } from "lucide-react";
 
 export default function YearView({
   anchorDate,
@@ -122,7 +122,7 @@ export default function YearView({
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] text-slate-700 dark:text-slate-300"><List size={12} /> {totalTasks}</span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-[11px] text-emerald-700 dark:text-emerald-300"><CheckCircle size={12} /> {totalDone}</span>
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-[11px] text-blue-700 dark:text-blue-300"><FileText size={12} /> {notesCount}</span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-[11px] text-purple-700 dark:text-purple-300"><CodeIcon size={12} /> {snippetsCount}</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-[11px] text-purple-700 dark:text-purple-300"><StickyNote size={12} /> {snippetsCount}</span>
               </div>
               <div className="mt-3 grid grid-cols-7 gap-1">
                 {days.map((d, idx) => {
@@ -160,7 +160,7 @@ export default function YearView({
                       <div className="inline-flex items-center gap-1"><List size={12} /> Tasks: <span className="font-medium text-slate-800 dark:text-slate-200">{totalTasks}</span></div>
                       <div className="inline-flex items-center gap-1"><CheckCircle size={12} /> Done: <span className="font-medium text-slate-800 dark:text-slate-200">{totalDone}</span></div>
                       <div className="inline-flex items-center gap-1"><FileText size={12} /> Notes: <span className="font-medium text-slate-800 dark:text-slate-200">{notesCount}</span></div>
-                      <div className="inline-flex items-center gap-1"><CodeIcon size={12} /> Snippets: <span className="font-medium text-slate-800 dark:text-slate-200">{snippetsCount}</span></div>
+                      <div className="inline-flex items-center gap-1"><StickyNote size={12} /> Notes: <span className="font-medium text-slate-800 dark:text-slate-200">{snippetsCount}</span></div>
                     </div>
                     <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-600 dark:text-slate-400">
                       <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> {prioCount.high} high</span>

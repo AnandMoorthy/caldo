@@ -21,7 +21,6 @@ import SearchModal from "./components/SearchModal.jsx";
 import ScopeDialog from "./components/ScopeDialog.jsx";
 import TooltipProvider from "./components/Tooltip.jsx";
 import NotesPage from "./components/NotesPage.jsx";
-import SnippetsPage from "./components/SnippetsPage.jsx";
 import SnippetsDrawer from "./components/SnippetsDrawer.jsx";
 import JournalPage from "./components/JournalPage.jsx";
 import JournalDrawer from "./components/JournalDrawer.jsx";
@@ -2726,26 +2725,8 @@ export default function App() {
 
         {activeTab === 'notes' && (
           <NotesPage
-            repo={noteRepoRef.current}
             user={user}
             snippetRepo={snippetRepoRef.current}
-            onOpenDayNotes={(n) => {
-              try {
-                const d = parseISO(n?.dateKey);
-                setSelectedDate(d);
-                setCursor(d);
-                setDraftDayNote(n?.content || '');
-                // Close snippets drawer if open to avoid conflicts
-                setJournalDrawerOpen(false);
-                setSnippetsDrawerOpen(false);
-                setShowNotes(true);
-              } catch {
-                // Close snippets drawer if open to avoid conflicts
-                setJournalDrawerOpen(false);
-                setSnippetsDrawerOpen(false);
-                setShowNotes(true);
-              }
-            }}
             onOpenSnippetEditor={(id) => { 
               // Close other drawers to avoid conflicts
               setJournalDrawerOpen(false);
@@ -2778,24 +2759,6 @@ export default function App() {
               }
               setJournalDrawerOpen(true);
             }}
-          />
-        )}
-
-        {activeTab === 'snippets' && (
-          <SnippetsPage
-            repo={snippetRepoRef.current}
-            user={user}
-            initialSnippets={snippetsCache}
-            onOpenEditor={(id) => { 
-              // Close other drawers to avoid conflicts
-              setJournalDrawerOpen(false);
-              setShowNotes(false);
-              setShowMissed(false);
-              setShowHelp(false);
-              setSnippetsDrawerId(id || '__new__'); 
-              setSnippetsDrawerOpen(true); 
-            }}
-            onSnippetsChanged={(items) => setSnippetsCache(items)}
           />
         )}
 

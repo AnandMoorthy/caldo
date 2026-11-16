@@ -16,7 +16,7 @@ const MOOD_EMOJIS = {
   grateful: '😍',
 };
 
-// Use consistent colors like Notes & Snippets
+// Use consistent colors like Notes
 const MOMENT_CARD_STYLE = 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800';
 
 export default function MomentCard({ 
