@@ -40,8 +40,8 @@ export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = 
         collapsed ? "w-[4.5rem]" : "w-56"
       }`}
     >
-      {/* Brand block — keep logo + title + subtitle together */}
-      <div className={`pt-[max(env(safe-area-inset-top),1.25rem)] ${collapsed ? "px-2" : "px-4"}`}>
+      {/* Brand block — logo + title + subtitle keep the top space */}
+      <div className={`pt-[max(env(safe-area-inset-top),1.25rem)] pb-4 ${collapsed ? "px-2" : "px-4"}`}>
         <div className={`flex min-w-0 ${collapsed ? "flex-col items-center gap-2" : "items-center gap-3"}`}>
           <Logo className="h-9 w-9 shrink-0" />
           <div className={collapsed ? "sr-only" : "min-w-0"}>
@@ -49,19 +49,6 @@ export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = 
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-snug">Plan. Note. Remember.</p>
           </div>
         </div>
-
-        {/* Collapse control sits below brand so the title block keeps room */}
-        <button
-          type="button"
-          onClick={() => onToggleCollapse && onToggleCollapse()}
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          data-tip={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          data-tip-pos="right"
-          className="mt-3 mb-3 mx-auto flex items-center justify-center h-9 w-9 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-100 dark:hover:bg-slate-800 transition-colors"
-        >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
       </div>
 
       <nav className={`flex flex-col gap-1 ${collapsed ? "px-2 items-center" : "px-3"}`} aria-label="Pages">
@@ -80,7 +67,27 @@ export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = 
         })}
       </nav>
 
-      <div className={`mt-auto border-t border-slate-200 dark:border-slate-800 ${collapsed ? "px-2 py-3 flex justify-center" : "px-3 py-3"}`}>
+      <div
+        className={`mt-auto border-t border-slate-200 dark:border-slate-800 ${
+          collapsed ? "px-2 py-3 flex flex-col items-center gap-1" : "px-3 py-3 flex flex-col gap-1"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => onToggleCollapse && onToggleCollapse()}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          data-tip={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          data-tip-pos="right"
+          className={`rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors ${
+            collapsed
+              ? "inline-flex items-center justify-center h-10 w-10"
+              : "inline-flex items-center gap-3 w-full px-3 py-2.5 text-left"
+          }`}
+        >
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} className="shrink-0" />}
+          {!collapsed && <span className="leading-none">Collapse</span>}
+        </button>
         <NavButton
           active={activeTab === "settings"}
           collapsed={collapsed}
