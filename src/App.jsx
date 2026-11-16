@@ -2983,7 +2983,7 @@ export default function App() {
       
       {/* Task View Switcher — desktop only; phones stay on Day */}
       {activeTab === 'tasks' && (
-        <div className={`hidden sm:flex fixed bottom-4 left-0 right-0 z-40 justify-center pointer-events-none transition-[left] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${sidebarCollapsed ? 'sm:left-[4.5rem]' : 'sm:left-56'}`}>
+        <div className={`hidden sm:flex fixed bottom-4 left-0 right-0 z-40 justify-center pointer-events-none transition-[left] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${sidebarCollapsed ? 'sm:left-[4.5rem]' : 'sm:left-56'}`}>
           <div className="max-w-7xl mx-auto w-full px-4 sm:px-6">
             <div className="flex justify-center py-2 sm:py-3">
               <div className="inline-flex items-center gap-1 bg-white dark:bg-slate-800 backdrop-blur-md sm:backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg dark:shadow-xl sm:shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:sm:shadow-[0_8px_30px_rgb(0,0,0,0.3)] px-2 py-1.5 pointer-events-auto">
