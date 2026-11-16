@@ -15,8 +15,14 @@ const SECTIONS = [
 
 export default function SettingsPage() {
   return (
-    <div className="max-w-3xl">
-      <div className="sticky top-0 z-20 -mx-1 px-1 py-3 mb-2 bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80 backdrop-blur-md">
+    <div className="max-w-3xl w-full pb-6">
+      <div
+        className="sticky top-0 z-20 -mx-1 px-1 py-3 mb-3 backdrop-blur-md"
+        style={{
+          background:
+            "linear-gradient(to bottom, var(--chrome-bg, #ffffff) 55%, color-mix(in srgb, var(--chrome-bg, #ffffff) 70%, transparent))",
+        }}
+      >
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Settings</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Choose how CalDo looks. More preferences can be added here later.
@@ -36,7 +42,7 @@ export default function SettingsPage() {
                 <div className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 shrink-0">
                   <Icon size={18} />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">{section.title}</h2>
                   <p className="text-sm text-slate-500 dark:text-slate-400">{section.description}</p>
                 </div>
