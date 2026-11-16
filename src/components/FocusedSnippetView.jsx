@@ -43,7 +43,7 @@ export default function FocusedSnippetView({ id }) {
           return;
         }
         setError(null);
-        setTitle(sn.title || "Untitled snippet");
+        setTitle(sn.title || "Untitled note");
         setContent(String(sn.content || ""));
         setHasUserModified(false);
       } catch (e) {
@@ -66,7 +66,7 @@ export default function FocusedSnippetView({ id }) {
     saveTimerRef.current = setTimeout(async () => {
       try {
         setSaving(true);
-        await repoRef.current.updateSnippet(String(id), { title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+        await repoRef.current.updateSnippet(String(id), { title: (title || 'Untitled note').trim(), content: String(content || '') });
         setHasUserModified(false);
       } catch (e) {
         // ignore
@@ -97,7 +97,7 @@ export default function FocusedSnippetView({ id }) {
     <FocusedContentView
       user={user}
       headerTab={'notes'}
-      headerTitle={'Snippet'}
+      headerTitle={'Note'}
       onClose={() => { try { localStorage.setItem('caldo_v2_active_tab', 'notes'); } catch {}; try { window.location.hash = ''; } catch {}; }}
       title={title}
       onChangeTitle={(t) => { setTitle(t); setHasUserModified(true); }}
@@ -116,7 +116,7 @@ export default function FocusedSnippetView({ id }) {
         if (!repoRef.current || saving) return;
         try {
           setSaving(true);
-          await repoRef.current.updateSnippet(String(id), { title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+          await repoRef.current.updateSnippet(String(id), { title: (title || 'Untitled note').trim(), content: String(content || '') });
           setHasUserModified(false);
         } catch (e) {
         } finally {

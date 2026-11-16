@@ -89,7 +89,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
       try {
         if (!snippetId || snippetId === '__new__') {
           if (!mounted) return;
-          const defaultTitle = type === 'note' ? 'Day Note' : 'Untitled snippet';
+          const defaultTitle = type === 'note' ? 'Day Note' : 'Untitled note';
           setTitle(defaultTitle);
           setContent('');
           setPinned(false);
@@ -186,7 +186,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
             // Only create if we haven't already auto-saved this content
             if (!autoSavedId) {
               // Create snippet in background (non-blocking)
-              repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+              repo.createSnippet({ title: (title || 'Untitled note').trim(), content: String(content || '') })
                 .then((created) => {
                   setAutoSavedId(created.id); // Track the created snippet ID
                   try { onSnippetsChanged && onSnippetsChanged(); } catch {}
@@ -200,7 +200,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
                 });
             } else {
               // Update the existing auto-saved snippet in background (non-blocking)
-              repo.updateSnippet(autoSavedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+              repo.updateSnippet(autoSavedId, { title: (title || 'Untitled note').trim(), content: String(content || '') })
                 .then(() => {
                   try { onSnippetsChanged && onSnippetsChanged(); } catch {}
                   // Reset modification flag after successful save
@@ -214,7 +214,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
             }
           } else {
             // Update snippet in background (non-blocking)
-            repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+            repo.updateSnippet(selectedId, { title: (title || 'Untitled note').trim(), content: String(content || '') })
               .then(() => {
                 try { onSnippetsChanged && onSnippetsChanged(); } catch {}
                 // Reset modification flag after successful save
@@ -285,18 +285,18 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
         if (!selectedId || selectedId === '__new__') {
           // If auto-save already created a snippet, update it instead of creating a new one
           if (autoSavedId) {
-            await repo.updateSnippet(autoSavedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+            await repo.updateSnippet(autoSavedId, { title: (title || 'Untitled note').trim(), content: String(content || '') });
             console.log('✅ Manual save updated auto-saved snippet with ID:', autoSavedId);
           } else {
             // Create snippet only if auto-save hasn't created one yet
-            const created = await repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+            const created = await repo.createSnippet({ title: (title || 'Untitled note').trim(), content: String(content || '') });
             setAutoSavedId(created.id);
             console.log('✅ Manual save created new snippet with ID:', created.id);
           }
           try { onSnippetsChanged && onSnippetsChanged(); } catch {}
         } else {
           // Update snippet in background (non-blocking)
-          repo.updateSnippet(selectedId, { title: (title || 'Untitled snippet').trim(), content: String(content || '') })
+          repo.updateSnippet(selectedId, { title: (title || 'Untitled note').trim(), content: String(content || '') })
             .then(() => {
               try { onSnippetsChanged && onSnippetsChanged(); } catch {}
             })
@@ -329,7 +329,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
   async function onDelete() {
     if (!repo || !user) return;
     if (!selectedId || selectedId === '__new__') { onClose && onClose(); return; }
-    const ok = confirm('Delete this snippet?');
+    const ok = confirm(type === 'note' ? 'Delete this day note?' : 'Delete this note?');
     if (!ok) return;
     
     // Close immediately and delete in background
@@ -401,7 +401,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
       setShareSaving(true);
       let ensureId = selectedId;
       if (!ensureId || ensureId === '__new__') {
-        const created = await repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+        const created = await repo.createSnippet({ title: (title || 'Untitled note').trim(), content: String(content || '') });
         ensureId = created?.id;
         setSelectedId(ensureId);
         setAutoSavedId(ensureId);
@@ -428,7 +428,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
       setShareSaving(true);
       let ensureId = selectedId;
       if (!ensureId || ensureId === '__new__') {
-        const created = await repo.createSnippet({ title: (title || 'Untitled snippet').trim(), content: String(content || '') });
+        const created = await repo.createSnippet({ title: (title || 'Untitled note').trim(), content: String(content || '') });
         ensureId = created?.id;
         setSelectedId(ensureId);
         setAutoSavedId(ensureId);
@@ -456,9 +456,9 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
 
   const headerTitle = useMemo(() => {
     if (type === 'note') {
-      return 'Edit Note';
+      return 'Edit Day Note';
     }
-    return selectedId && selectedId !== '__new__' ? 'Edit Snippet' : 'New Snippet';
+    return selectedId && selectedId !== '__new__' ? 'Edit Note' : 'New Note';
   }, [selectedId, type]);
 
   return (
@@ -470,7 +470,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
           exit={{ x: "100%", opacity: 0.96 }}
           transition={{ type: "spring", stiffness: 280, damping: 28 }}
           className="fixed right-0 top-0 h-dvh z-[70] w-full max-w-4xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-xl flex flex-col"
-          aria-label={type === 'note' ? 'Notes panel' : 'Snippets panel'}
+          aria-label={type === 'note' ? 'Day notes panel' : 'Notes panel'}
         >
           <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">{headerTitle}</div>
@@ -486,7 +486,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
                 type="button"
                 onClick={handleClose}
                 className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 touch-manipulation"
-                aria-label="Close snippets"
+                aria-label="Close notes"
               >
                 <X size={18} />
               </button>
@@ -541,7 +541,7 @@ export default function SnippetsDrawer({ open, onClose, repo, user, snippetId = 
               {type === 'snippet' && showShare && (
                 <div ref={sharePanelRef} style={{ position: 'fixed', top: `${shareStyle.top}px`, left: `${shareStyle.left}px`, width: 'min(560px, 90vw)' }} className="z-[75] p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl">
                   <div className="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2 flex items-center gap-2">
-                    <span>Share snippet</span>
+                    <span>Share note</span>
                     {shareSaving && <Loader2 size={14} className="animate-spin text-slate-500" />}
                   </div>
                   <div className="flex items-center gap-2 mb-2">

@@ -29,7 +29,7 @@ export default function PublicSnippetView({ slug, token = null }) {
           setDoc(null);
         } else {
           setDoc(d);
-          setTitle(d.title || "Untitled snippet");
+          setTitle(d.title || "Untitled note");
           setContent(String(d.content || ""));
           // Defer marking initialized to avoid treating initial state as user edit
           setTimeout(() => { if (mounted) setIsInitialized(true); }, 100);
@@ -61,7 +61,7 @@ export default function PublicSnippetView({ slug, token = null }) {
           allowWrite: true,
           editToken: doc?.editToken,
           // Editable fields
-          title: (title || "Untitled snippet").trim(),
+          title: (title || "Untitled note").trim(),
           content: String(content || ""),
         }, { merge: true });
         setHasUserModified(false);
@@ -83,7 +83,7 @@ export default function PublicSnippetView({ slug, token = null }) {
         snippetId: doc?.snippetId,
         allowWrite: true,
         editToken: doc?.editToken,
-        title: (title || "Untitled snippet").trim(),
+        title: (title || "Untitled note").trim(),
         content: String(content || ""),
       }, { merge: true });
       // If the viewer is the owner, also sync the private snippet doc
@@ -91,7 +91,7 @@ export default function PublicSnippetView({ slug, token = null }) {
         const u = auth.currentUser;
         if (u && doc?.ownerUid && u.uid === doc.ownerUid && doc?.snippetId) {
           await db.collection('users').doc(doc.ownerUid).collection('snippets').doc(doc.snippetId).set({
-            title: (title || "Untitled snippet").trim(),
+            title: (title || "Untitled note").trim(),
             content: String(content || ""),
             updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           }, { merge: true });
@@ -149,7 +149,7 @@ export default function PublicSnippetView({ slug, token = null }) {
         ) : (
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-semibold truncate">{title || "Untitled snippet"}</h1>
+              <h1 className="text-xl font-semibold truncate">{title || "Untitled note"}</h1>
             </div>
             <div className="shrink-0 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
               {doc?.ownerPhotoURL ? (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Keyboard, HelpCircle, Search, RefreshCcw, Calendar, List, Plus, FileText, Clock, CheckCircle, AlertCircle, Info, Code, Copy, BookOpenText } from "lucide-react";
+import { X, Keyboard, HelpCircle, Search, RefreshCcw, Calendar, List, Plus, FileText, Clock, CheckCircle, AlertCircle, Info, Copy, BookOpenText } from "lucide-react";
 
 export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -48,7 +48,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
     { id: 'calendar', label: 'Calendar', icon: Calendar },
     { id: 'tasks', label: 'Tasks', icon: List },
     ...(pomodoroEnabled ? [{ id: 'pomodoro', label: 'Pomodoro', icon: Clock }] : []),
-    { id: 'snippets', label: 'Snippets', icon: Code },
+    { id: 'notes', label: 'Notes', icon: FileText },
     { id: 'journal', label: 'Journal', icon: BookOpenText },
     { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
     { id: 'features', label: 'Features', icon: Info },
@@ -114,11 +114,11 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
 
         <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 mb-3">
-            <Code size={20} className="text-indigo-600 dark:text-indigo-400" />
+            <FileText size={20} className="text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Snippets</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Notes</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Store and manage reusable text snippets for any purpose
+            Store and manage reusable notes for any purpose
           </p>
         </div>
       </div>
@@ -379,44 +379,44 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
     </div>
   );
 
-  const renderSnippets = () => (
+  const renderNotes = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Snippets</h2>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Notes</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">
-          Store, organize, and quickly access reusable text snippets for any purpose
+          Store, organize, and quickly access reusable notes for any purpose
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Creating Snippets</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Creating Notes</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <Plus size={16} className="text-indigo-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">New Snippet</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Click the + button to create</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">New Note</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Open the Notes tab and click + Note</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-              <Code size={16} className="text-purple-600" />
+              <FileText size={16} className="text-purple-600" />
               <div>
                 <div className="font-medium text-slate-900 dark:text-slate-100">Content Types</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Notes, reminders, quotes, recipes, or any text</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Reminders, quotes, recipes, or any text</div>
               </div>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Snippet Features</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Note Features</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <Search size={16} className="text-blue-600" />
               <div>
                 <div className="font-medium text-slate-900 dark:text-slate-100">Search</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Find snippets quickly</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Find notes quickly</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
@@ -431,12 +431,12 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       </div>
 
       <div className="p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
-        <h3 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-2">Snippet Management</h3>
+        <h3 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-2">Note Management</h3>
         <div className="text-sm text-indigo-800 dark:text-indigo-200 space-y-2">
-          <p><strong>Organization:</strong> Pin important snippets for quick access</p>
-          <p><strong>Search:</strong> Find snippets by title or content</p>
-          <p><strong>Global Access:</strong> Use snippets from anywhere in the app</p>
-          <p><strong>Versatile:</strong> Store any type of text - notes, quotes, recipes, etc.</p>
+          <p><strong>Organization:</strong> Pin important notes for quick access</p>
+          <p><strong>Search:</strong> Find notes by title or content</p>
+          <p><strong>Separate from daily notes:</strong> Day notes live on Tasks; Notes tab is for freeform notes</p>
+          <p><strong>Versatile:</strong> Store any type of text - quotes, recipes, and more</p>
         </div>
       </div>
     </div>
@@ -510,7 +510,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
           <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">T</kbd>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Open notes</span>
+          <span className="text-slate-700 dark:text-slate-200">Open day notes (Tasks)</span>
           <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">N</kbd>
         </div>
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
@@ -523,13 +523,8 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
             <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">P</kbd>
           </div>
         )}
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-700">Open snippets</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">
-            {navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘⇧S' : 'Ctrl+Shift+S'}
-          </kbd>
-        </div>
-        
+
+
         <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <span className="text-slate-700 dark:text-slate-200">Switch to Month view</span>
           <div className="space-x-1">
@@ -605,10 +600,10 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
             <h3 className="font-semibold text-slate-900 dark:text-slate-100">Global Search</h3>
           </div>
           <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
-            <p>Quickly find tasks, notes, and snippets across all your data:</p>
+            <p>Quickly find tasks, day notes, and notes across all your data:</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">⌘K</kbd> or <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">Ctrl+K</kbd> to open search</li>
-              <li>Search by task title, notes, or snippet content</li>
+              <li>Search by task title, day notes, or note content</li>
               <li>Use arrow keys to navigate results, Enter to select</li>
               <li>Click any result to jump to that date and item</li>
             </ul>
@@ -623,27 +618,27 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
           <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
             <p>Add personal notes and thoughts to any day:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">N</kbd> to open notes</li>
+              <li>On Tasks, press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">N</kbd> or use the StickyNote icon for that day</li>
               <li>Write daily reflections, ideas, or reminders</li>
-              <li>Notes are automatically saved and synced</li>
-              <li>Access notes from any device</li>
+              <li>Day notes are automatically saved and synced</li>
+              <li>Find day notes via search; they are not listed in the Notes tab</li>
             </ul>
           </div>
         </div>
 
         <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-3 mb-3">
-            <Code size={20} className="text-indigo-600" />
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Snippets</h3>
+            <FileText size={20} className="text-indigo-600" />
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Notes</h3>
           </div>
           <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
-            <p>Store and manage reusable text snippets for any purpose:</p>
+            <p>Store and manage reusable notes for any purpose:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">⌘⇧S</kbd> or <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">Ctrl+Shift+S</kbd> to open snippets</li>
-              <li>Create, organize, and search snippets</li>
-              <li>Pin important snippets for quick access</li>
+              <li>Open the Notes tab to browse and create notes</li>
+              <li>Create, organize, and search notes</li>
+              <li>Pin important notes for quick access</li>
               <li>One-click copy to clipboard</li>
-              <li>Store notes, reminders, quotes, recipes, or any text content</li>
+              <li>Store reminders, quotes, recipes, or any text content</li>
             </ul>
           </div>
         </div>
@@ -803,7 +798,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       case 'calendar': return renderCalendar();
       case 'tasks': return renderTasks();
       case 'pomodoro': return renderPomodoro();
-      case 'snippets': return renderSnippets();
+      case 'notes': return renderNotes();
       case 'journal': return renderJournal();
       case 'shortcuts': return renderShortcuts();
       case 'features': return renderFeatures();

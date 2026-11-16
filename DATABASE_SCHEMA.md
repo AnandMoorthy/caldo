@@ -12,9 +12,10 @@ We use a flat, query-first schema to support fast daily/weekly/monthly views and
 
 - Day notes: `users/{uid}/dayNotes/{dateKey}`
   - One document per day note (at most one note per day).
+  - Shown in the app only on the Tasks/todo day flow (and via search), not in the Notes tab.
 
-- Snippets: `users/{uid}/snippets/{snippetId}`
-  - Developer-focused global notes (code/JSON/markdown). Not date-bound.
+- Notes (collection id still `snippets`): `users/{uid}/snippets/{snippetId}`
+  - Freeform notes backing the Notes tab (UI name: Notes). Not date-bound. No collection rename.
 
 - Moments: `users/{uid}/moments/{momentId}`
   - Micro-blog entries with mood and category. Chronological timeline.
@@ -65,11 +66,11 @@ Notes:
 }
 ```
 
-## Snippet document
+## Note document (Firestore collection: `snippets`)
 ```json
 {
   "ownerUid": "<uid>",
-  "title": "Untitled snippet",
+  "title": "Untitled note",
   "content": "Markdown/code content",
   "tags": ["api", "json"],
   "language": "js|null",
