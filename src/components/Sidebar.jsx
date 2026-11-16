@@ -1,4 +1,5 @@
 import React from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { CheckSquare, StickyNote, Sparkles, Target, BookOpenText, Settings, ChevronLeft, ChevronRight } from "lucide-react";
 import Logo from "./Logo.jsx";
 
@@ -10,6 +11,11 @@ const PAGES = [
   { key: "habits", label: "Habits", icon: Target },
 ];
 
+const SIDEBAR_EXPANDED = 224; // w-56
+const SIDEBAR_COLLAPSED = 72; // w-[4.5rem]
+const WIDTH_TRANSITION = { type: "spring", stiffness: 320, damping: 32, mass: 0.85 };
+const LABEL_TRANSITION = { duration: 0.18, ease: [0.22, 1, 0.36, 1] };
+
 function NavButton({ active, collapsed, label, icon: Icon, onClick, tip }) {
   return (
     <button
@@ -19,7 +25,7 @@ function NavButton({ active, collapsed, label, icon: Icon, onClick, tip }) {
       aria-label={label}
       data-tip={collapsed ? tip || label : undefined}
       data-tip-pos="right"
-      className={`group flex items-center rounded-xl text-sm font-medium transition-colors duration-150 ${
+      className={`group relative flex items-center rounded-xl text-sm font-medium transition-colors duration-150 overflow-hidden ${
         collapsed ? "justify-center h-10 w-10" : "w-full gap-3 px-3 py-2.5 text-left"
       } ${
         active
@@ -28,26 +34,51 @@ function NavButton({ active, collapsed, label, icon: Icon, onClick, tip }) {
       }`}
     >
       <Icon size={18} strokeWidth={active ? 2.25 : 2} className="shrink-0" />
-      {!collapsed && <span className="truncate leading-none">{label}</span>}
+      <AnimatePresence initial={false}>
+        {!collapsed && (
+          <motion.span
+            key="label"
+            initial={{ opacity: 0, x: -6 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -6 }}
+            transition={LABEL_TRANSITION}
+            className="truncate leading-none whitespace-nowrap"
+          >
+            {label}
+          </motion.span>
+        )}
+      </AnimatePresence>
     </button>
   );
 }
 
 export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = false, onToggleCollapse }) {
   return (
-    <aside
-      className={`hidden sm:flex flex-col shrink-0 h-full border-r border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md transition-[width] duration-200 ease-out ${
-        collapsed ? "w-[4.5rem]" : "w-56"
-      }`}
+    <motion.aside
+      initial={false}
+      animate={{ width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED }}
+      transition={WIDTH_TRANSITION}
+      className="hidden sm:flex flex-col shrink-0 h-full overflow-hidden border-r border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
     >
       {/* Brand block — logo + title + subtitle keep the top space */}
       <div className={`pt-[max(env(safe-area-inset-top),1.25rem)] pb-4 ${collapsed ? "px-2" : "px-4"}`}>
         <div className={`flex min-w-0 ${collapsed ? "flex-col items-center gap-2" : "items-center gap-3"}`}>
           <Logo className="h-9 w-9 shrink-0" />
-          <div className={collapsed ? "sr-only" : "min-w-0"}>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-none">CalDo</h1>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-snug">Plan. Note. Remember.</p>
-          </div>
+          <AnimatePresence initial={false}>
+            {!collapsed && (
+              <motion.div
+                key="brand-copy"
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={LABEL_TRANSITION}
+                className="min-w-0 overflow-hidden"
+              >
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 leading-none whitespace-nowrap">CalDo</h1>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-snug whitespace-nowrap">Plan. Note. Remember.</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
@@ -79,14 +110,35 @@ export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = 
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           data-tip={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           data-tip-pos="right"
-          className={`rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors ${
+          className={`rounded-xl text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 transition-colors overflow-hidden ${
             collapsed
               ? "inline-flex items-center justify-center h-10 w-10"
               : "inline-flex items-center gap-3 w-full px-3 py-2.5 text-left"
           }`}
         >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} className="shrink-0" />}
-          {!collapsed && <span className="leading-none">Collapse</span>}
+          <motion.span
+            key={collapsed ? "expand" : "collapse"}
+            initial={{ opacity: 0, rotate: collapsed ? -90 : 90, scale: 0.85 }}
+            animate={{ opacity: 1, rotate: 0, scale: 1 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="inline-flex shrink-0"
+          >
+            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </motion.span>
+          <AnimatePresence initial={false}>
+            {!collapsed && (
+              <motion.span
+                key="collapse-label"
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -6 }}
+                transition={LABEL_TRANSITION}
+                className="leading-none whitespace-nowrap"
+              >
+                Collapse
+              </motion.span>
+            )}
+          </AnimatePresence>
         </button>
         <NavButton
           active={activeTab === "settings"}
@@ -96,6 +148,6 @@ export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = 
           onClick={() => onChangeTab && onChangeTab("settings")}
         />
       </div>
-    </aside>
+    </motion.aside>
   );
 }
