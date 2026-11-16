@@ -2497,7 +2497,7 @@ export default function App() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="flex-1 flex flex-col min-h-0"
+          className={activeTab === 'tasks' ? 'flex-1 flex flex-col min-h-0' : 'w-full flex flex-col'}
         >
         {activeTab === 'tasks' && effectiveView === 'month' ? (
           <main className={`grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 ${pinAboveIsland ? 'max-md:shrink-0 md:h-full md:min-h-0 md:grid-rows-1' : ''}`}>
