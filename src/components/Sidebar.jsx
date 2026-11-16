@@ -13,8 +13,8 @@ const PAGES = [
 
 const SIDEBAR_EXPANDED = 224; // w-56
 const SIDEBAR_COLLAPSED = 72; // w-[4.5rem]
-const WIDTH_TRANSITION = { type: "spring", stiffness: 320, damping: 32, mass: 0.85 };
-const LABEL_TRANSITION = { duration: 0.18, ease: [0.22, 1, 0.36, 1] };
+const WIDTH_TRANSITION = { type: "spring", stiffness: 220, damping: 28, mass: 0.9 };
+const LABEL_TRANSITION = { duration: 0.22, ease: [0.22, 1, 0.36, 1] };
 
 function NavButton({ active, collapsed, label, icon: Icon, onClick, tip }) {
   return (
