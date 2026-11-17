@@ -188,7 +188,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <div className="font-medium text-slate-900 dark:text-slate-100 mb-2">Drag & Drop</div>
               <div className="text-sm text-slate-600 dark:text-slate-300">
-                Reschedule tasks by dragging them to different days
+                Reschedule tasks by dragging them to different days. On mobile day view, drag then use edges or Prev/Next, and tap Move here.
               </div>
               <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                 Note: Recurring tasks cannot be moved
