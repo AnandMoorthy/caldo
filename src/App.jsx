@@ -76,10 +76,6 @@ export default function App() {
   const [editForm, setEditForm] = useState({ title: "", notes: "", priority: "medium" });
   const [user, setUser] = useState(null);
   const hasLoadedCloud = useRef(false);
-  const [movingTask, setMovingTask] = useState(null); // { taskId, fromKey, title }
-  const movingTaskRef = useRef(null);
-  const dragSessionRef = useRef({ navigated: false, dropped: false });
-  movingTaskRef.current = movingTask;
   const loadedMonthsRef = useRef(new Set());
   const [recurringSeries, setRecurringSeries] = useState(() => loadRecurringSeries());
   const [recurringEnabled, setRecurringEnabled] = useState(true);
@@ -435,9 +431,6 @@ export default function App() {
       } else if (key === 'p' && pomodoroEnabled) {
         e.preventDefault();
         setShowFloatingPomodoro(true);
-      } else if (e.key === 'Escape' && movingTaskRef.current) {
-        e.preventDefault();
-        cancelMovingTask();
       }
     }
     function onKeyUp(e) {
@@ -932,12 +925,10 @@ export default function App() {
     setSelectedDate((prev) => addMonths(prev, -12));
   }
   function nextDay() {
-    if (movingTaskRef.current) dragSessionRef.current.navigated = true;
     setCursor((prev) => addDays(prev, 1));
     setSelectedDate((prev) => addDays(prev, 1));
   }
   function prevDay() {
-    if (movingTaskRef.current) dragSessionRef.current.navigated = true;
     setCursor((prev) => addDays(prev, -1));
     setSelectedDate((prev) => addDays(prev, -1));
   }
@@ -2152,63 +2143,21 @@ export default function App() {
       return;
     }
     
-    const fromKey = task.due || task.dateKey;
-    dragSessionRef.current = { navigated: false, dropped: false };
-    setMovingTask({ taskId: task.id, fromKey, title: task.title || 'Untitled' });
-
     try {
       e.dataTransfer.effectAllowed = 'move';
-      const payload = JSON.stringify({ taskId: task.id, fromKey });
+      const payload = JSON.stringify({ taskId: task.id, fromKey: task.due });
       e.dataTransfer.setData(DRAG_MIME, payload);
       // Fallback for some browsers/tools
       e.dataTransfer.setData('text/plain', payload);
     } catch {}
   }
 
-  function onDragEndTask() {
-    // If the user changed days mid-drag, keep move mode so they can confirm on mobile
-    // (HTML5 drag often cancels when the source day unmounts).
-    if (dragSessionRef.current.dropped) {
-      setMovingTask(null);
-      return;
-    }
-    if (dragSessionRef.current.navigated) return;
-    setMovingTask(null);
-  }
-
-  function cancelMovingTask() {
-    dragSessionRef.current = { navigated: false, dropped: false };
-    setMovingTask(null);
-  }
-
-  function confirmMoveTaskToDay(day) {
-    if (!movingTask) return;
-    const toKey = keyFor(day);
-    if (toKey === movingTask.fromKey) {
-      cancelMovingTask();
-      return;
-    }
-    dragSessionRef.current.dropped = true;
-    moveTask(movingTask.fromKey, movingTask.taskId, toKey);
-    setMovingTask(null);
-    setDragOverDayKey(null);
-  }
-
   function onDropTaskOnDay(e, day) {
     e.preventDefault();
     try {
-      const toKey = keyFor(day);
-      let taskId = movingTask?.taskId || null;
-      let fromKey = movingTask?.fromKey || null;
-
-      if (!taskId) {
-        const raw = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain');
-        if (!raw) return;
-        const parsed = JSON.parse(raw || '{}');
-        taskId = parsed.taskId;
-        fromKey = parsed.fromKey;
-      }
-      if (!taskId || !fromKey) return;
+      const raw = e.dataTransfer.getData(DRAG_MIME) || e.dataTransfer.getData('text/plain');
+      if (!raw) return;
+      const { taskId, fromKey } = JSON.parse(raw || '{}');
       
       // Get the task to check if it's recurring
       const fromList = tasksMap[fromKey] || [];
@@ -2218,9 +2167,8 @@ export default function App() {
       // Prevent dropping recurring tasks
       if (task && task.isRecurringInstance) return;
       
-      dragSessionRef.current.dropped = true;
+      const toKey = keyFor(day);
       moveTask(fromKey, taskId, toKey);
-      setMovingTask(null);
       setDragOverDayKey(null);
     } catch {}
   }
@@ -2674,7 +2622,6 @@ export default function App() {
               <TaskList
                 tasks={tasksFor(selectedDate)}
                 onDragStartTask={onDragStartTask}
-                onDragEndTask={onDragEndTask}
                 onToggleDone={toggleDone}
                 onOpenEditModal={openEditModal}
                 onDeleteTask={deleteTask}
@@ -2755,7 +2702,6 @@ export default function App() {
               onToday={() => { const today = new Date(); setCursor(today); setSelectedDate(today); }}
               tasks={tasksFor(selectedDate)}
               onDragStartTask={onDragStartTask}
-              onDragEndTask={onDragEndTask}
               onToggleDone={toggleDone}
               onOpenEditModal={openEditModal}
               onDeleteTask={deleteTask}
@@ -2779,10 +2725,6 @@ export default function App() {
               densityMenuRef={densityMenuRef}
               recurringSeries={recurringSeries}
               pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
-              movingTask={movingTask}
-              onConfirmMoveToDay={confirmMoveTaskToDay}
-              onCancelMove={cancelMovingTask}
-              onDropTaskOnDay={onDropTaskOnDay}
               tasksLoading={tasksLoading}
             />
           </main>

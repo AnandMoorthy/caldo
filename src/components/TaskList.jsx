@@ -5,7 +5,7 @@ import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { generateId } from "../utils/uid";
 import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
 
-function TaskCard({ t, onDragStartTask, onDragEndTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false }) {
+function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
   const completedSubtasks = hasSubtasks ? t.subtasks.filter((st) => st.done).length : 0;
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
@@ -90,8 +90,7 @@ function TaskCard({ t, onDragStartTask, onDragEndTask, onToggleDone, onOpenEditM
       animate={{ opacity: 1, y: 0 }}
       className={`relative overflow-hidden ${cardPad} border border-l-[3px] ${priorityBorder} bg-white dark:bg-slate-900 rounded-xl sm:rounded-lg ${t.isRecurringInstance ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'}`}
       draggable={!t.isRecurringInstance}
-      onDragStart={(e) => !t.isRecurringInstance && onDragStartTask && onDragStartTask(e, t)}
-      onDragEnd={(e) => onDragEndTask && onDragEndTask(e, t)}
+      onDragStart={(e) => !t.isRecurringInstance && onDragStartTask(e, t)}
       data-tip={`${title}${notes ? "\n" + notes : ""}${isPomodoroRunning ? `\n🍅 Pomodoro in progress - ${formatTime(pomodoroRunningState.timeLeft)}` : ""}`}
     >
       <div className="flex items-start gap-1.5">
@@ -346,7 +345,7 @@ function TaskCard({ t, onDragStartTask, onDragEndTask, onToggleDone, onOpenEditM
   );
 }
 
-export default function TaskList({ tasks, onDragStartTask, onDragEndTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false, loading = false }) {
+export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false, loading = false }) {
   if (loading && (!tasks || tasks.length === 0)) {
     return (
       <div className={`flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400 ${fullHeight ? 'h-full min-h-[160px]' : 'py-10'}`}>
@@ -377,7 +376,6 @@ export default function TaskList({ tasks, onDragStartTask, onDragEndTask, onTogg
           key={t.id}
           t={t}
           onDragStartTask={onDragStartTask}
-          onDragEndTask={onDragEndTask}
           onToggleDone={onToggleDone}
           onOpenEditModal={onOpenEditModal}
           onDeleteTask={onDeleteTask}
