@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, Check, Trash, ChevronDown, ChevronRight, Plus, RefreshCcw, Timer } from "lucide-react";
+import { Pencil, Check, Trash, ChevronDown, ChevronRight, Plus, RefreshCcw, Timer, Loader2 } from "lucide-react";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { generateId } from "../utils/uid";
 import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
@@ -345,17 +345,32 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   );
 }
 
-export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false }) {
+export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false, loading = false }) {
+  if (loading && (!tasks || tasks.length === 0)) {
+    return (
+      <div className={`flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400 ${fullHeight ? 'h-full min-h-[160px]' : 'py-10'}`}>
+        <Loader2 size={28} className="animate-spin text-indigo-500" aria-hidden="true" />
+        <div className="text-sm font-medium">Loading tasks…</div>
+      </div>
+    );
+  }
+
   if (!tasks || tasks.length === 0) {
     const msg = emptyMessage || 'No tasks. Double-click any day to add one quickly.';
     return <div className="text-sm text-slate-400 dark:text-slate-500">{msg}</div>;
   }
 
   return (
-    <div className={fullHeight
+    <div className={`relative ${fullHeight
       ? `${density === 'minified' ? 'space-y-1.5' : density === 'compact' ? 'space-y-1.5 sm:space-y-2' : 'space-y-2 sm:space-y-3'} h-full overflow-auto pr-0.5 sm:pr-2`
       : `${density === 'minified' ? 'space-y-1.5' : density === 'compact' ? 'space-y-1.5 sm:space-y-2' : 'space-y-2 sm:space-y-3'} sm:max-h-[60vh] sm:overflow-auto pr-0.5 sm:pr-2`
-    }>
+    }`}>
+      {loading && (
+        <div className="sticky top-0 z-10 mb-2 flex items-center gap-2 rounded-lg border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/95 dark:bg-indigo-950/70 px-3 py-2 text-xs font-medium text-indigo-700 dark:text-indigo-200 backdrop-blur">
+          <Loader2 size={14} className="animate-spin shrink-0" aria-hidden="true" />
+          Syncing tasks…
+        </div>
+      )}
       {tasks.map((t) => (
         <TaskCard
           key={t.id}

@@ -31,6 +31,7 @@ export default function DayView({
   recurringSeries = [],
   onStartPomodoro = null,
   pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null },
+  tasksLoading = false,
 }) {
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -336,6 +337,7 @@ export default function DayView({
               recurringSeries={recurringSeries}
               pomodoroRunningState={pomodoroRunningState}
               fullHeight={true}
+              loading={tasksLoading}
             />
           </motion.div>
         </AnimatePresence>

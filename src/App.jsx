@@ -68,6 +68,7 @@ export default function App() {
   const [cursor, setCursor] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasksMap, setTasksMap] = useState(() => loadTasks());
+  const [tasksLoading, setTasksLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: "", notes: "", priority: "medium", subtasks: [] });
   const [showEdit, setShowEdit] = useState(false);
@@ -643,6 +644,7 @@ export default function App() {
     const unsub = auth.onAuthStateChanged(async (u) => {
       setUser(u);
       if (u) {
+        setTasksLoading(true);
         habitsSyncReadyRef.current = false;
         // Initialize repositories for the new user
         taskRepoRef.current = createTaskRepository(u.uid);
@@ -803,6 +805,8 @@ export default function App() {
           }
         } catch (e) {
           console.error('Failed to load current month from cloud', e);
+        } finally {
+          setTasksLoading(false);
         }
       } else {
         hasLoadedCloud.current = false;
@@ -819,6 +823,7 @@ export default function App() {
         setRecurringEnabled(false); // Disable recurring tasks when not logged in
         setDeleteAllTasksEnabled(false);
         setStreak((s) => ensureStreakUpToDate(s));
+        setTasksLoading(false);
         
         // Clear recurring tasks when user is not logged in
         setRecurringSeries([]);
@@ -2628,6 +2633,7 @@ export default function App() {
                 emptyMessage="No tasks. Add a new task to view."
                 recurringSeries={recurringSeries}
                 pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
+                loading={tasksLoading}
               />
             </aside>
           </main>
@@ -2719,6 +2725,7 @@ export default function App() {
               densityMenuRef={densityMenuRef}
               recurringSeries={recurringSeries}
               pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
+              tasksLoading={tasksLoading}
             />
           </main>
         ) : null}
