@@ -9,10 +9,6 @@ export class JournalRepository {
     return db.collection("users").doc(this.userId).collection("journals");
   }
 
-  templatesMetaRef() {
-    return db.collection("users").doc(this.userId).collection("meta").doc("journalTemplates");
-  }
-
   async upsertJournalByDate(dateKey, journal, sourceJournalId = null) {
     if (!dateKey) throw new Error("dateKey is required");
     const targetId = String(dateKey);
@@ -22,7 +18,6 @@ export class JournalRepository {
       Object.entries({
         ownerUid: this.userId,
         title: String(journal?.title || "Journal Entry").trim(),
-        blocks: Array.isArray(journal?.blocks) ? journal.blocks : undefined,
         content: String(journal?.content || ""),
         mood: journal?.mood || null,
         energyLevel: Number(journal?.energyLevel) || 3,
@@ -97,54 +92,6 @@ export class JournalRepository {
     const last = snap.docs[snap.docs.length - 1] || null;
     const nextCursor = last ? { updatedAt: last.get("updatedAt") || null, id: last.id } : null;
     return { items, nextCursor };
-  }
-
-  async listJournalTemplates({ limit = 100 } = {}) {
-    const doc = await this.templatesMetaRef().get();
-    if (!doc.exists) return [];
-    const data = doc.data() || {};
-    const items = Array.isArray(data.templates) ? data.templates : [];
-    return items
-      .map((item) => ({
-        id: String(item?.id || ""),
-        name: String(item?.name || "Journal Template"),
-        structure: Array.isArray(item?.structure) ? item.structure : [],
-        createdAt: item?.createdAt || null,
-        updatedAt: item?.updatedAt || null,
-      }))
-      .filter((item) => !!item.id)
-      .sort((a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime())
-      .slice(0, limit);
-  }
-
-  async saveJournalTemplate({ templateId = null, name, structure }) {
-    const docRef = this.templatesMetaRef();
-    const doc = await docRef.get();
-    const data = doc.exists ? doc.data() || {} : {};
-    const existing = Array.isArray(data.templates) ? [...data.templates] : [];
-    const now = new Date().toISOString();
-    const id = templateId || `tpl_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-
-    const idx = existing.findIndex((item) => item?.id === id);
-    const nextItem = {
-      id,
-      name: String(name || "Journal Template").trim() || "Journal Template",
-      structure: Array.isArray(structure) ? structure : [],
-      createdAt: idx >= 0 ? existing[idx]?.createdAt || now : now,
-      updatedAt: now,
-    };
-    if (idx >= 0) existing[idx] = nextItem;
-    else existing.push(nextItem);
-
-    await docRef.set(
-      {
-        ownerUid: this.userId,
-        templates: existing,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-    return nextItem;
   }
 }
 

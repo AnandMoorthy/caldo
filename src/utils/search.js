@@ -1,5 +1,3 @@
-import { extractJournalBlockHeadings, normalizeJournalBlocks } from "./journalTemplates";
-
 // Build searchable index from tasksMap
 export function buildSearchIndex(tasksMap, snippets = [], moments = [], journals = []) {
   const index = [];
@@ -68,20 +66,17 @@ export function buildSearchIndex(tasksMap, snippets = [], moments = [], journals
   // Index journals
   (Array.isArray(journals) ? journals : []).forEach((journal) => {
     if (!journal) return;
-    const blocks = normalizeJournalBlocks(journal.blocks, journal.content || "", journal.sections);
-    const headings = extractJournalBlockHeadings(blocks);
     index.push({
       id: journal.id,
       type: "journal",
       title: journal.title || "Journal Entry",
       content: journal.content || "",
-      headings,
       mood: journal.mood || null,
       energyLevel: journal.energyLevel || null,
       dateKey: journal.dateKey || null,
       createdAt: journal.createdAt || null,
       updatedAt: journal.updatedAt || null,
-      searchableText: `${journal.title || ""} ${journal.content || ""} ${headings.join(" ")} ${journal.mood || ""}`.toLowerCase(),
+      searchableText: `${journal.title || ""} ${journal.content || ""} ${journal.mood || ""}`.toLowerCase(),
     });
   });
 

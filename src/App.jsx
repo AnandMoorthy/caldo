@@ -75,8 +75,11 @@ export default function App() {
   const [editTask, setEditTask] = useState(null);
   const [editForm, setEditForm] = useState({ title: "", notes: "", priority: "medium" });
   const [user, setUser] = useState(null);
+  const userRef = useRef(null);
   const hasLoadedCloud = useRef(false);
   const loadedMonthsRef = useRef(new Set());
+  const refreshInFlightRef = useRef(false);
+  const refreshCloudDataRef = useRef(async () => {});
   const [recurringSeries, setRecurringSeries] = useState(() => loadRecurringSeries());
   const [recurringEnabled, setRecurringEnabled] = useState(true);
   const [pomodoroEnabled, setPomodoroEnabled] = useState(true);
@@ -610,6 +613,122 @@ export default function App() {
     }
   }
 
+  async function fetchMonthByDate(monthKey) {
+    if (!taskRepoRef.current || !noteRepoRef.current) return {};
+    const [y, m] = monthKey.split('-');
+    const start = new Date(Number(y), Number(m) - 1, 1);
+    const end = new Date(Number(y), Number(m), 1);
+    const tasks = await taskRepoRef.current.fetchTasksInRange(start, end);
+    const notes = await noteRepoRef.current.fetchMonthNotes(monthKey);
+    const byDate = {};
+    const noteUpdates = [];
+    tasks.forEach((t) => {
+      const dk = t.dateKey;
+      if (!byDate[dk]) byDate[dk] = [];
+      byDate[dk].push({ ...t, due: dk });
+    });
+    notes.forEach((n) => {
+      const dk = n.dateKey;
+      const existing = byDate[dk] || [];
+      const list = existing.slice();
+      if (n.content) {
+        list.push({
+          id: 'day_note',
+          due: dk,
+          dayNote: n.content,
+          createdAt: n.updatedAt || new Date().toISOString(),
+        });
+      }
+      byDate[dk] = list;
+      noteUpdates.push(n);
+    });
+    if (noteUpdates.length) {
+      setNotesCache((prev) => {
+        const next = new Map(prev);
+        noteUpdates.forEach((n) => next.set(n.dateKey, n));
+        return next;
+      });
+    }
+    return byDate;
+  }
+
+  // Soft refresh when the app returns from background / another tab.
+  // No realtime listeners — just re-fetch tasks, notes, habits, moments, journals, snippets.
+  async function refreshCloudData() {
+    const u = userRef.current;
+    if (!u || !taskRepoRef.current || !noteRepoRef.current) return;
+    if (refreshInFlightRef.current) return;
+    refreshInFlightRef.current = true;
+    try {
+      const months = new Set(loadedMonthsRef.current);
+      try {
+        months.add(monthKeyFromDate(monthStart));
+      } catch {}
+      try {
+        months.add(monthKeyFromDate(selectedDate));
+      } catch {}
+      if (!months.size) months.add(monthKeyFromDate(new Date()));
+
+      const combined = {};
+      for (const mk of months) {
+        try {
+          const byDate = await fetchMonthByDate(mk);
+          Object.assign(combined, byDate);
+          loadedMonthsRef.current.add(mk);
+        } catch (err) {
+          console.error('Failed to refresh month from cloud', mk, err);
+        }
+      }
+      if (Object.keys(combined).length) {
+        setTasksMap((prev) => mergeTasksMaps(prev, combined));
+      }
+
+      const jobs = [];
+      if (snippetRepoRef.current) {
+        jobs.push(
+          snippetRepoRef.current
+            .listSnippets({ includeArchived: false, limit: 500 })
+            .then((items) => setSnippetsCache(items))
+            .catch((err) => console.error('Failed to refresh snippets', err))
+        );
+      }
+      if (momentRepoRef.current) {
+        jobs.push(
+          momentRepoRef.current
+            .fetchMoments({ limit: 500 })
+            .then((items) => setMomentsCache(items))
+            .catch((err) => console.error('Failed to refresh moments', err))
+        );
+      }
+      if (journalRepoRef.current) {
+        jobs.push(
+          journalRepoRef.current
+            .listJournals({ limit: 500 })
+            .then((items) => setJournalsCache(items))
+            .catch((err) => console.error('Failed to refresh journals', err))
+        );
+      }
+      if (habitRepoRef.current) {
+        jobs.push(
+          habitRepoRef.current
+            .loadHabbits()
+            .then((cloudHabbits) => {
+              setHabbits((prev) => {
+                const merged = mergeHabbits(prev, cloudHabbits);
+                try { saveHabbits(merged); } catch {}
+                return merged;
+              });
+            })
+            .catch((err) => console.error('Failed to refresh habits', err))
+        );
+      }
+      await Promise.all(jobs);
+    } finally {
+      refreshInFlightRef.current = false;
+    }
+  }
+  refreshCloudDataRef.current = refreshCloudData;
+
   async function saveStreakToCloud(userId, s) {
     const docRef = db.collection('users').doc(userId).collection('meta').doc('streakInfo');
     await docRef.set({
@@ -638,6 +757,30 @@ export default function App() {
       return { current: 0, longest: Number(s?.longest) || 0, lastEarnedDateKey: null };
     }
   }
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  // Refresh cloud data when the app returns from inactive/background.
+  useEffect(() => {
+    let wasHidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+
+    function onVisibilityChange() {
+      if (typeof document === 'undefined') return;
+      if (document.visibilityState === 'hidden') {
+        wasHidden = true;
+        return;
+      }
+      if (document.visibilityState !== 'visible' || !wasHidden) return;
+      wasHidden = false;
+      if (!userRef.current) return;
+      refreshCloudDataRef.current?.().catch((err) => console.error('Resume refresh failed', err));
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
 
   // Auth listener
   useEffect(() => {
@@ -2436,8 +2579,16 @@ export default function App() {
       : 'overflow-y-auto overflow-x-hidden content-pb';
 
   const { pull: pullDistance, refreshing: pullRefreshing, threshold: pullThreshold } = usePullToRefresh(contentScrollRef, {
-    onRefresh: () => {
-      window.location.reload();
+    onRefresh: async () => {
+      if (!userRef.current) {
+        window.location.reload();
+        return;
+      }
+      try {
+        await refreshCloudDataRef.current?.();
+      } catch (err) {
+        console.error('Pull-to-refresh failed', err);
+      }
     },
   });
 

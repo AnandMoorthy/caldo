@@ -21,7 +21,7 @@ We use a flat, query-first schema to support fast daily/weekly/monthly views and
   - Micro-blog entries with mood and category. Chronological timeline.
 
 - Journals: `users/{uid}/journals/{journalId}`
-  - Rich daily journal entries with dynamic blocks, mood, and energy level.
+  - Simple daily journal entries with notes, mood, and energy level.
   - One entry per day per user (`dateKey` + `ownerUid` uniqueness enforced in repository).
 
 - Meta: `users/{uid}/meta/streakInfo`
@@ -101,44 +101,11 @@ Notes:
 {
   "ownerUid": "<uid>",
   "title": "Journal title",
-  "blocks": [
-    {
-      "id": "block-id",
-      "type": "text|todo|numbered",
-      "heading": "Block heading",
-      "text": "Only for text blocks",
-      "items": [
-        { "id": "item-id", "text": "List item", "checked": false }
-      ]
-    }
-  ],
-  "content": "Long-form journal entry",
+  "content": "Journal notes",
   "mood": "happy|calm|grateful|tired|anxious|frustrated|null",
   "energyLevel": 1-5,
   "dateKey": "YYYY-MM-DD",
   "createdAt": <timestamp>,
-  "updatedAt": <timestamp>
-}
-```
-
-## Journal templates document (private)
-Path: `users/{uid}/meta/journalTemplates`
-```json
-{
-  "ownerUid": "<uid>",
-  "templates": [
-    {
-      "id": "tpl_...",
-      "name": "Daily reset",
-      "structure": [
-        { "type": "text", "heading": "Reflection" },
-        { "type": "todo", "heading": "Food log" },
-        { "type": "numbered", "heading": "Top priorities" }
-      ],
-      "createdAt": "<ISO timestamp>",
-      "updatedAt": "<ISO timestamp>"
-    }
-  ],
   "updatedAt": <timestamp>
 }
 ```
@@ -288,7 +255,7 @@ service cloud.firestore {
 - Repositories
   - `TaskRepository` (flat tasks API)
   - `DayNoteRepository` (day notes API)
-  - `JournalRepository` (daily journals + private template structures)
+  - `JournalRepository` (daily journals with notes, mood, and energy)
 - Month view: one tasks range query + one notes range query, merged client-side by `dateKey`.
 - Day view: equality by `dateKey` + single note doc.
 

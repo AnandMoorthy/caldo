@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
 import { BookOpenText, Calendar, Flame, Loader2, PenSquare } from "lucide-react";
-import { countFilledJournalBlocks, extractJournalBlockHeadings, normalizeJournalBlocks } from "../utils/journalTemplates";
 import { keyFor } from "../utils/date";
 
 function formatJournalDate(dateKey) {
@@ -91,7 +90,7 @@ export default function JournalPage({
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">Journal</h1>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              Build one journal entry per day with optional blocks and fill only what you need.
+              One entry per day with mood, energy, and notes.
             </p>
           </div>
           <button
@@ -123,9 +122,7 @@ export default function JournalPage({
         ) : (
           <div className="space-y-3">
             {items.map((entry) => {
-              const blocks = normalizeJournalBlocks(entry.blocks, entry.content || "", entry.sections);
-              const filledCount = countFilledJournalBlocks(blocks);
-              const headings = extractJournalBlockHeadings(blocks);
+              const preview = String(entry.content || "").trim();
               return (
               <button
                 key={entry.id}
@@ -138,7 +135,6 @@ export default function JournalPage({
                     <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                       {entry.title || "Journal Entry"}
                     </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{filledCount} block{filledCount === 1 ? "" : "s"} filled</div>
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     Updated at {formatUpdatedAt(entry.updatedAt)}
@@ -146,7 +142,7 @@ export default function JournalPage({
                 </div>
 
                 <p className="mt-3 text-sm text-slate-700 dark:text-slate-300 line-clamp-2 whitespace-pre-wrap">
-                  {headings.length ? headings.join(" • ") : "No headings"}
+                  {preview || "No notes yet"}
                 </p>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
