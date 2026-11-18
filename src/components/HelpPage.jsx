@@ -447,7 +447,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       <div className="text-center">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Journal</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">
-          Write richer daily journals with dynamic blocks, private templates, mood tracking, and energy levels.
+          Keep a simple daily journal with mood, energy level, and freeform notes.
         </p>
       </div>
 
@@ -458,8 +458,8 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <BookOpenText size={16} className="text-cyan-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Build your journal with blocks</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Add text, to-do list, or numbered list blocks and edit headings as needed</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Write daily notes</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Capture reflections, wins, or anything else in a single notes field</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
