@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { BookOpenText, Calendar, Flame, Loader2, PenSquare } from "lucide-react";
+import { Bell, BookOpenText, Calendar, Flame, Loader2, PenSquare } from "lucide-react";
 import { keyFor } from "../utils/date";
+import { formatReminderTime } from "../utils/journalReminder";
+import JournalReminderSettings from "./JournalReminderSettings.jsx";
 
 function formatJournalDate(dateKey) {
   try {
@@ -43,9 +45,14 @@ export default function JournalPage({
   journals = [],
   onOpenJournalEditor,
   onJournalsChanged,
+  reminder,
+  reminderLoading = false,
+  reminderSaving = false,
+  onSaveReminder,
 }) {
   const [items, setItems] = useState(Array.isArray(journals) ? journals : []);
   const [loading, setLoading] = useState(false);
+  const [reminderOpen, setReminderOpen] = useState(false);
 
   useEffect(() => {
     setItems(Array.isArray(journals) ? journals : []);
@@ -83,6 +90,24 @@ export default function JournalPage({
     );
   }
 
+  const reminderButton = (
+    <button
+      type="button"
+      onClick={() => setReminderOpen(true)}
+      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+      title={
+        reminder?.enabled
+          ? `Daily reminder at ${formatReminderTime(reminder.hour, reminder.minute)}`
+          : "Set journal reminder"
+      }
+    >
+      <Bell size={16} className={reminder?.enabled ? "text-indigo-600 dark:text-indigo-300" : ""} />
+      {reminder?.enabled
+        ? `Reminder · ${formatReminderTime(reminder.hour, reminder.minute)}`
+        : "Set reminder"}
+    </button>
+  );
+
   return (
     <div className="max-w-4xl mx-auto w-full px-1">
       <div className="sticky top-0 z-20 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 shadow-sm">
@@ -93,16 +118,28 @@ export default function JournalPage({
               One entry per day with mood, energy, and notes.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => onOpenJournalEditor && onOpenJournalEditor("__new__", keyFor(new Date()))}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
-          >
-            <PenSquare size={16} />
-            New journal
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {reminderButton}
+            <button
+              type="button"
+              onClick={() => onOpenJournalEditor && onOpenJournalEditor("__new__", keyFor(new Date()))}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+            >
+              <PenSquare size={16} />
+              New journal
+            </button>
+          </div>
         </div>
       </div>
+
+      <JournalReminderSettings
+        open={reminderOpen}
+        onClose={() => setReminderOpen(false)}
+        reminder={reminder}
+        loading={reminderLoading}
+        saving={reminderSaving}
+        onSave={onSaveReminder}
+      />
 
       <div className="mt-6">
         <div className="flex items-center gap-2 mb-3">

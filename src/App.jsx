@@ -3,6 +3,7 @@ import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, en
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX, CheckSquare, Sparkles, Target, BookOpenText, Loader2 } from "lucide-react";
 import usePullToRefresh from "./hooks/usePullToRefresh";
+import { useJournalReminder } from "./hooks/useJournalReminder";
 import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Sidebar from "./components/Sidebar.jsx";
@@ -76,6 +77,12 @@ export default function App() {
   const [editTask, setEditTask] = useState(null);
   const [editForm, setEditForm] = useState({ title: "", notes: "", priority: "medium" });
   const [user, setUser] = useState(null);
+  const {
+    reminder: journalReminder,
+    loading: journalReminderLoading,
+    saving: journalReminderSaving,
+    saveReminder: saveJournalReminder,
+  } = useJournalReminder(user);
   const userRef = useRef(null);
   const hasLoadedCloud = useRef(false);
   const loadedMonthsRef = useRef(new Set());
@@ -2542,6 +2549,22 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Open journal from reminder notification clicks
+  useEffect(() => {
+    function openJournalFromReminder() {
+      setActiveTab('journal');
+      setShowHelp(false);
+      setShowSearch(false);
+      setShowAdd(false);
+      setShowEdit(false);
+      setShowMissed(false);
+      setShowNotes(false);
+      setSnippetsDrawerOpen(false);
+    }
+    window.addEventListener('caldo:open-journal', openJournalFromReminder);
+    return () => window.removeEventListener('caldo:open-journal', openJournalFromReminder);
+  }, []);
+
   // Close drawers when switching tabs to prevent conflicts
   useEffect(() => {
     if (activeTab === 'tasks') {
@@ -2926,6 +2949,10 @@ export default function App() {
             user={user}
             journals={journalsCache}
             onJournalsChanged={handleJournalsChanged}
+            reminder={journalReminder}
+            reminderLoading={journalReminderLoading}
+            reminderSaving={journalReminderSaving}
+            onSaveReminder={saveJournalReminder}
             onOpenJournalEditor={(id, targetDateKey = keyFor(new Date())) => {
               setShowNotes(false);
               setSnippetsDrawerOpen(false);
