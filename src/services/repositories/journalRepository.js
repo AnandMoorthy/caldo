@@ -93,6 +93,23 @@ export class JournalRepository {
     const nextCursor = last ? { updatedAt: last.get("updatedAt") || null, id: last.id } : null;
     return { items, nextCursor };
   }
+
+  // Paginate through every journal entry for full data export.
+  async listAllJournals({ pageSize = 200 } = {}) {
+    const items = [];
+    let cursor = null;
+    while (true) {
+      const { items: page, nextCursor } = await this.listJournalsPage({
+        limit: pageSize,
+        startAfterUpdatedAt: cursor?.updatedAt ?? null,
+        startAfterId: cursor?.id ?? null,
+      });
+      items.push(...page);
+      if (!nextCursor || page.length < pageSize) break;
+      cursor = nextCursor;
+    }
+    return items;
+  }
 }
 
 export const createJournalRepository = (userId) => new JournalRepository(userId);

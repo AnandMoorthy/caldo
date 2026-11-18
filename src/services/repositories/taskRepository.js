@@ -79,6 +79,25 @@ export class TaskRepository {
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
+  // Paginate through every task owned by this user (for full data export).
+  async listAllTasks({ pageSize = 200 } = {}) {
+    const items = [];
+    let lastDoc = null;
+    while (true) {
+      let q = this.tasksRef()
+        .where('ownerUid', '==', this.userId)
+        .orderBy(firebase.firestore.FieldPath.documentId())
+        .limit(pageSize);
+      if (lastDoc) q = q.startAfter(lastDoc);
+      const snap = await q.get();
+      if (snap.empty) break;
+      items.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      lastDoc = snap.docs[snap.docs.length - 1];
+      if (snap.docs.length < pageSize) break;
+    }
+    return items;
+  }
+
   // Delete all tasks in a range (used for clear-all or bulk ops)
   async deleteTasksInRange(start, end) {
     const tasks = await this.fetchTasksInRange(start, end);
