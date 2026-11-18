@@ -469,6 +469,13 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
                 <div className="text-sm text-slate-600 dark:text-slate-300">Use New journal to open the entry for that day (or create it if missing)</div>
               </div>
             </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Clock size={16} className="text-amber-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Set a daily reminder</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Choose a local time (for example 6:00 PM). Settings sync to your other devices; notifications are delivered locally</div>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -27,6 +27,10 @@ We use a flat, query-first schema to support fast daily/weekly/monthly views and
 - Meta: `users/{uid}/meta/streakInfo`
   - Single document for streak data.
 
+- Meta: `users/{uid}/meta/journalReminder`
+  - Synced daily journal reminder preference (enabled + local time-of-day).
+  - Notifications themselves are delivered locally on each device.
+
 - Meta: `users/{uid}/meta/momentCategories`
   - Configurable moment categories for organization.
 
@@ -137,6 +141,22 @@ Path: `users/{uid}/meta/streakInfo`
   "updatedAt": <timestamp>
 }
 ```
+
+## Meta (journal reminder)
+Path: `users/{uid}/meta/journalReminder`
+```json
+{
+  "ownerUid": "<uid>",
+  "enabled": true,
+  "hour": 18,
+  "minute": 0,
+  "updatedAt": <timestamp>
+}
+```
+
+Notes:
+- `hour`/`minute` are interpreted in each device's local timezone.
+- Delivery uses the browser Notification API on that device; config syncs via Firestore.
 
 ## Common queries
 
