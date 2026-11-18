@@ -44,6 +44,7 @@ import { createMomentRepository } from "./services/repositories/momentRepository
 import { createJournalRepository } from "./services/repositories/journalRepository";
 import { createHabitRepository } from "./services/repositories/habitRepository";
 import { materializeSeries } from "./utils/recurrence";
+import { exportAllCaldoData } from "./utils/exportData";
 
 
 // Single-file Caldo app
@@ -2360,6 +2361,28 @@ export default function App() {
     URL.revokeObjectURL(url);
   }
 
+  async function exportAllData() {
+    await exportAllCaldoData({
+      signedIn: !!user,
+      repos: {
+        taskRepo: taskRepoRef.current,
+        noteRepo: noteRepoRef.current,
+        snippetRepo: snippetRepoRef.current,
+        journalRepo: journalRepoRef.current,
+        momentRepo: momentRepoRef.current,
+        habitRepo: habitRepoRef.current,
+      },
+      local: {
+        tasksMap,
+        snippets: snippetsCache,
+        journals: journalsCache,
+        moments: momentsCache,
+        habits: habbits,
+        recurringSeries,
+      },
+    });
+  }
+
   function importJSON(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -2937,7 +2960,7 @@ export default function App() {
         )}
 
         {activeTab === 'settings' && (
-          <SettingsPage />
+          <SettingsPage onExportAllData={exportAllData} />
         )}
         </motion.div>
         </AnimatePresence>

@@ -36,6 +36,25 @@ export class SnippetRepository {
     return items.filter(s => (includeArchived ? true : !s.archived) && (tag ? Array.isArray(s.tags) && s.tags.includes(tag) : true));
   }
 
+  // Paginate through every note/snippet (including archived) for full data export.
+  async listAllSnippets({ pageSize = 200 } = {}) {
+    const items = [];
+    let lastDoc = null;
+    while (true) {
+      let q = this.snippetsRef()
+        .where('ownerUid', '==', this.userId)
+        .orderBy(firebase.firestore.FieldPath.documentId())
+        .limit(pageSize);
+      if (lastDoc) q = q.startAfter(lastDoc);
+      const snap = await q.get();
+      if (snap.empty) break;
+      items.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      lastDoc = snap.docs[snap.docs.length - 1];
+      if (snap.docs.length < pageSize) break;
+    }
+    return items;
+  }
+
   async createSnippet({ title, content = '', tags = [], language = null, pinned = false } = {}) {
     const docRef = this.snippetsRef().doc();
     const payload = {

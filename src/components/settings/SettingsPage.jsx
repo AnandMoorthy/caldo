@@ -1,6 +1,7 @@
 import React from "react";
-import { Palette } from "lucide-react";
+import { Database, Palette } from "lucide-react";
 import AppearanceSection from "./AppearanceSection.jsx";
+import DataSection from "./DataSection.jsx";
 
 // Add a section here when a new settings group is ready.
 const SECTIONS = [
@@ -11,9 +12,16 @@ const SECTIONS = [
     icon: Palette,
     Component: AppearanceSection,
   },
+  {
+    id: "data",
+    title: "Data",
+    description: "Back up your CalDo content as a JSON file.",
+    icon: Database,
+    Component: DataSection,
+  },
 ];
 
-export default function SettingsPage() {
+export default function SettingsPage({ onExportAllData }) {
   return (
     <div className="max-w-3xl w-full pb-6">
       <div
@@ -25,13 +33,14 @@ export default function SettingsPage() {
       >
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Settings</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          Choose how CalDo looks. More preferences can be added here later.
+          Choose how CalDo looks and manage your data.
         </p>
       </div>
       <div className="space-y-4">
         {SECTIONS.map((section) => {
           const Icon = section.icon;
           const Panel = section.Component;
+          const panelProps = section.id === "data" ? { onExportAllData } : {};
           return (
             <section
               key={section.id}
@@ -47,7 +56,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-slate-500 dark:text-slate-400">{section.description}</p>
                 </div>
               </div>
-              <Panel />
+              <Panel {...panelProps} />
             </section>
           );
         })}

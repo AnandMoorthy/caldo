@@ -55,6 +55,23 @@ export class DayNoteRepository {
     });
   }
 
+  // Paginate through every day note for full data export.
+  async listAllDayNotes({ pageSize = 200 } = {}) {
+    const items = [];
+    let cursor = null;
+    while (true) {
+      const { items: page, nextCursor } = await this.listNotesPage({
+        limit: pageSize,
+        startAfterUpdatedAt: cursor?.updatedAt ?? null,
+        startAfterId: cursor?.id ?? null,
+      });
+      items.push(...page);
+      if (!nextCursor || page.length < pageSize) break;
+      cursor = nextCursor;
+    }
+    return items;
+  }
+
   async setDayNotePinned(dateKey, pinned) {
     await this.notesRef().doc(dateKey).set({ pinned: !!pinned, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
   }

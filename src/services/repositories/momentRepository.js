@@ -76,6 +76,25 @@ export class MomentRepository {
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
+  // Paginate through every moment for full data export.
+  async listAllMoments({ pageSize = 200 } = {}) {
+    const items = [];
+    let lastCreatedAt = null;
+    while (true) {
+      let q = this.momentsRef()
+        .where('ownerUid', '==', this.userId)
+        .orderBy('createdAt', 'desc')
+        .limit(pageSize);
+      if (lastCreatedAt) q = q.startAfter(lastCreatedAt);
+      const snap = await q.get();
+      if (snap.empty) break;
+      items.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      lastCreatedAt = snap.docs[snap.docs.length - 1].get('createdAt') || null;
+      if (snap.docs.length < pageSize || !lastCreatedAt) break;
+    }
+    return items;
+  }
+
   // Get a single moment by ID
   async getMoment(momentId) {
     const doc = await this.momentsRef().doc(momentId).get();
