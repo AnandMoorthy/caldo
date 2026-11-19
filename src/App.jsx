@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO, isAfter, startOfDay, isToday } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, Check, StickyNote, List, Grip, Minimize2, ListX, CheckSquare, Sparkles, Target, BookOpenText, Loader2 } from "lucide-react";
+import { Plus, Check, StickyNote, List, Grip, Minimize2, CheckSquare, Sparkles, Target, BookOpenText, Loader2 } from "lucide-react";
 import usePullToRefresh from "./hooks/usePullToRefresh";
 import { useJournalReminder } from "./hooks/useJournalReminder";
 import { auth, db, googleProvider, firebase } from "./firebase";
@@ -2728,13 +2728,11 @@ export default function App() {
               dragOverDayKey={dragOverDayKey}
               setDragOverDayKey={setDragOverDayKey}
               onDropTaskOnDay={onDropTaskOnDay}
-              missedCount={missedTasksThisMonth.length}
-              onOpenMissed={() => setShowMissed(true)}
               snippets={snippetsCache}
             />
 
-            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 md:min-h-0 md:overflow-y-auto">
-              <div className="flex items-center justify-between mb-4">
+            <aside className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800 flex flex-col md:min-h-0 md:h-full md:overflow-hidden">
+              <div className="flex items-center justify-between mb-4 shrink-0">
                 <div>
                   <div className="text-sm text-slate-500 dark:text-slate-400">Tasks for</div>
                   <div className="font-semibold text-slate-900 dark:text-slate-100">{format(selectedDate, 'EEEE, MMM d')}</div>
@@ -2795,14 +2793,6 @@ export default function App() {
                   >
                     <StickyNote size={16} />
                   </button>
-                  {/* <button
-                    onClick={() => setShowMissed(true)}
-                    className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center"
-                    aria-label="Show missed tasks this week"
-                    data-tip="Show missed tasks this week"
-                  >
-                    <ListX size={16} />
-                  </button> */}
                   <button
                     onClick={() => openAddModal(selectedDate)}
                     className="bg-indigo-600 text-white p-2 rounded-lg inline-flex items-center justify-center"
@@ -2814,27 +2804,32 @@ export default function App() {
                 </div>
               </div>
 
-              <MotivationalMessage 
-                date={selectedDate}
-                incompleteTasks={getIncompleteTasksFor(selectedDate)}
-              />
+              <div className="shrink-0">
+                <MotivationalMessage 
+                  date={selectedDate}
+                  incompleteTasks={getIncompleteTasksFor(selectedDate)}
+                />
+              </div>
 
-              <TaskList
-                tasks={tasksFor(selectedDate)}
-                onDragStartTask={onDragStartTask}
-                onToggleDone={toggleDone}
-                onOpenEditModal={openEditModal}
-                onDeleteTask={deleteTask}
-                onAddSubtask={addSubtask}
-                onToggleSubtask={toggleSubtask}
-                onDeleteSubtask={deleteSubtask}
-                onStartPomodoro={pomodoroEnabled ? openPomodoroTimer : null}
-                density={density}
-                emptyMessage="No tasks. Add a new task to view."
-                recurringSeries={recurringSeries}
-                pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
-                loading={tasksLoading}
-              />
+              <div className="flex-1 min-h-0 md:overflow-hidden">
+                <TaskList
+                  tasks={tasksFor(selectedDate)}
+                  onDragStartTask={onDragStartTask}
+                  onToggleDone={toggleDone}
+                  onOpenEditModal={openEditModal}
+                  onDeleteTask={deleteTask}
+                  onAddSubtask={addSubtask}
+                  onToggleSubtask={toggleSubtask}
+                  onDeleteSubtask={deleteSubtask}
+                  onStartPomodoro={pomodoroEnabled ? openPomodoroTimer : null}
+                  density={density}
+                  fullHeight
+                  emptyMessage="No tasks. Add a new task to view."
+                  recurringSeries={recurringSeries}
+                  pomodoroRunningState={pomodoroEnabled ? pomodoroRunningState : { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }}
+                  loading={tasksLoading}
+                />
+              </div>
             </aside>
           </main>
         ) : activeTab === 'tasks' && effectiveView === 'week' ? (
@@ -2848,8 +2843,6 @@ export default function App() {
               selectedDate={selectedDate}
               onOpenAddForDate={(d) => openAddModal(d)}
               hasNoteFor={hasNoteForDay}
-              missedCount={missedTasksThisWeek.length}
-              onOpenMissed={() => setShowMissed(true)}
               onOpenNotes={(day) => {
                 // Set the selected date to the clicked day
                 if (day) {
@@ -2917,8 +2910,6 @@ export default function App() {
                 setSnippetsDrawerOpen(false);
                 setShowNotes(true);
               }}
-              onOpenMissed={() => setShowMissed(true)}
-              missedCount={missedTasksThisMonth.length}
               showDensityMenu={showDensityMenu}
               setShowDensityMenu={setShowDensityMenu}
               onChangeDensity={(d) => setDensity(d)}

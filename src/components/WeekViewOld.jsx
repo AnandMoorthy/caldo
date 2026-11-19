@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { addDays, format, isSameDay, startOfWeek, isAfter, startOfDay } from "date-fns";
-import { ChevronLeft, ChevronRight, Calendar, ListX, List, CheckCircle, FileText, StickyNote } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, List, CheckCircle, FileText, StickyNote } from "lucide-react";
 
 export default function WeekView({
   anchorDate,
@@ -12,8 +12,6 @@ export default function WeekView({
   selectedDate,
   onOpenAddForDate,
   hasNoteFor,
-  missedCount = 0,
-  onOpenMissed,
   snippets = [],
   dragOverDayKey,
   setDragOverDayKey,
@@ -60,18 +58,6 @@ export default function WeekView({
           <div className="font-semibold text-slate-900 dark:text-slate-100">{format(days[0], 'MMM d')} – {format(days[6], 'MMM d, yyyy')}</div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenMissed}
-            className="ml-2 relative text-sm px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 inline-flex items-center gap-2"
-            aria-label="Show missed tasks this week"
-            data-tip="Show missed tasks this week"
-          >
-            <ListX size={16} />
-            <span>Missed</span>
-            <span className="ml-1 inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 tabular-nums">
-              {Number(missedCount) || 0}
-            </span>
-          </button>
           <button onClick={onPrevWeek} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="Previous week" data-tip="Previous week"><ChevronLeft size={16} /></button>
           <button onClick={onToday} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="This week" data-tip="This week"><Calendar size={16} /></button>
           <button onClick={onNextWeek} className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800" aria-label="Next week" data-tip="Next week"><ChevronRight size={16} /></button>

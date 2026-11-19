@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { loadNotesFeedCache, saveNotesFeedCache } from "../utils/storage";
 import Masonry from "react-masonry-css";
-import { StickyNote, Pin, PinOff, Plus, Loader2 } from "lucide-react";
+import { StickyNote, Pin, PinOff, Plus, Loader2, SquareArrowOutUpRight } from "lucide-react";
 import { format } from "date-fns";
 import StyledSnippetPreview from "./StyledSnippetPreview";
 
@@ -203,18 +203,18 @@ export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
               <Plus size={14} /> <span>Note</span>
             </button>
           </div>
-          <div className="mt-2 inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden w-full">
+          <div className="mt-2 inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
             <button
               type="button"
               onClick={() => setFilterMode("all")}
-              className={`flex-1 px-2 py-2 text-xs ${filterMode === "all" ? "bg-slate-200 dark:bg-slate-800" : "bg-white dark:bg-slate-900"}`}
+              className={`px-3 py-1.5 text-xs ${filterMode === "all" ? "bg-slate-200 dark:bg-slate-800" : "bg-white dark:bg-slate-900"}`}
             >
               All
             </button>
             <button
               type="button"
               onClick={() => setFilterMode("pinned")}
-              className={`flex-1 px-2 py-2 text-xs border-l border-slate-200 dark:border-slate-700 ${filterMode === "pinned" ? "bg-slate-200 dark:bg-slate-800" : "bg-white dark:bg-slate-900"}`}
+              className={`px-3 py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${filterMode === "pinned" ? "bg-slate-200 dark:bg-slate-800" : "bg-white dark:bg-slate-900"}`}
             >
               Pinned
             </button>
@@ -262,9 +262,9 @@ export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
                         onClick={(e) => e.stopPropagation?.()}
                         title="Open in new tab"
                         aria-label="Open in new tab"
-                        className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation text-xs"
+                        className="h-8 w-8 inline-flex items-center justify-center rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity touch-manipulation text-slate-500"
                       >
-                        ↗
+                        <SquareArrowOutUpRight size={15} />
                       </a>
                     </span>
                   </div>
