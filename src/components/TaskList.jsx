@@ -1,9 +1,60 @@
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Pencil, Check, Trash, ChevronDown, ChevronRight, Plus, RefreshCcw, Timer, Loader2 } from "lucide-react";
 import { format, parseISO, isAfter, startOfDay } from "date-fns";
 import { generateId } from "../utils/uid";
 import { formatRecurrenceInfo, getRecurrenceIcon } from "../utils/recurrence";
+
+function useScrollOverflow(ref, deps = []) {
+  const [overflow, setOverflow] = useState({ up: false, down: false });
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+
+    let raf = 0;
+    function update() {
+      const node = ref.current;
+      if (!node) return;
+      const maxScroll = Math.max(0, node.scrollHeight - node.clientHeight);
+      const top = node.scrollTop;
+      // 2px slack avoids flicker from sub-pixel rounding
+      setOverflow({
+        up: top > 2,
+        down: maxScroll > 2 && top < maxScroll - 2,
+      });
+    }
+
+    function scheduleUpdate() {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(update);
+    }
+
+    update();
+    // Second pass after layout settles (fonts / card heights)
+    scheduleUpdate();
+    el.addEventListener("scroll", update, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(scheduleUpdate) : null;
+    ro?.observe(el);
+    // Re-measure when task cards change height (expand subtasks, etc.)
+    const mo = typeof MutationObserver !== "undefined"
+      ? new MutationObserver(scheduleUpdate)
+      : null;
+    mo?.observe(el, { childList: true, subtree: true, characterData: true });
+    window.addEventListener("resize", scheduleUpdate);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      el.removeEventListener("scroll", update);
+      ro?.disconnect();
+      mo?.disconnect();
+      window.removeEventListener("resize", scheduleUpdate);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ref, ...deps]);
+
+  return overflow;
+}
 
 function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
@@ -346,6 +397,10 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
 }
 
 export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false, loading = false }) {
+  const scrollRef = useRef(null);
+  const taskCount = Array.isArray(tasks) ? tasks.length : 0;
+  const overflow = useScrollOverflow(scrollRef, [taskCount, density, loading, fullHeight]);
+
   if (loading && (!tasks || tasks.length === 0)) {
     return (
       <div className={`flex flex-col items-center justify-center gap-3 text-slate-500 dark:text-slate-400 ${fullHeight ? 'h-full min-h-[160px]' : 'py-10'}`}>
@@ -360,37 +415,83 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
     return <div className="text-sm text-slate-400 dark:text-slate-500">{msg}</div>;
   }
 
+  const gapCls = density === 'minified'
+    ? 'space-y-1.5'
+    : density === 'compact'
+    ? 'space-y-1.5 sm:space-y-2'
+    : 'space-y-2 sm:space-y-3';
+  const scrollCls = fullHeight
+    ? `h-full overflow-auto pr-0.5 sm:pr-2 ${gapCls}`
+    : `sm:max-h-[60vh] sm:overflow-auto pr-0.5 sm:pr-2 ${gapCls}`;
+
   return (
-    <div className={`relative ${fullHeight
-      ? `${density === 'minified' ? 'space-y-1.5' : density === 'compact' ? 'space-y-1.5 sm:space-y-2' : 'space-y-2 sm:space-y-3'} h-full overflow-auto pr-0.5 sm:pr-2`
-      : `${density === 'minified' ? 'space-y-1.5' : density === 'compact' ? 'space-y-1.5 sm:space-y-2' : 'space-y-2 sm:space-y-3'} sm:max-h-[60vh] sm:overflow-auto pr-0.5 sm:pr-2`
-    }`}>
-      {loading && (
-        <div className="sticky top-0 z-10 mb-2 flex items-center gap-2 rounded-lg border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/95 dark:bg-indigo-950/70 px-3 py-2 text-xs font-medium text-indigo-700 dark:text-indigo-200 backdrop-blur">
-          <Loader2 size={14} className="animate-spin shrink-0" aria-hidden="true" />
-          Syncing tasks…
-        </div>
-      )}
-      {tasks.map((t) => (
-        <TaskCard
-          key={t.id}
-          t={t}
-          onDragStartTask={onDragStartTask}
-          onToggleDone={onToggleDone}
-          onOpenEditModal={onOpenEditModal}
-          onDeleteTask={onDeleteTask}
-          onAddSubtask={onAddSubtask}
-          onToggleSubtask={onToggleSubtask}
-          onDeleteSubtask={onDeleteSubtask}
-          onStartPomodoro={onStartPomodoro}
-          showDueDate={showDueDate}
-          density={density}
-          recurringSeries={recurringSeries}
-          pomodoroRunningState={pomodoroRunningState}
-          hidePriorityLabel={hidePriorityLabel}
-          hideSubtaskButton={hideSubtaskButton}
-        />
-      ))}
+    <div className={`relative ${fullHeight ? 'h-full min-h-0' : ''}`}>
+      <div ref={scrollRef} className={scrollCls}>
+        {loading && (
+          <div className="sticky top-0 z-10 mb-2 flex items-center gap-2 rounded-lg border border-indigo-100 dark:border-indigo-900/50 bg-indigo-50/95 dark:bg-indigo-950/70 px-3 py-2 text-xs font-medium text-indigo-700 dark:text-indigo-200 backdrop-blur">
+            <Loader2 size={14} className="animate-spin shrink-0" aria-hidden="true" />
+            Syncing tasks…
+          </div>
+        )}
+        {tasks.map((t) => (
+          <TaskCard
+            key={t.id}
+            t={t}
+            onDragStartTask={onDragStartTask}
+            onToggleDone={onToggleDone}
+            onOpenEditModal={onOpenEditModal}
+            onDeleteTask={onDeleteTask}
+            onAddSubtask={onAddSubtask}
+            onToggleSubtask={onToggleSubtask}
+            onDeleteSubtask={onDeleteSubtask}
+            onStartPomodoro={onStartPomodoro}
+            showDueDate={showDueDate}
+            density={density}
+            recurringSeries={recurringSeries}
+            pomodoroRunningState={pomodoroRunningState}
+            hidePriorityLabel={hidePriorityLabel}
+            hideSubtaskButton={hideSubtaskButton}
+          />
+        ))}
+      </div>
+
+      <AnimatePresence>
+        {overflow.up && (
+          <motion.div
+            key="scroll-fade-top"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="pointer-events-none absolute inset-x-0 top-0 z-20 h-6 bg-gradient-to-b from-white via-white/80 to-transparent dark:from-slate-900 dark:via-slate-900/80"
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {overflow.down && (
+          <motion.div
+            key="scroll-fade-bottom"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex flex-col items-center justify-end"
+            aria-hidden="true"
+          >
+            <div className="w-full h-10 bg-gradient-to-t from-white via-white/85 to-transparent dark:from-slate-900 dark:via-slate-900/85" />
+            <div className="absolute bottom-1.5 inline-flex items-center gap-1 rounded-full border border-slate-200/80 dark:border-slate-700/80 bg-white/95 dark:bg-slate-900/95 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:text-slate-400 shadow-sm backdrop-blur">
+              <ChevronDown size={12} className="animate-bounce" />
+              <span>More</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <span className="sr-only" aria-live="polite">
+        {overflow.down ? "More tasks below. Scroll to see them." : ""}
+      </span>
     </div>
   );
 }
