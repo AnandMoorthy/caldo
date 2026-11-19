@@ -156,7 +156,7 @@ Path: `users/{uid}/meta/journalReminder`
 
 Notes:
 - `hour`/`minute` are interpreted in each device's local timezone.
-- Delivery uses the browser Notification API on that device; config syncs via Firestore.
+- Config syncs via Firestore. Delivery is local on each device (browser Notification API + in-app scheduling). No push server or cron is used.
 
 ## Common queries
 

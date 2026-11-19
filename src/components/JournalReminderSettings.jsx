@@ -151,7 +151,7 @@ export default function JournalReminderSettings({
                           parseTimeInputValue(timeValue).minute
                         )}`
                       : ""}
-                    . Notifications fire while Caldo is open or when you return to it.
+                    . Notifications are local to this device and fire while Caldo is open (or right after you return to it).
                   </p>
                 </div>
 

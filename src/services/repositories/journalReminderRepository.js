@@ -56,6 +56,11 @@ export class JournalReminderRepository {
         enabled: safe.enabled,
         hour: safe.hour,
         minute: safe.minute,
+        // Clear any previous push-only fields if they exist from an earlier build.
+        pushSubscriptions: firebase.firestore.FieldValue.delete(),
+        docType: firebase.firestore.FieldValue.delete(),
+        timeZone: firebase.firestore.FieldValue.delete(),
+        lastNotifiedDateKey: firebase.firestore.FieldValue.delete(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }

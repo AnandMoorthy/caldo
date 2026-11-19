@@ -473,7 +473,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
               <Clock size={16} className="text-amber-600" />
               <div>
                 <div className="font-medium text-slate-900 dark:text-slate-100">Set a daily reminder</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Choose a local time (for example 6:00 PM). Settings sync to your other devices; notifications are delivered locally</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Choose a local time (for example 6:00 PM). Settings sync to your other devices; notifications are delivered locally on each device while Caldo is open</div>
               </div>
             </div>
           </div>

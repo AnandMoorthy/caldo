@@ -1,5 +1,5 @@
 /* Simple service worker for Vite static build */
-const CACHE_NAME = 'caldo-cache-v2';
+const CACHE_NAME = 'caldo-cache-v3';
 // Determine the base path where the app is served (works for root or /<repo>/)
 const BASE_PATH = new URL(self.registration.scope).pathname;
 const CORE_ASSETS = [

@@ -21,36 +21,23 @@ export function useJournalReminder(user) {
   const [saving, setSaving] = useState(false);
   const repoRef = useRef(null);
   const reminderRef = useRef(reminder);
-  const timerRef = useRef(null);
+  const timeoutRef = useRef(null);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     reminderRef.current = reminder;
   }, [reminder]);
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current != null) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+  const clearSchedulers = useCallback(() => {
+    if (timeoutRef.current != null) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (intervalRef.current != null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
   }, []);
-
-  const scheduleNext = useCallback(() => {
-    clearTimer();
-    const current = reminderRef.current;
-    if (!current?.enabled) return;
-
-    const next = getNextReminderDate(current.hour, current.minute);
-    const delay = Math.max(1000, next.getTime() - Date.now());
-    timerRef.current = setTimeout(async () => {
-      try {
-        await maybeFireJournalReminder(reminderRef.current);
-      } catch (error) {
-        console.warn("Journal reminder fire failed", error);
-      } finally {
-        scheduleNext();
-      }
-    }, delay);
-  }, [clearTimer]);
 
   const refreshDueCheck = useCallback(async () => {
     try {
@@ -60,11 +47,34 @@ export function useJournalReminder(user) {
     }
   }, []);
 
+  const armLocalSchedulers = useCallback(() => {
+    clearSchedulers();
+    const current = reminderRef.current;
+    if (!current?.enabled) return;
+
+    const next = getNextReminderDate(current.hour, current.minute);
+    const delay = Math.max(1000, next.getTime() - Date.now());
+    timeoutRef.current = setTimeout(async () => {
+      try {
+        await maybeFireJournalReminder(reminderRef.current);
+      } catch (error) {
+        console.warn("Journal reminder fire failed", error);
+      } finally {
+        armLocalSchedulers();
+      }
+    }, delay);
+
+    // Backup poll while the page is alive (helps when long timers are throttled).
+    intervalRef.current = setInterval(() => {
+      if (document.visibilityState === "visible") refreshDueCheck();
+    }, 30_000);
+  }, [clearSchedulers, refreshDueCheck]);
+
   useEffect(() => {
     let mounted = true;
 
     async function load() {
-      clearTimer();
+      clearSchedulers();
       if (!user?.uid) {
         repoRef.current = null;
         clearJournalReminderCache();
@@ -91,14 +101,14 @@ export function useJournalReminder(user) {
     load();
     return () => {
       mounted = false;
-      clearTimer();
+      clearSchedulers();
     };
-  }, [user?.uid, clearTimer]);
+  }, [user?.uid, clearSchedulers]);
 
   useEffect(() => {
-    scheduleNext();
-    return clearTimer;
-  }, [reminder.enabled, reminder.hour, reminder.minute, scheduleNext, clearTimer]);
+    armLocalSchedulers();
+    return clearSchedulers;
+  }, [reminder.enabled, reminder.hour, reminder.minute, armLocalSchedulers, clearSchedulers]);
 
   useEffect(() => {
     if (!reminder.enabled) return undefined;
@@ -106,27 +116,22 @@ export function useJournalReminder(user) {
     function onVisibility() {
       if (document.visibilityState === "visible") {
         refreshDueCheck();
-        scheduleNext();
+        armLocalSchedulers();
       }
     }
 
     function onFocus() {
       refreshDueCheck();
-      scheduleNext();
+      armLocalSchedulers();
     }
 
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("focus", onFocus);
-    const intervalId = setInterval(() => {
-      if (document.visibilityState === "visible") refreshDueCheck();
-    }, 60_000);
-
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("focus", onFocus);
-      clearInterval(intervalId);
     };
-  }, [reminder.enabled, refreshDueCheck, scheduleNext]);
+  }, [reminder.enabled, refreshDueCheck, armLocalSchedulers]);
 
   useEffect(() => {
     function onSwMessage(event) {
@@ -146,7 +151,7 @@ export function useJournalReminder(user) {
       if (!user?.uid || !repoRef.current) {
         setReminder(safe);
         saveJournalReminderCache(safe);
-        return safe;
+        return { reminder: safe, permission: null };
       }
 
       setSaving(true);
@@ -167,9 +172,9 @@ export function useJournalReminder(user) {
         setReminder(saved);
         saveJournalReminderCache(saved);
         if (saved.enabled) {
-          scheduleNext();
+          armLocalSchedulers();
         } else {
-          clearTimer();
+          clearSchedulers();
         }
         return {
           reminder: saved,
@@ -181,7 +186,7 @@ export function useJournalReminder(user) {
         setSaving(false);
       }
     },
-    [user?.uid, scheduleNext, clearTimer]
+    [user?.uid, armLocalSchedulers, clearSchedulers]
   );
 
   return {

@@ -83,7 +83,7 @@ export async function ensureNotificationPermission() {
   }
 }
 
-export async function showJournalReminderNotification({ onClickMessage } = {}) {
+export async function showJournalReminderNotification() {
   if (!("Notification" in window) || Notification.permission !== "granted") return false;
 
   const title = "Time to journal";
@@ -92,7 +92,6 @@ export async function showJournalReminderNotification({ onClickMessage } = {}) {
   const data = {
     type: "journal-reminder",
     openTab: "journal",
-    ...(onClickMessage ? { message: onClickMessage } : {}),
   };
 
   try {
