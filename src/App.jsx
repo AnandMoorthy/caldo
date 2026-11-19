@@ -46,6 +46,7 @@ import { createJournalRepository } from "./services/repositories/journalReposito
 import { createHabitRepository } from "./services/repositories/habitRepository";
 import { materializeSeries } from "./utils/recurrence";
 import { exportAllCaldoData } from "./utils/exportData";
+import { sortTasksForDay, withCompletionStamp } from "./utils/taskSort";
 
 
 // Single-file Caldo app
@@ -578,10 +579,6 @@ export default function App() {
     return Array.from(byId.values());
   }
 
-  function sortTasksByCreatedDesc(list) {
-    return [...(list || [])].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-  }
-
   async function refreshDayFromCloud(userId, dateKey) {
     try {
       if (!taskRepoRef.current || !noteRepoRef.current) return;
@@ -597,7 +594,7 @@ export default function App() {
           const existing = byId.get(t.id);
           byId.set(t.id, existing ? { ...existing, ...t } : t);
         }
-        const mergedTasks = sortTasksByCreatedDesc(Array.from(byId.values()));
+        const mergedTasks = sortTasksForDay(Array.from(byId.values()));
         const dayNoteItem = note?.content
           ? { id: 'day_note', due: dateKey, dayNote: note.content, createdAt: note.updatedAt || localNote?.createdAt || new Date().toISOString() }
           : localNote || null;
@@ -1101,7 +1098,7 @@ export default function App() {
   function tasksFor(date) {
     const list = tasksMap[keyFor(date)] || [];
     const { taskList } = splitDayList(list);
-    return sortTasksByCreatedDesc(taskList);
+    return sortTasksForDay(taskList);
   }
 
   // Get incomplete tasks for a date
@@ -1178,7 +1175,7 @@ export default function App() {
           byId.set(rt.id, rt);
         }
       }
-      const mergedTasks = sortTasksByCreatedDesc(Array.from(byId.values()));
+      const mergedTasks = sortTasksForDay(Array.from(byId.values()));
       const full = mergeDayList(mergedTasks, noteItem);
       if (full.length) output[dateKey] = full; else delete output[dateKey];
     }
@@ -1217,7 +1214,7 @@ export default function App() {
           createdAt: noteItem?.createdAt || new Date().toISOString(),
         }
       : null;
-    const sortedTasks = sortTasksByCreatedDesc(taskList);
+    const sortedTasks = sortTasksForDay(taskList);
     const fullList = mergeDayList(sortedTasks, newNoteItem);
     // Update local state immediately
     setTasksMap((prev) => {
@@ -1412,7 +1409,7 @@ export default function App() {
       }
     }
     // newest first like the rest of the app
-    return sortTasksByCreatedDesc(items);
+    return sortTasksForDay(items);
   }, [tasksMap, monthStart]);
 
   // Build missed tasks for the current week window (Mon-Sun) for Week view aside
@@ -1432,7 +1429,7 @@ export default function App() {
         if (!t.done) items.push(t);
       }
     }
-    return sortTasksByCreatedDesc(items);
+    return sortTasksForDay(items);
   }, [tasksMap, cursor]);
 
   function openAddModal(date) {
@@ -1505,7 +1502,7 @@ export default function App() {
     setTasksMap((prev) => {
       const prevList = prev[key] || [];
       const { taskList, noteItem } = splitDayList(prevList);
-      const updatedTasks = sortTasksByCreatedDesc([newTask, ...taskList]);
+      const updatedTasks = sortTasksForDay([newTask, ...taskList]);
       // Adding a new incomplete task should not trigger; guard by checking prev->new transition
       const fullList = mergeDayList(updatedTasks, noteItem);
       const updated = { ...prev, [key]: fullList };
@@ -1616,11 +1613,10 @@ export default function App() {
           : [];
         const parentDone = sanitizedSubs.length > 0 ? sanitizedSubs.every((st) => st.done) : t.done;
         const updated = {
-          ...t,
+          ...withCompletionStamp(t, parentDone),
           title: editForm.title || 'Untitled',
           notes: editForm.notes || '',
           priority: editForm.priority || 'medium',
-          done: parentDone,
           ...(sanitizedSubs.length ? { subtasks: sanitizedSubs } : { subtasks: [] }),
         };
         if (t.isRecurringInstance && t.seriesId) {
@@ -1632,6 +1628,7 @@ export default function App() {
               notes: updated.notes,
               priority: updated.priority,
               done: updated.done,
+              completedAt: updated.completedAt,
               subtasks: updated.subtasks || [],
             };
             return { ...s, overrides: ov };
@@ -1639,7 +1636,7 @@ export default function App() {
         }
         return updated;
       });
-      const sortedTasks = sortTasksByCreatedDesc(list);
+      const sortedTasks = sortTasksForDay(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [editTask.due]: fullList };
       if (user && taskRepoRef.current) {
@@ -1673,7 +1670,10 @@ export default function App() {
         const nextSubtasks = Array.isArray(t.subtasks)
           ? t.subtasks.map((st) => ({ ...st, done: nextDone ? true : st.done }))
           : [];
-        const updated = { ...t, done: nextDone, subtasks: nextSubtasks };
+        const updated = {
+          ...withCompletionStamp(t, nextDone),
+          subtasks: nextSubtasks,
+        };
         // For recurring instances, persist override to series
         if (t.isRecurringInstance && t.seriesId) {
           setRecurringSeries((prevSeries) => {
@@ -1683,6 +1683,7 @@ export default function App() {
               ov[t.due] = {
                 ...(ov[t.due] || {}),
                 done: updated.done,
+                completedAt: updated.completedAt,
                 subtasks: Array.isArray(updated.subtasks) ? updated.subtasks : [],
               };
               const updatedSeries = { ...s, overrides: ov };
@@ -1730,7 +1731,7 @@ export default function App() {
           });
         }
       }
-      const sortedTasks = sortTasksByCreatedDesc(list);
+      const sortedTasks = sortTasksForDay(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [task.due]: fullList };
       if (user && taskRepoRef.current) {
@@ -1792,7 +1793,7 @@ export default function App() {
         }
       }
       const copy = { ...prev };
-      const sortedTasks = sortTasksByCreatedDesc(list);
+      const sortedTasks = sortTasksForDay(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       if (fullList.length) copy[task.due] = fullList;
       else delete copy[task.due];
@@ -1828,7 +1829,7 @@ export default function App() {
         const prevList = prev[task.due] || [];
         const { taskList, noteItem } = splitDayList(prevList);
         const list = taskList.filter((t) => t.id !== task.id);
-        const sorted = sortTasksByCreatedDesc(list);
+        const sorted = sortTasksForDay(list);
         const full = mergeDayList(sorted, noteItem);
         const next = { ...prev };
         if (full.length) next[task.due] = full; else delete next[task.due];
@@ -1879,7 +1880,7 @@ export default function App() {
         for (const [dateKey, list] of Object.entries(prev)) {
           const { taskList, noteItem } = splitDayList(list);
           const filtered = taskList.filter((t) => t.seriesId !== task.seriesId);
-          const merged = mergeDayList(sortTasksByCreatedDesc(filtered), noteItem);
+          const merged = mergeDayList(sortTasksForDay(filtered), noteItem);
           if (merged.length) next[dateKey] = merged; else delete next[dateKey];
         }
         return next;
@@ -1996,7 +1997,7 @@ export default function App() {
         }
       }
 
-      const sortedTasks = sortTasksByCreatedDesc(list);
+      const sortedTasks = sortTasksForDay(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [dueKey]: fullList };
       if (user && taskRepoRef.current) {
@@ -2028,7 +2029,7 @@ export default function App() {
       const prevList = prev[task.due] || [];
       const { taskList, noteItem } = splitDayList(prevList);
       const list = taskList.filter((t) => t.id !== task.id);
-      const sorted = sortTasksByCreatedDesc(list);
+      const sorted = sortTasksForDay(list);
       const full = mergeDayList(sorted, noteItem);
       const next = { ...prev };
       if (full.length) next[task.due] = full; else delete next[task.due];
@@ -2052,7 +2053,7 @@ export default function App() {
         const hasSubtasks = newSubtasks.length > 0;
         const allSubsDone = hasSubtasks ? newSubtasks.every((st) => st.done) : true;
         const parentDone = hasSubtasks ? allSubsDone : t.done;
-        const updated = { ...t, subtasks: newSubtasks, done: parentDone };
+        const updated = { ...withCompletionStamp(t, parentDone), subtasks: newSubtasks };
         if (t.isRecurringInstance && t.seriesId) {
           setRecurringSeries((prevSeries) => prevSeries.map((s) => {
             if (s.id !== t.seriesId) return s;
@@ -2061,6 +2062,7 @@ export default function App() {
               ...(ov[t.due] || {}),
               subtasks: updated.subtasks,
               done: updated.done,
+              completedAt: updated.completedAt,
             };
             const updatedSeries = { ...s, overrides: ov };
             
@@ -2105,7 +2107,7 @@ export default function App() {
         }
       }
 
-      const sortedTasks = sortTasksByCreatedDesc(list);
+      const sortedTasks = sortTasksForDay(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [dueKey]: fullList };
       if (user && taskRepoRef.current) {
@@ -2129,7 +2131,7 @@ export default function App() {
         const hasSubtasks = newSubtasks.length > 0;
         const allSubsDone = hasSubtasks ? newSubtasks.every((st) => st.done) : true;
         const parentDone = hasSubtasks ? allSubsDone : t.done;
-        const updated = { ...t, subtasks: newSubtasks, done: parentDone };
+        const updated = { ...withCompletionStamp(t, parentDone), subtasks: newSubtasks };
         if (t.isRecurringInstance && t.seriesId) {
           setRecurringSeries((prevSeries) => prevSeries.map((s) => {
             if (s.id !== t.seriesId) return s;
@@ -2138,6 +2140,7 @@ export default function App() {
               ...(ov[t.due] || {}),
               subtasks: updated.subtasks,
               done: updated.done,
+              completedAt: updated.completedAt,
             };
             const updatedSeries = { ...s, overrides: ov };
             
@@ -2182,7 +2185,7 @@ export default function App() {
         }
       }
 
-      const sortedTasks = sortTasksByCreatedDesc(list);
+      const sortedTasks = sortTasksForDay(list);
       const fullList = mergeDayList(sortedTasks, noteItem);
       const updated = { ...prev, [dueKey]: fullList };
       if (user && taskRepoRef.current) {
@@ -2208,7 +2211,7 @@ export default function App() {
       if (task.isRecurringInstance) return prev;
       
       const updatedFromTasks = fromTasks.filter((t) => t.id !== taskId);
-      const sortedFromTasks = sortTasksByCreatedDesc(updatedFromTasks);
+      const sortedFromTasks = sortTasksForDay(updatedFromTasks);
       const fullFromList = mergeDayList(sortedFromTasks, fromNote);
       const toList = prev[toKey] || [];
       const { taskList: toTasks, noteItem: toNote } = splitDayList(toList);
@@ -2218,7 +2221,7 @@ export default function App() {
         const { seriesId, occurrenceDateKey, ...rest } = movedTask;
         movedTask = { ...rest, isRecurringInstance: false, id: generateId() };
       }
-      const newToTasks = sortTasksByCreatedDesc([movedTask, ...toTasks]);
+      const newToTasks = sortTasksForDay([movedTask, ...toTasks]);
       const fullToList = mergeDayList(newToTasks, toNote);
       const updated = { ...prev, [toKey]: fullToList };
       if (fullFromList.length) updated[fromKey] = fullFromList; else delete updated[fromKey];
