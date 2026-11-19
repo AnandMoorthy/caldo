@@ -1,59 +1,94 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Keyboard, HelpCircle, Search, RefreshCcw, Calendar, List, Plus, FileText, Clock, CheckCircle, AlertCircle, Info, Copy, BookOpenText } from "lucide-react";
+import {
+  X,
+  Keyboard,
+  HelpCircle,
+  Search,
+  RefreshCcw,
+  Calendar,
+  List,
+  Plus,
+  FileText,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Info,
+  Copy,
+  BookOpenText,
+  Sparkles,
+  Target,
+  Flame,
+  Pin,
+  Share2,
+  Settings,
+} from "lucide-react";
 
 export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
 
   const handleClose = useCallback(() => {
-    console.log('HelpPage: Close button clicked');
-    console.log('HelpPage: onClose function:', onClose);
-    console.log('HelpPage: open state:', open);
-    if (typeof onClose === 'function') {
+    if (typeof onClose === "function") {
       onClose();
-    } else {
-      console.error('HelpPage: onClose is not a function:', onClose);
     }
-  }, [onClose, open]);
+  }, [onClose]);
 
-  // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (event) => {
-      if (event.key === 'Escape' && open) {
-        console.log('HelpPage: Escape key pressed');
+      if (event.key === "Escape" && open) {
         event.preventDefault();
         event.stopPropagation();
-        if (typeof onClose === 'function') {
+        if (typeof onClose === "function") {
           onClose();
         }
       }
     };
 
     if (open) {
-      console.log('HelpPage: Adding keyboard listener');
-      document.addEventListener('keydown', handleKeyDown);
-      // Prevent body scroll when help is open
-      document.body.style.overflow = 'hidden';
+      document.addEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      console.log('HelpPage: Removing keyboard listener');
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "unset";
     };
   }, [open, onClose]);
 
+  const isMac =
+    typeof navigator !== "undefined" &&
+    navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+  const searchShortcut = isMac ? "⌘K" : "Ctrl+K";
+
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: HelpCircle },
-    { id: 'calendar', label: 'Calendar', icon: Calendar },
-    { id: 'tasks', label: 'Tasks', icon: List },
-    ...(pomodoroEnabled ? [{ id: 'pomodoro', label: 'Pomodoro', icon: Clock }] : []),
-    { id: 'notes', label: 'Notes', icon: FileText },
-    { id: 'journal', label: 'Journal', icon: BookOpenText },
-    { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
-    { id: 'features', label: 'Features', icon: Info },
-    { id: 'faq', label: 'FAQ', icon: HelpCircle }
+    { id: "overview", label: "Overview", icon: HelpCircle },
+    { id: "calendar", label: "Calendar", icon: Calendar },
+    { id: "tasks", label: "Tasks", icon: List },
+    ...(pomodoroEnabled ? [{ id: "pomodoro", label: "Pomodoro", icon: Clock }] : []),
+    { id: "notes", label: "Notes", icon: FileText },
+    { id: "journal", label: "Journal", icon: BookOpenText },
+    { id: "moments", label: "Moments", icon: Sparkles },
+    { id: "habits", label: "Habits", icon: Target },
+    { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
+    { id: "features", label: "Features", icon: Info },
+    { id: "faq", label: "FAQ", icon: HelpCircle },
   ];
+
+  const ShortcutRow = ({ label, keys }) => (
+    <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+      <span className="text-slate-700 dark:text-slate-200">{label}</span>
+      <div className="flex flex-wrap items-center justify-end gap-1">
+        {(Array.isArray(keys) ? keys : [keys]).map((key) => (
+          <kbd
+            key={key}
+            className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono"
+          >
+            {key}
+          </kbd>
+        ))}
+      </div>
+    </div>
+  );
 
   const renderOverview = () => (
     <div className="space-y-6">
@@ -65,38 +100,60 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
           Welcome to CalDo
         </h1>
         <p className="text-slate-600 dark:text-slate-300 max-w-md mx-auto">
-          Your personal calendar and task management app. Here's everything you need to know to get started.
+          Your personal calendar, tasks, notes, journal, moments, and habits in one place.
+          Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">{searchShortcut}</kbd> to search,
+          or <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">?</kbd> anytime for this guide.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 mb-3">
             <Calendar size={20} className="text-green-600 dark:text-green-400" />
           </div>
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Calendar View</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Tasks & Calendar</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Visual calendar with color-coded indicators for tasks and notes
+            Plan with Day, Week, Month, and Year views, priorities, subtasks, and recurring work
           </p>
         </div>
 
         <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 mb-3">
-            <List size={20} className="text-blue-600 dark:text-blue-400" />
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 mb-3">
+            <FileText size={20} className="text-indigo-600 dark:text-indigo-400" />
           </div>
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Task Management</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Notes</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Create, edit, and organize tasks with recurring options
+            Reusable rich-text notes you can pin, copy, and optionally share with a link
           </p>
         </div>
 
         <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 mb-3">
-            <FileText size={20} className="text-purple-600 dark:text-purple-400" />
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 mb-3">
+            <BookOpenText size={20} className="text-cyan-600 dark:text-cyan-400" />
           </div>
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Daily Notes</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Journal</h3>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Add personal notes and thoughts to any day
+            One entry per day with mood, energy level, and a daily reminder
+          </p>
+        </div>
+
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-pink-100 dark:bg-pink-900/30 mb-3">
+            <Sparkles size={20} className="text-pink-600 dark:text-pink-400" />
+          </div>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Moments</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Short mood-tagged posts organized by categories
+          </p>
+        </div>
+
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 mb-3">
+            <Target size={20} className="text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Habits</h3>
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Track daily habits with a rolling 7-day history
           </p>
         </div>
 
@@ -105,22 +162,20 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
             <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 mb-3">
               <Clock size={20} className="text-orange-600 dark:text-orange-400" />
             </div>
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Pomodoro Timer</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Pomodoro</h3>
             <p className="text-sm text-slate-600 dark:text-slate-300">
-              Focus timer with work/break cycles for productivity
+              Focus timer with work/break cycles for today&apos;s tasks
             </p>
           </div>
         )}
+      </div>
 
-        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 mb-3">
-            <FileText size={20} className="text-indigo-600 dark:text-indigo-400" />
-          </div>
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Notes</h3>
-          <p className="text-sm text-slate-600 dark:text-slate-300">
-            Store and manage reusable notes for any purpose
-          </p>
-        </div>
+      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-sm text-blue-800 dark:text-blue-200">
+        <p>
+          <strong>Day notes vs Notes:</strong> Day notes live on a calendar date (press{" "}
+          <kbd className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-800 text-xs">N</kbd> on Tasks).
+          The Notes tab is for reusable freeform notes.
+        </p>
       </div>
     </div>
   );
@@ -128,21 +183,21 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
   const renderCalendar = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Calendar Indicators</h2>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Calendar</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">
-          The calendar uses color-coded dots to show the status of each day
+          Switch between Day, Week, Month, and Year. On phones, Tasks stays on Day view.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Status Indicators</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Month & Year indicators</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <span className="inline-block w-4 h-4 rounded-full bg-blue-500" />
               <div>
                 <div className="font-medium text-slate-900 dark:text-slate-100">Blue dot</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Notes present for that day</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Day note present</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
@@ -177,27 +232,35 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Interactive Features</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Interactive features</h3>
           <div className="space-y-3">
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <div className="font-medium text-slate-900 dark:text-slate-100 mb-2">Double-click a day</div>
               <div className="text-sm text-slate-600 dark:text-slate-300">
-                Quickly add a task or note to any calendar day
+                Quickly add a task for that date
               </div>
             </div>
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-              <div className="font-medium text-slate-900 dark:text-slate-100 mb-2">Drag & Drop</div>
+              <div className="font-medium text-slate-900 dark:text-slate-100 mb-2">Drag & drop</div>
               <div className="text-sm text-slate-600 dark:text-slate-300">
-                Reschedule tasks by dragging them to different days
+                Reschedule one-off tasks by dragging them to different days
               </div>
               <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                 Note: Recurring tasks cannot be moved
               </div>
             </div>
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-              <div className="font-medium text-slate-900 dark:text-slate-100 mb-2">Navigation</div>
+              <div className="font-medium text-slate-900 dark:text-slate-100 mb-2">Keyboard navigation</div>
               <div className="text-sm text-slate-600 dark:text-slate-300">
-                Use arrow keys or click navigation to move between months
+                Arrow keys move the selected date by one day. Use{" "}
+                <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">0</kbd> to jump to today,
+                and letter/number shortcuts to switch views.
+              </div>
+            </div>
+            <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <div className="font-medium text-slate-900 dark:text-slate-100 mb-2">Week view</div>
+              <div className="text-sm text-slate-600 dark:text-slate-300">
+                Shows a blue day-note indicator plus done/total counts, with an inline task list for each day
               </div>
             </div>
           </div>
@@ -211,46 +274,74 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       <div className="text-center">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Task Management</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">
-          Create, organize, and track your tasks with powerful features
+          Create, organize, and track tasks with priorities, subtasks, and recurrence
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Creating Tasks</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Creating tasks</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <Plus size={16} className="text-green-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Press T key</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Quick task creation</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Press T</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Quick task creation for the selected date</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <Calendar size={16} className="text-blue-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Double-click day</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Add task to specific date</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Double-click a day</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Add a task to that date</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <FileText size={16} className="text-purple-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Press N</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Open the day note for the selected date</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Clock size={16} className="text-amber-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Press O</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Review missed (overdue incomplete) tasks</div>
               </div>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Task Features</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Task features</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <CheckCircle size={16} className="text-green-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Completion</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Mark tasks as done</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Priorities & completion</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Low / Medium / High priority, mark done when due</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <List size={16} className="text-blue-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Subtasks</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Break work into checklist items inside a task</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <RefreshCcw size={16} className="text-purple-600" />
               <div>
                 <div className="font-medium text-slate-900 dark:text-slate-100">Recurring</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Set repeating patterns</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Daily, weekly, or monthly patterns with end rules</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Flame size={16} className="text-orange-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Streaks & density</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Earn a streak by finishing today; tune Day view density</div>
               </div>
             </div>
           </div>
@@ -258,28 +349,27 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       </div>
 
       <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-        <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Recurring Tasks</h3>
+        <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Recurring tasks</h3>
         <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
           <p><strong>Frequency:</strong> Daily, Weekly, or Monthly</p>
           <p><strong>Interval:</strong> Every N days/weeks/months</p>
           <p><strong>Weekly:</strong> Choose specific days of the week</p>
           <p><strong>Monthly:</strong> Select day of the month</p>
-          <p><strong>Ends:</strong> Never, on date, or after occurrences</p>
+          <p><strong>Ends:</strong> Never, on a date, or after occurrences</p>
+          <p><strong>Editing:</strong> When you edit or delete a recurring task, choose this occurrence or the whole series</p>
         </div>
       </div>
 
       <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
         <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 flex items-center gap-2">
           <AlertCircle size={20} />
-          Task Restrictions & Limitations
+          Task restrictions
         </h3>
         <div className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
-          <p><strong>Important:</strong> CalDo has built-in restrictions to maintain data integrity:</p>
           <ul className="list-disc pl-5 space-y-1">
             <li><strong>Future tasks</strong> cannot be marked complete until their due date</li>
-            <li><strong>Recurring tasks</strong> cannot be moved between dates (drag & drop disabled)</li>
-            <li>These restrictions help maintain accurate progress tracking and series integrity</li>
-            <li>See the <button onClick={() => setActiveTab('faq')} className="text-amber-700 dark:text-amber-300 underline hover:no-underline">FAQ section</button> for detailed explanations</li>
+            <li><strong>Recurring tasks</strong> cannot be moved between dates with drag & drop</li>
+            <li>See the <button type="button" onClick={() => setActiveTab("faq")} className="text-amber-700 dark:text-amber-300 underline hover:no-underline">FAQ</button> for details</li>
           </ul>
         </div>
       </div>
@@ -291,59 +381,59 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       <div className="text-center">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Pomodoro Timer</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">
-          Boost your productivity with focused work sessions and strategic breaks
+          Focused work sessions and breaks for today&apos;s tasks
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Getting Started</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Getting started</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <Clock size={16} className="text-orange-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Start Timer</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Click timer icon on any task or press P key</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Start timer</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Click the timer on a today task, or press P</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <CheckCircle size={16} className="text-green-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Today Only</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Pomodoro only works for today's tasks</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Today only</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Pomodoro is available for today&apos;s tasks</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <RefreshCcw size={16} className="text-blue-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Auto-Complete</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Tasks auto-complete when work session ends</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Auto-complete</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Tasks can auto-complete when a work session ends</div>
               </div>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Timer Phases</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Timer phases</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <div className="w-3 h-3 rounded-full bg-red-500" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Work Session</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Work session</div>
                 <div className="text-sm text-slate-600 dark:text-slate-300">25 minutes of focused work (default)</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <div className="w-3 h-3 rounded-full bg-green-500" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Short Break</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Short break</div>
                 <div className="text-sm text-slate-600 dark:text-slate-300">5 minutes between work sessions</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <div className="w-3 h-3 rounded-full bg-blue-500" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Long Break</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Long break</div>
                 <div className="text-sm text-slate-600 dark:text-slate-300">15 minutes after 4 work sessions</div>
               </div>
             </div>
@@ -352,28 +442,11 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       </div>
 
       <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
-        <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">Floating Widget</h3>
+        <h3 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">Floating widget</h3>
         <div className="text-sm text-orange-800 dark:text-orange-200 space-y-2">
           <p><strong>Draggable:</strong> Move the timer anywhere on your screen</p>
-          <p><strong>Persistent:</strong> Position is saved and restored between sessions</p>
-          <p><strong>Compact:</strong> Slim design that doesn't obstruct your workflow</p>
-          <p><strong>Settings:</strong> Click the gear icon to customize timer durations</p>
-        </div>
-      </div>
-
-      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-        <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 flex items-center gap-2">
-          <AlertCircle size={20} />
-          Important Restrictions
-        </h3>
-        <div className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
-          <p><strong>Date Limitation:</strong> Pomodoro timer only works for tasks scheduled for today</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Past tasks cannot use Pomodoro (already completed or overdue)</li>
-            <li>Future tasks cannot use Pomodoro (not yet due)</li>
-            <li>Only today's tasks show active timer buttons</li>
-            <li>This ensures focus on current day's priorities</li>
-          </ul>
+          <p><strong>Persistent:</strong> Position is saved between sessions</p>
+          <p><strong>Settings:</strong> Customize durations, sounds, and desktop notifications</p>
         </div>
       </div>
     </div>
@@ -384,39 +457,39 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       <div className="text-center">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Notes</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">
-          Store, organize, and quickly access reusable notes for any purpose
+          Reusable rich-text notes, separate from per-day calendar notes
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Creating Notes</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Creating notes</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <Plus size={16} className="text-indigo-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">New Note</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Open the Notes tab and click + Note</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">New note</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Open the Notes tab and create a note</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <FileText size={16} className="text-purple-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Content Types</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Reminders, quotes, recipes, or any text</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Rich text</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Format content with the rich text editor</div>
               </div>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Note Features</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Note features</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-              <Search size={16} className="text-blue-600" />
+              <Pin size={16} className="text-indigo-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Search</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Find notes quickly</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Pin</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Keep important notes at the top</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
@@ -426,17 +499,29 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
                 <div className="text-sm text-slate-600 dark:text-slate-300">One-click copy to clipboard</div>
               </div>
             </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Share2 size={16} className="text-blue-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Share</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Publish a public link, optionally with edit access</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Search size={16} className="text-slate-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Search</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Find notes via global search ({searchShortcut})</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="p-4 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800">
-        <h3 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-2">Note Management</h3>
+        <h3 className="font-semibold text-indigo-900 dark:text-indigo-100 mb-2">Day notes vs Notes tab</h3>
         <div className="text-sm text-indigo-800 dark:text-indigo-200 space-y-2">
-          <p><strong>Organization:</strong> Pin important notes for quick access</p>
-          <p><strong>Search:</strong> Find notes by title or content</p>
-          <p><strong>Separate from daily notes:</strong> Day notes live on Tasks; Notes tab is for freeform notes</p>
-          <p><strong>Versatile:</strong> Store any type of text - quotes, recipes, and more</p>
+          <p><strong>Day notes:</strong> Tied to a calendar date; open with N or the sticky-note control on Tasks</p>
+          <p><strong>Notes tab:</strong> Freeform reusable notes that are not bound to a day</p>
         </div>
       </div>
     </div>
@@ -447,33 +532,33 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       <div className="text-center">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Journal</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">
-          Keep a simple daily journal with mood, energy level, and freeform notes.
+          Keep one journal entry per day with mood, energy, and freeform notes
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Getting Started</h3>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Getting started</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <BookOpenText size={16} className="text-cyan-600" />
               <div>
                 <div className="font-medium text-slate-900 dark:text-slate-100">Write daily notes</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Capture reflections, wins, or anything else in a single notes field</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Capture reflections, wins, or anything else</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <Plus size={16} className="text-indigo-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Create a new journal</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Use New journal to open the entry for that day (or create it if missing)</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">New journal</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Open or create the entry for that day</div>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
               <Clock size={16} className="text-amber-600" />
               <div>
-                <div className="font-medium text-slate-900 dark:text-slate-100">Set a daily reminder</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Choose a local time (for example 6:00 PM). Settings sync to your other devices; notifications are delivered locally</div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Daily reminder</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Choose a local time; settings sync, notifications stay on-device</div>
               </div>
             </div>
           </div>
@@ -493,7 +578,106 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
               <Clock size={16} className="text-emerald-600" />
               <div>
                 <div className="font-medium text-slate-900 dark:text-slate-100">Energy level</div>
-                <div className="text-sm text-slate-600 dark:text-slate-300">Track your daily energy from 1 to 5</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Track daily energy from 1 to 5</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderMoments = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Moments</h2>
+        <p className="text-slate-600 dark:text-slate-300 mb-6">
+          Capture short, mood-tagged posts and organize them with categories
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Creating moments</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Sparkles size={16} className="text-pink-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Short posts</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Write quick thoughts (up to a short character limit)</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Info size={16} className="text-purple-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Mood tags</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Optional mood such as happy, calm, motivated, and more</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Organization</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <List size={16} className="text-blue-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Categories</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Assign categories and manage them as needed</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Search size={16} className="text-slate-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Searchable</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Moments appear in global search</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderHabits = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Habits</h2>
+        <p className="text-slate-600 dark:text-slate-300 mb-6">
+          Build consistency by checking off habits each day
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Tracking</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Plus size={16} className="text-emerald-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Add habits</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Create habits like Drink water or Stretch</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <CheckCircle size={16} className="text-green-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Toggle for a day</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Mark complete for today or any day in the 7-day history</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">History</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+              <Target size={16} className="text-indigo-600" />
+              <div>
+                <div className="font-medium text-slate-900 dark:text-slate-100">Last 7 days</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Review and update recent completions at a glance</div>
               </div>
             </div>
           </div>
@@ -507,85 +691,47 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       <div className="text-center">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Keyboard Shortcuts</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">
-          Speed up your workflow with these keyboard shortcuts
+          Most task shortcuts work on the Tasks tab. They are paused while typing, and while Notes, Journal, Settings, or a day-note/journal drawer is open.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Add new task</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">T</kbd>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Open day notes (Tasks)</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">N</kbd>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Open missed tasks</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">O</kbd>
-        </div>
-        {pomodoroEnabled && (
-          <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-            <span className="text-slate-700 dark:text-slate-200">Open Pomodoro timer</span>
-            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">P</kbd>
+      <div className="space-y-5">
+        <div>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-3">Global</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <ShortcutRow label="Search everything" keys={searchShortcut} />
+            <ShortcutRow label="Open Help" keys="?" />
+            <ShortcutRow label="Close dialog / drawer" keys="Esc" />
           </div>
-        )}
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Search covers tasks, day notes, Notes, journals, and moments. Inside search: ↑↓ navigate, Enter select, Esc close.
+          </p>
+        </div>
 
+        <div>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-3">Tasks actions</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <ShortcutRow label="Add new task" keys="T" />
+            <ShortcutRow label="Open day notes" keys="N" />
+            <ShortcutRow label="Open missed tasks" keys="O" />
+            {pomodoroEnabled && <ShortcutRow label="Open Pomodoro timer" keys="P" />}
+          </div>
+        </div>
 
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Switch to Month view</span>
-          <div className="space-x-1">
-            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">M</kbd>
+        <div>
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-3">Views & navigation</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <ShortcutRow label="Day view" keys={["D", "1"]} />
+            <ShortcutRow label="Week view" keys={["W", "2"]} />
+            <ShortcutRow label="Month view" keys={["M", "3"]} />
+            <ShortcutRow label="Year view" keys={["Y", "4"]} />
+            <ShortcutRow label="Previous day" keys="←" />
+            <ShortcutRow label="Next day" keys="→" />
+            <ShortcutRow label="Jump to today" keys="0" />
           </div>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Switch to Week view</span>
-          <div className="space-x-1">
-            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">W</kbd>
-          </div>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Switch to Day view</span>
-          <div className="space-x-1">
-            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">D</kbd>
-          </div>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Switch to Year view</span>
-          <div className="space-x-1">
-            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">Y</kbd>
-          </div>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">View shortcuts</span>
-          <div className="space-x-1">
-            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">1</kbd>
-            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">2</kbd>
-            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">3</kbd>
-            <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">4</kbd>
-          </div>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Search tasks & notes</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">
-            {navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘K' : 'Ctrl+K'}
-          </kbd>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Go to previous month</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">←</kbd>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Go to next month</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">→</kbd>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Jump to today</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">0</kbd>
-        </div>
-        <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <span className="text-slate-700 dark:text-slate-200">Close dialog/drawer</span>
-          <kbd className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-xs font-mono">Esc</kbd>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            On phones, Tasks stays on Day view, so Week/Month/Year letter and number shortcuts are disabled. Hold ← / → to keep stepping days.
+          </p>
         </div>
       </div>
     </div>
@@ -594,9 +740,9 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
   const renderFeatures = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Advanced Features</h2>
+        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Features</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">
-          Discover powerful features to enhance your productivity
+          Highlights across CalDo&apos;s current toolkit
         </p>
       </div>
 
@@ -604,15 +750,14 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
         <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-3 mb-3">
             <Search size={20} className="text-blue-600" />
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Global Search</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Global search</h3>
           </div>
           <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
-            <p>Quickly find tasks, day notes, and notes across all your data:</p>
+            <p>Find tasks, day notes, Notes, journals, and moments:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">⌘K</kbd> or <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">Ctrl+K</kbd> to open search</li>
-              <li>Search by task title, day notes, or note content</li>
-              <li>Use arrow keys to navigate results, Enter to select</li>
-              <li>Click any result to jump to that date and item</li>
+              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">{searchShortcut}</kbd> to open search</li>
+              <li>Use ↑↓ to navigate, Enter to select, Esc to close</li>
+              <li>Click a result to jump to that item or date</li>
             </ul>
           </div>
         </div>
@@ -620,32 +765,13 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
         <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-3 mb-3">
             <FileText size={20} className="text-green-600" />
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Daily Notes</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Day notes</h3>
           </div>
           <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
-            <p>Add personal notes and thoughts to any day:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>On Tasks, press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">N</kbd> or use the StickyNote icon for that day</li>
-              <li>Write daily reflections, ideas, or reminders</li>
-              <li>Day notes are automatically saved and synced</li>
-              <li>Find day notes via search; they are not listed in the Notes tab</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3 mb-3">
-            <FileText size={20} className="text-indigo-600" />
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Notes</h3>
-          </div>
-          <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
-            <p>Store and manage reusable notes for any purpose:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Open the Notes tab to browse and create notes</li>
-              <li>Create, organize, and search notes</li>
-              <li>Pin important notes for quick access</li>
-              <li>One-click copy to clipboard</li>
-              <li>Store reminders, quotes, recipes, or any text content</li>
+              <li>On Tasks, press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">N</kbd> or use the sticky-note control</li>
+              <li>Day notes sync with your account and appear in search</li>
+              <li>They are separate from the Notes tab</li>
             </ul>
           </div>
         </div>
@@ -653,15 +779,38 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
         <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           <div className="flex items-center gap-3 mb-3">
             <Clock size={20} className="text-purple-600" />
-            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Missed Tasks</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Missed tasks</h3>
           </div>
           <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
-            <p>Never lose track of incomplete tasks:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">M</kbd> to view missed tasks</li>
-              <li>Review incomplete tasks from earlier days</li>
-              <li>Reschedule or complete overdue items</li>
-              <li>Maintain accountability and progress</li>
+              <li>Press <kbd className="px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-700 text-xs">O</kbd> to review incomplete past tasks</li>
+              <li>Reschedule or complete overdue items from one place</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 mb-3">
+            <Flame size={20} className="text-orange-600" />
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Streaks & density</h3>
+          </div>
+          <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Complete all of today&apos;s tasks to grow your streak (header flame)</li>
+              <li>In Day view, switch task card density: normal, compact, or minified</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 mb-3">
+            <Sparkles size={20} className="text-pink-600" />
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Moments & Habits</h3>
+          </div>
+          <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Moments:</strong> short mood-tagged posts with categories</li>
+              <li><strong>Habits:</strong> daily check-offs with a 7-day history</li>
             </ul>
           </div>
         </div>
@@ -670,38 +819,43 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
           <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800">
             <div className="flex items-center gap-3 mb-3">
               <Clock size={20} className="text-orange-600" />
-              <h3 className="font-semibold text-orange-900 dark:text-orange-100">Pomodoro Timer</h3>
+              <h3 className="font-semibold text-orange-900 dark:text-orange-100">Pomodoro timer</h3>
             </div>
             <div className="text-sm text-orange-800 dark:text-orange-200 space-y-2">
-              <p>Boost productivity with focused work sessions and strategic breaks:</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Press <kbd className="px-1.5 py-0.5 rounded bg-orange-200 dark:bg-orange-800 text-xs">P</kbd> to open Pomodoro timer</li>
-                <li>25-minute work sessions with 5-minute breaks</li>
-                <li>15-minute long break after 4 work sessions</li>
-                <li>Auto-complete tasks when work sessions end</li>
-                <li>Draggable floating widget with persistent position</li>
-                <li>Customizable timer durations in settings</li>
-                <li>Sound notifications and desktop alerts</li>
-                <li>Only works for today's tasks (past/future disabled)</li>
+                <li>Press <kbd className="px-1.5 py-0.5 rounded bg-orange-200 dark:bg-orange-800 text-xs">P</kbd> to open the timer</li>
+                <li>Default 25 / 5 / 15 cycle with customizable durations</li>
+                <li>Only available for today&apos;s tasks</li>
               </ul>
             </div>
           </div>
         )}
 
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3 mb-3">
+            <Settings size={20} className="text-slate-600" />
+            <h3 className="font-semibold text-slate-900 dark:text-slate-100">Settings & sync</h3>
+          </div>
+          <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
+            <ul className="list-disc pl-5 space-y-1">
+              <li><strong>Appearance:</strong> theme palettes with light and dark modes</li>
+              <li><strong>Data:</strong> export a JSON backup of your CalDo content</li>
+              <li><strong>Account:</strong> sign in with Google for cloud sync</li>
+              <li><strong>Install:</strong> add CalDo as a PWA from the profile menu when available</li>
+            </ul>
+          </div>
+        </div>
+
         <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
           <div className="flex items-center gap-3 mb-3">
             <AlertCircle size={20} className="text-amber-600" />
-            <h3 className="font-semibold text-amber-900 dark:text-amber-100">Data Integrity & Restrictions</h3>
+            <h3 className="font-semibold text-amber-900 dark:text-amber-100">Data integrity</h3>
           </div>
           <div className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
-            <p>CalDo includes intelligent restrictions to maintain data quality:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Future Task Protection:</strong> Prevents premature completion of tasks not yet due</li>
-              <li><strong>Recurring Task Protection:</strong> Maintains series integrity by preventing date changes</li>
-              <li><strong>Progress Accuracy:</strong> Ensures completion tracking reflects actual task status</li>
-              <li><strong>Series Consistency:</strong> Prevents recurring patterns from breaking</li>
+              <li>Future tasks cannot be completed early</li>
+              <li>Recurring tasks keep their series and cannot be drag-moved</li>
             </ul>
-            <p className="mt-2 text-xs">These restrictions help maintain accurate progress tracking and prevent data inconsistencies.</p>
           </div>
         </div>
       </div>
@@ -713,7 +867,7 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
       <div className="text-center">
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">Frequently Asked Questions</h2>
         <p className="text-slate-600 dark:text-slate-300 mb-6">
-          Answers to common questions about CalDo's features and functionality.
+          Answers to common questions about CalDo&apos;s behavior
         </p>
       </div>
 
@@ -721,77 +875,50 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
         <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
           <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-2 flex items-center gap-2">
             <AlertCircle size={20} />
-            Why can't I mark future tasks as complete?
+            Why can&apos;t I mark future tasks as complete?
           </h3>
           <div className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
-            <p><strong>Future Task Restriction:</strong> Tasks with due dates in the future cannot be marked as complete. This prevents premature task completion and helps maintain accurate progress tracking.</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Future tasks show a disabled checkmark button</li>
-              <li>The button appears grayed out with reduced opacity</li>
-              <li>Hovering shows "Cannot mark future tasks complete" tooltip</li>
-              <li>This restriction applies to all tasks scheduled for future dates</li>
-            </ul>
+            <p>Tasks due in the future stay incomplete until their date arrives, so progress tracking stays accurate.</p>
           </div>
         </div>
 
         <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800">
           <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-2 flex items-center gap-2">
             <RefreshCcw size={20} />
-            Why can't I drag and drop recurring tasks?
+            Why can&apos;t I drag and drop recurring tasks?
           </h3>
           <div className="text-sm text-purple-800 dark:text-purple-200 space-y-2">
-            <p><strong>Recurring Task Protection:</strong> Recurring tasks cannot be moved between dates to maintain the integrity of their series and prevent conflicts with the recurrence pattern.</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Recurring tasks show a default cursor instead of grab cursor</li>
-              <li>Drag and drop is completely disabled for recurring tasks</li>
-              <li>Tooltip shows "Cannot be moved" for recurring tasks</li>
-              <li>This protects the recurrence series from breaking</li>
-            </ul>
+            <p>Moving a recurring occurrence would break the series pattern. Edit the series (or a single occurrence) instead of dragging.</p>
           </div>
         </div>
 
         <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
           <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
             <Info size={20} />
-            How do I identify restricted tasks?
+            What is the difference between day notes and Notes?
           </h3>
           <div className="text-sm text-blue-800 dark:text-blue-200 space-y-2">
-            <p><strong>Visual Indicators:</strong> CalDo provides clear visual cues to help you identify which tasks have restrictions:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Future tasks:</strong> Checkmark button is disabled and grayed out</li>
-              <li><strong>Recurring tasks:</strong> Purple refresh icon with "Cannot be moved" tooltip</li>
-              <li><strong>Cursor changes:</strong> Recurring tasks show default cursor, others show grab cursor</li>
-              <li><strong>Tooltips:</strong> Hover over buttons to see restriction explanations</li>
-            </ul>
+            <p><strong>Day notes</strong> belong to a calendar date (shortcut N). <strong>Notes</strong> are reusable freeform documents in the Notes tab.</p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Why don&apos;t shortcuts work sometimes?</h3>
+          <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
+            <p>Shortcuts pause while you type in an input, and while Notes, Journal, Settings, or a day-note/journal drawer is open. Esc and {searchShortcut} still work.</p>
           </div>
         </div>
 
         <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
           <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2 flex items-center gap-2">
             <CheckCircle size={20} />
-            What can I do with restricted tasks?
+            What can I still do with restricted tasks?
           </h3>
           <div className="text-sm text-green-800 dark:text-green-200 space-y-2">
-            <p><strong>Available Actions:</strong> Even with restrictions, you can still perform most task management operations:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li><strong>Edit:</strong> Modify title, notes, priority, and subtasks</li>
-              <li><strong>Delete:</strong> Remove tasks completely</li>
-              <li><strong>Add subtasks:</strong> Create and manage subtasks</li>
-              <li><strong>View details:</strong> See all task information and recurrence patterns</li>
-              <li><strong>Future tasks:</strong> Mark complete once the due date arrives</li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-          <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">General Task Management</h3>
-          <div className="text-sm text-slate-600 dark:text-slate-300 space-y-2">
-            <p>For regular (non-recurring) tasks that are not in the future:</p>
-            <ul className="list-disc pl-5 space-y-1">
-              <li>Full drag and drop functionality between dates</li>
-              <li>Complete task completion and editing capabilities</li>
-              <li>No restrictions on task management operations</li>
-              <li>Normal cursor and button behavior</li>
+              <li>Edit title, notes, priority, and subtasks</li>
+              <li>Delete (choose occurrence or series for recurring)</li>
+              <li>Complete future tasks once their due date arrives</li>
             </ul>
           </div>
         </div>
@@ -801,16 +928,30 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'overview': return renderOverview();
-      case 'calendar': return renderCalendar();
-      case 'tasks': return renderTasks();
-      case 'pomodoro': return renderPomodoro();
-      case 'notes': return renderNotes();
-      case 'journal': return renderJournal();
-      case 'shortcuts': return renderShortcuts();
-      case 'features': return renderFeatures();
-      case 'faq': return renderFAQ();
-      default: return renderOverview();
+      case "overview":
+        return renderOverview();
+      case "calendar":
+        return renderCalendar();
+      case "tasks":
+        return renderTasks();
+      case "pomodoro":
+        return renderPomodoro();
+      case "notes":
+        return renderNotes();
+      case "journal":
+        return renderJournal();
+      case "moments":
+        return renderMoments();
+      case "habits":
+        return renderHabits();
+      case "shortcuts":
+        return renderShortcuts();
+      case "features":
+        return renderFeatures();
+      case "faq":
+        return renderFAQ();
+      default:
+        return renderOverview();
     }
   };
 
@@ -823,7 +964,6 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[80] bg-white/95 dark:bg-slate-900/95 backdrop-blur"
           onClick={(e) => {
-            // Close when clicking on the backdrop (but not on content)
             if (e.target === e.currentTarget) {
               handleClose();
             }
@@ -846,7 +986,6 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
           </div>
 
           <div className="flex flex-col sm:flex-row h-full pt-16">
-            {/* Mobile tab strip */}
             <div className="sm:hidden border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/60">
               <div className="flex gap-1 overflow-x-auto px-3 py-2 safe-pb">
                 {tabs.map((tab) => {
@@ -858,8 +997,8 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
                       onClick={() => setActiveTab(tab.id)}
                       className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-medium touch-manipulation ${
                         activeTab === tab.id
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                          : 'text-slate-600 dark:text-slate-300'
+                          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                          : "text-slate-600 dark:text-slate-300"
                       }`}
                     >
                       <Icon size={16} />
@@ -870,7 +1009,6 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
               </div>
             </div>
 
-            {/* Desktop sidebar */}
             <div className="hidden sm:block w-64 shrink-0 border-r border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
               <nav className="p-4">
                 <div className="space-y-1">
@@ -883,8 +1021,8 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
                         onClick={() => setActiveTab(tab.id)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-lg text-left transition-colors ${
                           activeTab === tab.id
-                            ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
-                            : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50"
                         }`}
                       >
                         <Icon size={16} />
@@ -896,7 +1034,6 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
               </nav>
             </div>
 
-            {/* Main Content */}
             <div className="flex-1 overflow-y-auto min-h-0">
               <div className="max-w-4xl mx-auto p-4 sm:p-6 content-pb sm:pb-6">
                 {renderContent()}
@@ -908,5 +1045,3 @@ export default function HelpPage({ open, onClose, pomodoroEnabled = true }) {
     </AnimatePresence>
   );
 }
-
-
