@@ -24,13 +24,7 @@ const SECTIONS = [
 export default function SettingsPage({ onExportAllData }) {
   return (
     <div className="max-w-3xl w-full pb-6">
-      <div
-        className="sticky top-0 z-20 -mx-1 px-1 py-3 mb-3 backdrop-blur-md"
-        style={{
-          background:
-            "linear-gradient(to bottom, var(--chrome-bg, #ffffff) 55%, color-mix(in srgb, var(--chrome-bg, #ffffff) 70%, transparent))",
-        }}
-      >
+      <div className="sticky top-0 z-20 -mx-1 px-1 py-3 mb-3 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800/70">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Settings</h1>
         <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
           Choose how CalDo looks and manage your data.

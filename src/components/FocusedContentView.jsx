@@ -17,8 +17,8 @@ export default function FocusedContentView({
   onSave,
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-10 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200">
-      <div className="max-w-7xl mx-auto w-full">
+    <div className="h-dvh overflow-hidden flex flex-col bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 px-4 sm:px-6 md:px-10 py-4 sm:py-6 md:py-8 safe-pt safe-pb font-sans text-slate-800 dark:text-slate-200">
+      <div className="max-w-7xl mx-auto w-full shrink-0">
         <Header
           user={user}
           onSignInWithGoogle={() => {}}
@@ -43,33 +43,33 @@ export default function FocusedContentView({
           showSearch={false}
         />
       </div>
-      <div className="flex-1 w-full mt-6">
-        <div className="max-w-3xl mx-auto h-full flex flex-col min-h-0">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-sm text-slate-500">{headerTitle}</div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 text-sm rounded bg-slate-100 dark:bg-slate-800"
-          >
-            Close
-          </button>
-        </div>
-        {typeof onChangeTitle === 'function' ? (
-          <div className="mb-3">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => onChangeTitle(e.target.value)}
-              placeholder="Title"
-              className="w-full px-3 py-2 rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
-            />
+      <div className="flex-1 min-h-0 w-full mt-4 sm:mt-6 flex flex-col">
+        <div className="max-w-3xl mx-auto w-full flex-1 min-h-0 flex flex-col">
+          <div className="mb-3 flex items-center justify-between shrink-0">
+            <div className="text-sm text-slate-500">{headerTitle}</div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-3 py-1.5 text-sm rounded bg-slate-100 dark:bg-slate-800"
+            >
+              Close
+            </button>
           </div>
-        ) : null}
+          {typeof onChangeTitle === 'function' ? (
+            <div className="mb-3 shrink-0">
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => onChangeTitle(e.target.value)}
+                placeholder="Title"
+                className="w-full px-3 py-2 rounded bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+              />
+            </div>
+          ) : null}
           <div className="flex-1 min-h-0 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
             {renderEditor ? renderEditor() : null}
           </div>
-          <div className="mt-4 flex items-center justify-end gap-3">
+          <div className="mt-4 flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onSave}
@@ -84,5 +84,3 @@ export default function FocusedContentView({
     </div>
   );
 }
-
-
