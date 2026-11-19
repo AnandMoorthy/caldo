@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { loadNotesFeedCache, saveNotesFeedCache } from "../utils/storage";
 import Masonry from "react-masonry-css";
 import { StickyNote, Pin, PinOff, Plus, Loader2, SquareArrowOutUpRight } from "lucide-react";
 import { format } from "date-fns";
 import StyledSnippetPreview from "./StyledSnippetPreview";
+import { useScrollChrome } from "../context/ScrollChromeContext.jsx";
 
 export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
   const [items, setItems] = useState([]);
@@ -12,6 +14,7 @@ export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
   const loadingRef = useRef(false);
   const triggeredWhileVisibleRef = useRef(false);
   const [filterMode, setFilterMode] = useState("all"); // 'all' | 'pinned'
+  const { chromeHidden } = useScrollChrome();
 
   const itemsRef = useRef([]);
   const pinnedCursorRef = useRef(null);
@@ -188,37 +191,52 @@ export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
-        <div className="sticky top-0 z-20 -mx-3 px-3 sm:-mx-4 sm:px-4 -mt-3 pt-3 sm:-mt-4 sm:pt-4 pb-3 mb-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate">
-              {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <StickyNote size={18} className="shrink-0" />}
-              <span className="truncate">Notes</span>
+        <div className="sticky top-0 z-20 -mx-3 px-3 sm:-mx-4 sm:px-4 -mt-3 sm:-mt-4 sm:pt-4 mb-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
+          <motion.div
+            initial={false}
+            animate={
+              chromeHidden
+                ? { height: 0, opacity: 0 }
+                : { height: 'auto', opacity: 1 }
+            }
+            transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+            className="overflow-hidden"
+            style={{ pointerEvents: chromeHidden ? 'none' : undefined }}
+            aria-hidden={chromeHidden ? true : undefined}
+          >
+            <div className="pt-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between gap-2 min-w-0">
+                <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate">
+                  {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <StickyNote size={18} className="shrink-0" />}
+                  <span className="truncate">Notes</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onOpenSnippetEditor && onOpenSnippetEditor("__new__")}
+                  disabled={!user}
+                  className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
+                >
+                  <Plus size={14} /> <span>Note</span>
+                </button>
+              </div>
+              <div className="mt-2 inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setFilterMode("all")}
+                  className={`px-3 py-1.5 text-xs ${filterMode === "all" ? "bg-slate-200 dark:bg-slate-800" : "bg-white dark:bg-slate-900"}`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFilterMode("pinned")}
+                  className={`px-3 py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${filterMode === "pinned" ? "bg-slate-200 dark:bg-slate-800" : "bg-white dark:bg-slate-900"}`}
+                >
+                  Pinned
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => onOpenSnippetEditor && onOpenSnippetEditor("__new__")}
-              disabled={!user}
-              className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
-            >
-              <Plus size={14} /> <span>Note</span>
-            </button>
-          </div>
-          <div className="mt-2 inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setFilterMode("all")}
-              className={`px-3 py-1.5 text-xs ${filterMode === "all" ? "bg-slate-200 dark:bg-slate-800" : "bg-white dark:bg-slate-900"}`}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterMode("pinned")}
-              className={`px-3 py-1.5 text-xs border-l border-slate-200 dark:border-slate-700 ${filterMode === "pinned" ? "bg-slate-200 dark:bg-slate-800" : "bg-white dark:bg-slate-900"}`}
-            >
-              Pinned
-            </button>
-          </div>
+          </motion.div>
         </div>
         {items.length === 0 && !loading && (
           <div className="p-3 text-sm text-slate-500">No notes yet.</div>
