@@ -139,7 +139,7 @@ export async function maybeFireJournalReminder(reminder, { force = false } = {})
   if (!safe.enabled) return false;
 
   const todayKey = keyFor(new Date());
-  const lastKey = loadLastJournalReminderDateKey();
+  const lastKey = loadLastJournalReminderDateKey() || safe.lastNotifiedDateKey;
   if (!force && lastKey === todayKey) return false;
   if (!force && !isReminderDue(safe)) return false;
 
@@ -148,4 +148,14 @@ export async function maybeFireJournalReminder(reminder, { force = false } = {})
     saveLastJournalReminderDateKey(todayKey);
   }
   return shown;
+}
+
+export function postReminderScheduleToServiceWorker(reminder) {
+  if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) return;
+  try {
+    navigator.serviceWorker.controller.postMessage({
+      type: "SCHEDULE_JOURNAL_REMINDER",
+      reminder: sanitizeJournalReminder(reminder),
+    });
+  } catch {}
 }

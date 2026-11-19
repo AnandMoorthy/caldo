@@ -50,6 +50,10 @@ export default function JournalReminderSettings({
         setError("Notification permission is required to enable journal reminders. Allow notifications in your browser settings, then try again.");
         return;
       }
+      if (enabled && result?.permission === "granted" && result?.pushReady === false) {
+        setError("Reminder saved, but background push could not be registered on this browser yet. Foreground reminders still work.");
+        return;
+      }
       onClose?.();
     } catch (err) {
       console.error("Failed to save journal reminder", err);
@@ -86,7 +90,7 @@ export default function JournalReminderSettings({
                 <div>
                   <div className="text-lg font-semibold text-slate-900 dark:text-slate-100">Journal reminder</div>
                   <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-                    Get a local notification each day at your chosen time. Settings sync with your account.
+                    Get a daily notification at your chosen time, including when Caldo is in the background. Settings sync with your account.
                   </p>
                 </div>
               </div>
@@ -151,7 +155,7 @@ export default function JournalReminderSettings({
                           parseTimeInputValue(timeValue).minute
                         )}`
                       : ""}
-                    . Notifications fire while Caldo is open or when you return to it.
+                    . Allow notifications so reminders can arrive while the app is closed or in the background.
                   </p>
                 </div>
 

@@ -12,4 +12,13 @@ export const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-MP3JSVWFZ3",
 };
 
+// Web Push VAPID public key (safe to ship in the client). Private key lives in
+// GitHub Actions secret WEB_PUSH_VAPID_PRIVATE_KEY for the reminder cron.
+export const webPushConfig = {
+  vapidPublicKey:
+    import.meta.env.VITE_WEB_PUSH_VAPID_PUBLIC_KEY ||
+    "BMsJLbL9Ydew3uV9Zs-debZdnJSM-hDMGzVr3Si3UMr5PQtxQW9XR_DgA0WDbxDUxLKQi5M8Wv9xMHPTGGu8QM4",
+  vapidSubject: import.meta.env.VITE_WEB_PUSH_SUBJECT || "mailto:caldo@anandhere.xyz",
+};
+
 

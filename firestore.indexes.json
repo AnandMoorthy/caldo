@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "meta",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "docType", "order": "ASCENDING" },
+        { "fieldPath": "enabled", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

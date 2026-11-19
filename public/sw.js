@@ -1,11 +1,11 @@
-/* Simple service worker for Vite static build */
-const CACHE_NAME = 'caldo-cache-v2';
-// Determine the base path where the app is served (works for root or /<repo>/)
+/* Service worker for Vite static build + journal reminder web push */
+const CACHE_NAME = 'caldo-cache-v3';
 const BASE_PATH = new URL(self.registration.scope).pathname;
 const CORE_ASSETS = [
   BASE_PATH,
   BASE_PATH + 'index.html'
 ];
+const REMINDER_STORE = 'journal-reminder-schedule-v1';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -19,6 +19,50 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => Promise.all(keys.map((k) => k !== CACHE_NAME ? caches.delete(k) : null)))
   );
   self.clients.claim();
+});
+
+function iconPath() {
+  return BASE_PATH + 'icons/icon-192.png';
+}
+
+async function showJournalNotification(payload = {}) {
+  const title = payload.title || 'Time to journal';
+  const body = payload.body || "Take a moment to write today's journal entry.";
+  const data = payload.data || { type: 'journal-reminder', openTab: 'journal' };
+  await self.registration.showNotification(title, {
+    body,
+    icon: iconPath(),
+    badge: iconPath(),
+    tag: 'caldo-journal-reminder',
+    renotify: true,
+    data,
+  });
+}
+
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    let payload = {
+      title: 'Time to journal',
+      body: "Take a moment to write today's journal entry.",
+      data: { type: 'journal-reminder', openTab: 'journal' },
+    };
+    try {
+      if (event.data) {
+        const parsed = event.data.json();
+        payload = {
+          title: parsed.title || payload.title,
+          body: parsed.body || payload.body,
+          data: parsed.data || payload.data,
+        };
+      }
+    } catch {
+      try {
+        const text = event.data && event.data.text();
+        if (text) payload.body = text;
+      } catch {}
+    }
+    await showJournalNotification(payload);
+  })());
 });
 
 self.addEventListener('notificationclick', (event) => {
@@ -45,6 +89,22 @@ self.addEventListener('notificationclick', (event) => {
       return undefined;
     })()
   );
+});
+
+self.addEventListener('message', (event) => {
+  const data = event.data || {};
+  if (data.type !== 'SCHEDULE_JOURNAL_REMINDER') return;
+
+  event.waitUntil((async () => {
+    try {
+      const cache = await caches.open(REMINDER_STORE);
+      const body = new Response(JSON.stringify({
+        reminder: data.reminder || null,
+        updatedAt: Date.now(),
+      }));
+      await cache.put('schedule', body);
+    } catch {}
+  })());
 });
 
 self.addEventListener('fetch', (event) => {

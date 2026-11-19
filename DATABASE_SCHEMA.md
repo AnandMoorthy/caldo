@@ -146,17 +146,31 @@ Path: `users/{uid}/meta/streakInfo`
 Path: `users/{uid}/meta/journalReminder`
 ```json
 {
+  "docType": "journalReminder",
   "ownerUid": "<uid>",
   "enabled": true,
   "hour": 18,
   "minute": 0,
+  "timeZone": "America/Los_Angeles",
+  "pushSubscriptions": [
+    {
+      "endpoint": "https://…",
+      "expirationTime": null,
+      "keys": { "p256dh": "…", "auth": "…" }
+    }
+  ],
+  "lastNotifiedDateKey": "YYYY-MM-DD|null",
   "updatedAt": <timestamp>
 }
 ```
 
 Notes:
-- `hour`/`minute` are interpreted in each device's local timezone.
-- Delivery uses the browser Notification API on that device; config syncs via Firestore.
+- `hour`/`minute` are interpreted with `timeZone` (device IANA zone when saved).
+- Config syncs via Firestore. Background delivery uses Web Push:
+  - Client stores a push subscription when the reminder is enabled.
+  - `.github/workflows/journal-reminders.yml` runs every 5 minutes and sends due pushes.
+- Required GitHub secrets for the cron: `FIREBASE_SERVICE_ACCOUNT`, `WEB_PUSH_VAPID_PRIVATE_KEY`.
+- Collection-group index on `meta`: `docType ASC`, `enabled ASC`.
 
 ## Common queries
 

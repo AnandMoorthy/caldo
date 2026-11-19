@@ -2,16 +2,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createJournalReminderRepository,
   DEFAULT_JOURNAL_REMINDER,
+  mergePushSubscription,
   sanitizeJournalReminder,
 } from "../services/repositories/journalReminderRepository";
 import {
   clearJournalReminderCache,
   ensureNotificationPermission,
-  getNextReminderDate,
   loadJournalReminderCache,
   maybeFireJournalReminder,
+  postReminderScheduleToServiceWorker,
   saveJournalReminderCache,
 } from "../utils/journalReminder";
+import { detectTimeZone, ensureServiceWorkerRegistration, subscribeJournalPush } from "../utils/webPush";
 
 export function useJournalReminder(user) {
   const [reminder, setReminder] = useState(() =>
@@ -21,36 +23,18 @@ export function useJournalReminder(user) {
   const [saving, setSaving] = useState(false);
   const repoRef = useRef(null);
   const reminderRef = useRef(reminder);
-  const timerRef = useRef(null);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     reminderRef.current = reminder;
   }, [reminder]);
 
-  const clearTimer = useCallback(() => {
-    if (timerRef.current != null) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+  const clearPoll = useCallback(() => {
+    if (intervalRef.current != null) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
   }, []);
-
-  const scheduleNext = useCallback(() => {
-    clearTimer();
-    const current = reminderRef.current;
-    if (!current?.enabled) return;
-
-    const next = getNextReminderDate(current.hour, current.minute);
-    const delay = Math.max(1000, next.getTime() - Date.now());
-    timerRef.current = setTimeout(async () => {
-      try {
-        await maybeFireJournalReminder(reminderRef.current);
-      } catch (error) {
-        console.warn("Journal reminder fire failed", error);
-      } finally {
-        scheduleNext();
-      }
-    }, delay);
-  }, [clearTimer]);
 
   const refreshDueCheck = useCallback(async () => {
     try {
@@ -60,11 +44,27 @@ export function useJournalReminder(user) {
     }
   }, []);
 
+  const armLocalPolling = useCallback(() => {
+    clearPoll();
+    const current = reminderRef.current;
+    if (!current?.enabled) {
+      postReminderScheduleToServiceWorker({ ...DEFAULT_JOURNAL_REMINDER, enabled: false });
+      return;
+    }
+
+    postReminderScheduleToServiceWorker(current);
+    // Short interval survives background throttling better than a multi-hour setTimeout.
+    intervalRef.current = setInterval(() => {
+      refreshDueCheck();
+    }, 30_000);
+    refreshDueCheck();
+  }, [clearPoll, refreshDueCheck]);
+
   useEffect(() => {
     let mounted = true;
 
     async function load() {
-      clearTimer();
+      clearPoll();
       if (!user?.uid) {
         repoRef.current = null;
         clearJournalReminderCache();
@@ -91,14 +91,14 @@ export function useJournalReminder(user) {
     load();
     return () => {
       mounted = false;
-      clearTimer();
+      clearPoll();
     };
-  }, [user?.uid, clearTimer]);
+  }, [user?.uid, clearPoll]);
 
   useEffect(() => {
-    scheduleNext();
-    return clearTimer;
-  }, [reminder.enabled, reminder.hour, reminder.minute, scheduleNext, clearTimer]);
+    armLocalPolling();
+    return clearPoll;
+  }, [reminder.enabled, reminder.hour, reminder.minute, armLocalPolling, clearPoll]);
 
   useEffect(() => {
     if (!reminder.enabled) return undefined;
@@ -106,33 +106,42 @@ export function useJournalReminder(user) {
     function onVisibility() {
       if (document.visibilityState === "visible") {
         refreshDueCheck();
-        scheduleNext();
+        armLocalPolling();
+      } else {
+        postReminderScheduleToServiceWorker(reminderRef.current);
       }
     }
 
     function onFocus() {
       refreshDueCheck();
-      scheduleNext();
+      armLocalPolling();
+    }
+
+    function onPageHide() {
+      postReminderScheduleToServiceWorker(reminderRef.current);
     }
 
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("focus", onFocus);
-    const intervalId = setInterval(() => {
-      if (document.visibilityState === "visible") refreshDueCheck();
-    }, 60_000);
+    window.addEventListener("pagehide", onPageHide);
 
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("focus", onFocus);
-      clearInterval(intervalId);
+      window.removeEventListener("pagehide", onPageHide);
     };
-  }, [reminder.enabled, refreshDueCheck, scheduleNext]);
+  }, [reminder.enabled, refreshDueCheck, armLocalPolling]);
 
   useEffect(() => {
     function onSwMessage(event) {
       const data = event?.data;
       if (data?.type === "OPEN_JOURNAL" || data?.openTab === "journal") {
         window.dispatchEvent(new CustomEvent("caldo:open-journal"));
+      }
+      if (data?.type === "JOURNAL_REMINDER_FIRED" && data?.dateKey) {
+        try {
+          localStorage.setItem("caldo_v2_journal_reminder_last", String(data.dateKey));
+        } catch {}
       }
     }
     if (!("serviceWorker" in navigator)) return undefined;
@@ -142,46 +151,71 @@ export function useJournalReminder(user) {
 
   const saveReminder = useCallback(
     async (nextReminder) => {
-      const safe = sanitizeJournalReminder(nextReminder);
+      const safe = sanitizeJournalReminder({
+        ...reminderRef.current,
+        ...nextReminder,
+        timeZone: detectTimeZone(),
+      });
       if (!user?.uid || !repoRef.current) {
         setReminder(safe);
         saveJournalReminderCache(safe);
-        return safe;
+        return { reminder: safe, permission: null };
       }
 
       setSaving(true);
       try {
         let permission = null;
+        let pushSubscriptions = safe.pushSubscriptions;
+
         if (safe.enabled) {
           permission = await ensureNotificationPermission();
           if (permission === "denied") {
-            const denied = { ...safe, enabled: false };
+            const denied = { ...safe, enabled: false, pushSubscriptions: [] };
             setReminder(denied);
             saveJournalReminderCache(denied);
             await repoRef.current.saveReminder(denied);
             return { reminder: denied, permission };
           }
+
+          await ensureServiceWorkerRegistration();
+          const pushResult = await subscribeJournalPush();
+          if (pushResult.ok) {
+            pushSubscriptions = mergePushSubscription(pushSubscriptions, pushResult.subscription);
+          } else if (pushResult.reason === "missing-vapid" || pushResult.reason === "unsupported") {
+            // Still allow enabling; local/foreground polling remains as fallback.
+          } else if (pushResult.reason === "subscribe-failed" || pushResult.reason === "no-service-worker") {
+            // Keep enabled; background delivery may be limited until SW/push works.
+            console.warn("Journal reminder push subscribe incomplete:", pushResult.reason);
+          }
+        } else {
+          pushSubscriptions = [];
         }
 
-        const saved = await repoRef.current.saveReminder(safe);
+        const toSave = {
+          ...safe,
+          pushSubscriptions: safe.enabled ? pushSubscriptions : [],
+        };
+        const saved = await repoRef.current.saveReminder(toSave);
         setReminder(saved);
         saveJournalReminderCache(saved);
         if (saved.enabled) {
-          scheduleNext();
+          armLocalPolling();
         } else {
-          clearTimer();
+          clearPoll();
+          postReminderScheduleToServiceWorker(saved);
         }
         return {
           reminder: saved,
           permission:
             permission ||
             (safe.enabled && typeof Notification !== "undefined" ? Notification.permission : null),
+          pushReady: Array.isArray(saved.pushSubscriptions) && saved.pushSubscriptions.length > 0,
         };
       } finally {
         setSaving(false);
       }
     },
-    [user?.uid, scheduleNext, clearTimer]
+    [user?.uid, armLocalPolling, clearPoll]
   );
 
   return {
