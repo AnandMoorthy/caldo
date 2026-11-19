@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import { addDays, format } from "date-fns";
 import { CheckCircle2, Circle, Plus, Trash2, Target } from "lucide-react";
 import { useScrollChrome } from "../context/ScrollChromeContext.jsx";
+import CollapsingChrome from "./CollapsingChrome.jsx";
 
 export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitForDay, onDeleteHabit }) {
   const [title, setTitle] = useState("");
@@ -39,18 +39,7 @@ export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitFor
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
       <div className="sticky top-0 z-20">
-        <motion.section
-          initial={false}
-          animate={
-            chromeHidden
-              ? { height: 0, opacity: 0 }
-              : { height: 'auto', opacity: 1 }
-          }
-          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-          className="overflow-hidden"
-          style={{ pointerEvents: chromeHidden ? 'none' : undefined }}
-          aria-hidden={chromeHidden ? true : undefined}
-        >
+        <CollapsingChrome hidden={chromeHidden} as="section">
           <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow p-4 sm:p-5 border border-transparent dark:border-slate-800">
             <div className="flex items-center justify-between gap-3 mb-4">
               <div>
@@ -80,7 +69,7 @@ export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitFor
               </button>
             </form>
           </div>
-        </motion.section>
+        </CollapsingChrome>
       </div>
 
       <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 sm:p-5 border border-transparent dark:border-slate-800">

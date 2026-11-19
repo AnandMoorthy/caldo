@@ -6,6 +6,7 @@ import usePullToRefresh from "./hooks/usePullToRefresh";
 import useHideOnScroll from "./hooks/useHideOnScroll";
 import { useJournalReminder } from "./hooks/useJournalReminder";
 import { ScrollChromeProvider } from "./context/ScrollChromeContext.jsx";
+import CollapsingChrome from "./components/CollapsingChrome.jsx";
 import { auth, db, googleProvider, firebase } from "./firebase";
 import Header from "./components/Header.jsx";
 import Sidebar from "./components/Sidebar.jsx";
@@ -2665,17 +2666,10 @@ export default function App() {
       <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((v) => !v)} />
       <div className={`flex-1 min-w-0 min-h-0 flex flex-col px-4 sm:px-6 md:px-10 safe-pt ${needsIslandPad ? 'sm:pb-[var(--island-pb)]' : ''}`}>
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col gap-0 sm:gap-6 min-h-0">
-        <motion.div
-          initial={false}
-          animate={
-            isPhone && chromeHidden
-              ? { height: 0, opacity: 0, marginBottom: 0 }
-              : { height: 'auto', opacity: 1, marginBottom: isPhone ? 16 : 0 }
-          }
-          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-          className="flex-shrink-0 w-full sticky top-0 z-40 overflow-hidden bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80 backdrop-blur-md"
-          style={{ pointerEvents: isPhone && chromeHidden ? 'none' : undefined }}
-          aria-hidden={isPhone && chromeHidden ? true : undefined}
+        <CollapsingChrome
+          hidden={isPhone && chromeHidden}
+          expandedMarginBottom={isPhone ? 16 : 0}
+          className="flex-shrink-0 w-full sticky top-0 z-40 bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80 backdrop-blur-md"
         >
           <Header
             user={user}
@@ -2699,7 +2693,7 @@ export default function App() {
           hideBrand
           scrollContainerRef={contentScrollRef}
           />
-        </motion.div>
+        </CollapsingChrome>
         
         
         <div ref={contentScrollRef} className={`relative flex-1 flex flex-col min-h-0 ${contentScrollClass}`}>
