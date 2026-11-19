@@ -319,7 +319,8 @@ export default function App() {
     } catch {}
   }, [tasksMap, selectedDate]);
 
-  // Global keyboard shortcuts: T add task, N open notes, M missed tasks, D density menu, arrows navigate by view, 0 today, 1/2/3 switch views, ? help, CMD+K/Ctrl+K search, Esc close
+  // Global keyboard shortcuts: T add task, N day notes, O missed tasks, P pomodoro,
+  // D/W/M/Y or 1/2/3/4 switch views, arrows step by day, 0 today, ? help, CMD+K/Ctrl+K search, Esc close
   useEffect(() => {
     function stopNavRepeat() {
       const r = navRepeatRef.current;
