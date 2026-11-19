@@ -56,18 +56,18 @@ export class DayNoteRepository {
   }
 
   // Paginate through every day note for full data export.
+  // Equality-only query (no orderBy) so we only need the automatic single-field index.
   async listAllDayNotes({ pageSize = 200 } = {}) {
     const items = [];
-    let cursor = null;
+    let lastDoc = null;
     while (true) {
-      const { items: page, nextCursor } = await this.listNotesPage({
-        limit: pageSize,
-        startAfterUpdatedAt: cursor?.updatedAt ?? null,
-        startAfterId: cursor?.id ?? null,
-      });
-      items.push(...page);
-      if (!nextCursor || page.length < pageSize) break;
-      cursor = nextCursor;
+      let q = this.notesRef().where('ownerUid', '==', this.userId).limit(pageSize);
+      if (lastDoc) q = q.startAfter(lastDoc);
+      const snap = await q.get();
+      if (snap.empty) break;
+      items.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      lastDoc = snap.docs[snap.docs.length - 1];
+      if (snap.docs.length < pageSize) break;
     }
     return items;
   }

@@ -77,20 +77,18 @@ export class MomentRepository {
   }
 
   // Paginate through every moment for full data export.
+  // Equality-only query (no orderBy) so we only need the automatic single-field index.
   async listAllMoments({ pageSize = 200 } = {}) {
     const items = [];
-    let lastCreatedAt = null;
+    let lastDoc = null;
     while (true) {
-      let q = this.momentsRef()
-        .where('ownerUid', '==', this.userId)
-        .orderBy('createdAt', 'desc')
-        .limit(pageSize);
-      if (lastCreatedAt) q = q.startAfter(lastCreatedAt);
+      let q = this.momentsRef().where('ownerUid', '==', this.userId).limit(pageSize);
+      if (lastDoc) q = q.startAfter(lastDoc);
       const snap = await q.get();
       if (snap.empty) break;
       items.push(...snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-      lastCreatedAt = snap.docs[snap.docs.length - 1].get('createdAt') || null;
-      if (snap.docs.length < pageSize || !lastCreatedAt) break;
+      lastDoc = snap.docs[snap.docs.length - 1];
+      if (snap.docs.length < pageSize) break;
     }
     return items;
   }

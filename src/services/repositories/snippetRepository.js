@@ -37,14 +37,12 @@ export class SnippetRepository {
   }
 
   // Paginate through every note/snippet (including archived) for full data export.
+  // Equality-only query (no orderBy) so we only need the automatic single-field index.
   async listAllSnippets({ pageSize = 200 } = {}) {
     const items = [];
     let lastDoc = null;
     while (true) {
-      let q = this.snippetsRef()
-        .where('ownerUid', '==', this.userId)
-        .orderBy(firebase.firestore.FieldPath.documentId())
-        .limit(pageSize);
+      let q = this.snippetsRef().where('ownerUid', '==', this.userId).limit(pageSize);
       if (lastDoc) q = q.startAfter(lastDoc);
       const snap = await q.get();
       if (snap.empty) break;
