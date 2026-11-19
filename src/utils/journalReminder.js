@@ -83,7 +83,7 @@ export async function ensureNotificationPermission() {
   }
 }
 
-export async function showJournalReminderNotification({ onClickMessage } = {}) {
+export async function showJournalReminderNotification() {
   if (!("Notification" in window) || Notification.permission !== "granted") return false;
 
   const title = "Time to journal";
@@ -92,7 +92,6 @@ export async function showJournalReminderNotification({ onClickMessage } = {}) {
   const data = {
     type: "journal-reminder",
     openTab: "journal",
-    ...(onClickMessage ? { message: onClickMessage } : {}),
   };
 
   try {
@@ -139,7 +138,7 @@ export async function maybeFireJournalReminder(reminder, { force = false } = {})
   if (!safe.enabled) return false;
 
   const todayKey = keyFor(new Date());
-  const lastKey = loadLastJournalReminderDateKey() || safe.lastNotifiedDateKey;
+  const lastKey = loadLastJournalReminderDateKey();
   if (!force && lastKey === todayKey) return false;
   if (!force && !isReminderDue(safe)) return false;
 
@@ -148,14 +147,4 @@ export async function maybeFireJournalReminder(reminder, { force = false } = {})
     saveLastJournalReminderDateKey(todayKey);
   }
   return shown;
-}
-
-export function postReminderScheduleToServiceWorker(reminder) {
-  if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) return;
-  try {
-    navigator.serviceWorker.controller.postMessage({
-      type: "SCHEDULE_JOURNAL_REMINDER",
-      reminder: sanitizeJournalReminder(reminder),
-    });
-  } catch {}
 }

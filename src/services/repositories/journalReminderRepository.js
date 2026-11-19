@@ -4,9 +4,6 @@ export const DEFAULT_JOURNAL_REMINDER = {
   enabled: false,
   hour: 18,
   minute: 0,
-  timeZone: "UTC",
-  pushSubscriptions: [],
-  lastNotifiedDateKey: null,
 };
 
 function clampHour(value) {
@@ -21,51 +18,12 @@ function clampMinute(value) {
   return Math.max(0, Math.min(59, Math.floor(n)));
 }
 
-function sanitizeSubscription(raw) {
-  if (!raw?.endpoint || !raw?.keys?.p256dh || !raw?.keys?.auth) return null;
-  return {
-    endpoint: String(raw.endpoint),
-    expirationTime: raw.expirationTime ?? null,
-    keys: {
-      p256dh: String(raw.keys.p256dh),
-      auth: String(raw.keys.auth),
-    },
-  };
-}
-
 export function sanitizeJournalReminder(raw) {
-  const subscriptions = Array.isArray(raw?.pushSubscriptions)
-    ? raw.pushSubscriptions.map(sanitizeSubscription).filter(Boolean)
-    : [];
-  const deduped = [];
-  const seen = new Set();
-  for (const sub of subscriptions) {
-    if (seen.has(sub.endpoint)) continue;
-    seen.add(sub.endpoint);
-    deduped.push(sub);
-  }
   return {
     enabled: !!raw?.enabled,
     hour: clampHour(raw?.hour),
     minute: clampMinute(raw?.minute),
-    timeZone: typeof raw?.timeZone === "string" && raw.timeZone ? raw.timeZone : "UTC",
-    pushSubscriptions: deduped.slice(0, 8),
-    lastNotifiedDateKey:
-      typeof raw?.lastNotifiedDateKey === "string" && raw.lastNotifiedDateKey
-        ? raw.lastNotifiedDateKey
-        : null,
   };
-}
-
-export function mergePushSubscription(existingSubscriptions, nextSubscription) {
-  const safeNext = sanitizeSubscription(nextSubscription);
-  const current = Array.isArray(existingSubscriptions) ? existingSubscriptions : [];
-  if (!safeNext) return current.map(sanitizeSubscription).filter(Boolean);
-  const without = current
-    .map(sanitizeSubscription)
-    .filter(Boolean)
-    .filter((item) => item.endpoint !== safeNext.endpoint);
-  return [safeNext, ...without].slice(0, 8);
 }
 
 export class JournalReminderRepository {
@@ -94,14 +52,15 @@ export class JournalReminderRepository {
     const safe = sanitizeJournalReminder(reminder);
     await this.reminderDocRef().set(
       {
-        docType: "journalReminder",
         ownerUid: this.userId,
         enabled: safe.enabled,
         hour: safe.hour,
         minute: safe.minute,
-        timeZone: safe.timeZone,
-        pushSubscriptions: safe.enabled ? safe.pushSubscriptions : [],
-        lastNotifiedDateKey: safe.lastNotifiedDateKey,
+        // Clear any previous push-only fields if they exist from an earlier build.
+        pushSubscriptions: firebase.firestore.FieldValue.delete(),
+        docType: firebase.firestore.FieldValue.delete(),
+        timeZone: firebase.firestore.FieldValue.delete(),
+        lastNotifiedDateKey: firebase.firestore.FieldValue.delete(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       },
       { merge: true }
