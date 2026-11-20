@@ -212,7 +212,7 @@ function WelcomeView({ user, onChangeTab, onSignIn, onOpenHelp, onStartToday }) 
             The homepage for your day
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300 sm:text-lg">
-            CalDo brings tasks, notes, journal, moments, and habits into one calm place—local-first, optionally synced when you sign in.
+            One place to manage your day: tasks, notes, journal, moments, and habits, all together.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -261,7 +261,7 @@ function WelcomeView({ user, onChangeTab, onSignIn, onOpenHelp, onStartToday }) 
             Everything in one place
           </h2>
           <p className="mt-3 text-base text-slate-600 dark:text-slate-300">
-            Jump into any part of CalDo—or sign in when you want notes, journal, and moments to sync.
+            Open any part of CalDo, or sign in to keep notes, journal, and moments with you.
           </p>
         </div>
         <PillarGrid user={user} onChangeTab={onChangeTab} onSignIn={onSignIn} />
@@ -272,7 +272,7 @@ function WelcomeView({ user, onChangeTab, onSignIn, onOpenHelp, onStartToday }) 
           <div className="max-w-xl">
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Ready when you are</h2>
             <p className="mt-2 text-sm text-slate-300 dark:text-slate-600 sm:text-base">
-              Add your first task for today, or sign in to unlock the full sync experience.
+              Add your first task for today, or sign in to pick up where you left off.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -358,7 +358,7 @@ function GistView({
                 </h1>
                 <p className="mt-3 text-base text-slate-600 dark:text-slate-300 sm:text-lg">
                   {taskTotal === 0
-                    ? "No tasks yet—add one to start shaping the day."
+                    ? "No tasks yet. Add one to start shaping the day."
                     : remaining === 0
                       ? "All tasks done. Nice work."
                       : `${remaining} task${remaining === 1 ? "" : "s"} left · ${taskDone}/${taskTotal} done`}
@@ -434,7 +434,7 @@ function GistView({
               />
               <StatChip
                 icon={BookOpenText}
-                value={!user ? "—" : journalToday ? "Done" : "Open"}
+                value={!user ? "-" : journalToday ? "Done" : "Open"}
                 label="Journal"
                 accent="bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300"
                 onClick={() => {
@@ -466,7 +466,7 @@ function GistView({
           </div>
           {incompleteTasks.length === 0 ? (
             <p className="rounded-2xl bg-white/60 px-4 py-8 text-sm text-slate-500 ring-1 ring-slate-200/70 dark:bg-slate-900/50 dark:text-slate-400 dark:ring-slate-800">
-              {taskTotal === 0 ? "Nothing planned yet—add a task to fill this space." : "Everything for today is checked off."}
+              {taskTotal === 0 ? "Nothing planned yet. Add a task to fill this space." : "Everything for today is checked off."}
             </p>
           ) : (
             <ul className="overflow-hidden rounded-2xl bg-white/70 ring-1 ring-slate-200/70 dark:bg-slate-900/70 dark:ring-slate-800">
