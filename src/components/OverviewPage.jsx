@@ -20,7 +20,7 @@ import PeriodTaskBars from "./PeriodTaskBars.jsx";
 function RangeToggle({ value, onChange }) {
   return (
     <div
-      className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/90"
+      className="inline-flex shrink-0 items-center gap-1 rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/90"
       role="tablist"
       aria-label="Overview range"
     >
@@ -36,7 +36,7 @@ function RangeToggle({ value, onChange }) {
             role="tab"
             aria-selected={active}
             onClick={() => onChange(option.id)}
-            className={`min-h-[40px] min-w-[4.5rem] rounded-xl px-3.5 text-xs font-semibold transition touch-manipulation ${
+            className={`h-10 shrink-0 rounded-xl px-3 text-xs font-semibold transition touch-manipulation ${
               active
                 ? "bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900"
                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
@@ -52,22 +52,22 @@ function RangeToggle({ value, onChange }) {
 
 function MonthChooser({ monthDate, onPrev, onNext }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
+    <div className="flex min-w-0 flex-1 items-center gap-0.5 rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 sm:flex-none">
       <button
         type="button"
         onClick={onPrev}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 touch-manipulation"
+        className="inline-flex h-10 w-9 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 touch-manipulation"
         aria-label="Previous month"
       >
         <ChevronLeft size={16} />
       </button>
-      <span className="min-w-[8.5rem] text-center text-xs font-semibold text-slate-800 dark:text-slate-100">
+      <span className="min-w-0 flex-1 truncate px-1 text-center text-xs font-semibold text-slate-800 dark:text-slate-100 sm:min-w-[7.25rem] sm:flex-none">
         {format(monthDate, "MMMM yyyy")}
       </span>
       <button
         type="button"
         onClick={onNext}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 touch-manipulation"
+        className="inline-flex h-10 w-9 shrink-0 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 touch-manipulation"
         aria-label="Next month"
       >
         <ChevronRight size={16} />
@@ -188,17 +188,17 @@ export default function OverviewPage({
         transition={{ duration: 0.3 }}
         className="mx-auto w-full max-w-6xl"
       >
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
+        <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+          <div className="min-w-[12rem] max-w-xl flex-1">
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{overview.label}</p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
               Overview
             </h1>
-            <p className="mt-2 max-w-xl text-sm text-slate-600 dark:text-slate-300 sm:text-base">
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 sm:text-base">
               How this {range} is going across tasks, habits, journal, and moments.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex w-full min-w-0 flex-nowrap items-center gap-2 sm:w-auto">
             <RangeToggle value={range} onChange={setRange} />
             {range === "month" && (
               <MonthChooser
