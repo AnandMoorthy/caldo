@@ -28,7 +28,7 @@
           var palette = localStorage.getItem("caldo_v2_palette");
           if (!palettes[palette]) palette = "classic";
           if (mode !== "light" && mode !== "dark") {
-            mode = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+            mode = "light";
           }
           var root = document.documentElement;
           root.setAttribute("data-palette", palette);

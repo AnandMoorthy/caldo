@@ -2626,11 +2626,11 @@ export default function App() {
         <FocusedDayNoteView dateKey={focusedRoute.dateKey} />
       )
     ) : (
-    <div className="h-dvh overflow-hidden flex flex-row bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 font-sans text-slate-800 dark:text-slate-200">
+    <div className={`h-dvh overflow-hidden flex flex-row font-sans text-slate-800 dark:text-slate-200 ${activeTab === 'home' ? 'bg-transparent dark:bg-transparent' : 'bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900'}`}>
       <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((v) => !v)} />
-      <div className={`flex-1 min-w-0 min-h-0 flex flex-col safe-pt ${activeTab === 'home' ? 'px-3 sm:px-5 md:px-8' : 'px-4 sm:px-6 md:px-10'} ${needsIslandPad ? 'sm:pb-[var(--island-pb)]' : ''}`}>
-      <div className={`${activeTab === 'home' ? 'max-w-[90rem]' : 'max-w-7xl'} mx-auto w-full flex-1 flex flex-col min-h-0 ${activeTab === 'home' ? 'gap-2 sm:gap-3' : 'gap-4 sm:gap-6'}`}>
-        <div className={`flex-shrink-0 w-full sticky top-0 z-40 backdrop-blur-md ${activeTab === 'home' ? 'bg-transparent' : 'bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80'}`}>
+      <div className={`flex-1 min-w-0 min-h-0 flex flex-col safe-pt relative ${activeTab === 'home' ? 'px-0' : 'px-4 sm:px-6 md:px-10'} ${needsIslandPad ? 'sm:pb-[var(--island-pb)]' : ''}`}>
+      <div className={`${activeTab === 'home' ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full flex-1 flex flex-col min-h-0 ${activeTab === 'home' ? 'gap-0' : 'gap-4 sm:gap-6'}`}>
+        <div className={`flex-shrink-0 w-full sticky top-0 z-40 backdrop-blur-md ${activeTab === 'home' ? 'bg-white/40 dark:bg-slate-950/40 px-3 sm:px-5 md:px-8' : 'bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80'}`}>
           <Header
             user={user}
           onSignInWithGoogle={signInWithGoogle}
@@ -2912,7 +2912,6 @@ export default function App() {
             }
             onChangeTab={setActiveTab}
             onSignIn={signInWithGoogle}
-            onOpenHelp={() => setShowHelp(true)}
             onAddTask={() => {
               const today = new Date();
               setSelectedDate(today);
