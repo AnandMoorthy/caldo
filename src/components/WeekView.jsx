@@ -297,7 +297,7 @@ export default function WeekView({
                   onStartPomodoro={onStartPomodoro}
                   density={isExpanded ? "compact" : "minified"}
                   fullHeight
-                  emptyMessage={isExpanded ? "No tasks for this day" : "—"}
+                  emptyMessage={isExpanded ? "No tasks for this day" : ""}
                   recurringSeries={recurringSeries}
                   pomodoroRunningState={pomodoroRunningState}
                   hidePriorityLabel={true}

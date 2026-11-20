@@ -421,6 +421,7 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
   }
 
   if (!tasks || tasks.length === 0) {
+    if (emptyMessage === "") return null;
     const msg = emptyMessage || 'No tasks. Double-click any day to add one quickly.';
     return <div className="text-sm text-slate-400 dark:text-slate-500">{msg}</div>;
   }
