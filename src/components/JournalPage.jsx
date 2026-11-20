@@ -80,16 +80,6 @@ export default function JournalPage({
     };
   }, [repo, user]);
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center py-14">
-        <div className="text-center">
-          <p className="text-slate-600 dark:text-slate-400">Sign in to create and view journals.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
@@ -103,7 +93,8 @@ export default function JournalPage({
               <button
                 type="button"
                 onClick={() => setReminderOpen(true)}
-                className="inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 touch-manipulation"
+                disabled={!user}
+                className="inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 touch-manipulation"
                 title={
                   reminder?.enabled
                     ? `Daily reminder at ${formatReminderTime(reminder.hour, reminder.minute)}`
@@ -120,7 +111,8 @@ export default function JournalPage({
               <button
                 type="button"
                 onClick={() => onOpenJournalEditor && onOpenJournalEditor("__new__", keyFor(new Date()))}
-                className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 touch-manipulation"
+                disabled={!user}
+                className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
               >
                 <PenSquare size={14} />
                 <span>Journal</span>
@@ -138,7 +130,11 @@ export default function JournalPage({
           onSave={onSaveReminder}
         />
 
-        {loading ? (
+        {!user ? (
+          <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
+            Sign in to create and view journals.
+          </div>
+        ) : loading ? (
           <div className="p-3 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Loader2 size={16} className="animate-spin" />
             Loading journals...

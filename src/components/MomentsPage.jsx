@@ -19,7 +19,9 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   // Load moments and categories
   const loadData = useCallback(async () => {
     if (!user?.uid) {
-      console.log('No user UID, skipping load');
+      setLoading(false);
+      setMoments([]);
+      setCategories([]);
       return;
     }
 
@@ -215,27 +217,6 @@ export default function MomentsPage({ user, onMomentsChanged }) {
     }
   };
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <p className="text-slate-600 dark:text-slate-400">Please sign in to view moments.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600 dark:text-slate-400">Loading moments...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
@@ -264,34 +245,45 @@ export default function MomentsPage({ user, onMomentsChanged }) {
           </motion.div>
         )}
 
-        <div className="space-y-4">
-          <AddMoment
-            onSave={handleSaveMoment}
-            onCancel={() => {}}
-            categories={categories}
-            onCategoriesChange={handleCategoriesChange}
-            maxLength={280}
-          />
+        {!user ? (
+          <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
+            Sign in to view moments.
+          </div>
+        ) : loading ? (
+          <div className="p-3 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+            <Loader2 size={16} className="animate-spin" />
+            Loading moments...
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <AddMoment
+              onSave={handleSaveMoment}
+              onCancel={() => {}}
+              categories={categories}
+              onCategoriesChange={handleCategoriesChange}
+              maxLength={280}
+            />
 
-          {moments.length === 0 ? (
-            <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
-              No moments yet. Start by adding your first moment above.
-            </div>
-          ) : (
-            moments.map((moment) => (
-              <MomentCard
-                key={moment.id}
-                moment={moment}
-                categories={categories}
-                isEditing={editingId === moment.id}
-                onEdit={handleEditMoment}
-                onDelete={handleDeleteMoment}
-                onSaveEdit={(updates) => handleSaveEdit(moment.id, updates)}
-                onCancelEdit={handleCancelEdit}
-              />
-            ))
-          )}
-        </div>
+            {moments.length === 0 ? (
+              <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
+                No moments yet. Start by adding your first moment above.
+              </div>
+            ) : (
+              moments.map((moment) => (
+                <MomentCard
+                  key={moment.id}
+                  moment={moment}
+                  categories={categories}
+                  isEditing={editingId === moment.id}
+                  onEdit={handleEditMoment}
+                  onDelete={handleDeleteMoment}
+                  onSaveEdit={(updates) => handleSaveEdit(moment.id, updates)}
+                  onCancelEdit={handleCancelEdit}
+                />
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       {saving && (
