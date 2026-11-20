@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, X, Edit2, Trash2, Save, ChevronDown } from 'lucide-react';
+import { X, Edit2, Trash2, Save, ChevronDown } from 'lucide-react';
 import { generateId } from '../utils/uid';
 
 const MOOD_EMOJIS = {
@@ -34,12 +34,12 @@ export default function AddMoment({
   onCancel, 
   categories = [],
   onCategoriesChange,
-  maxLength = 280 
+  maxLength = 280,
+  expanded = false,
 }) {
   const [content, setContent] = useState('');
   const [mood, setMood] = useState('');
   const [category, setCategory] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -60,6 +60,17 @@ export default function AddMoment({
     }
   }, [showCategoryDropdown]);
 
+  useEffect(() => {
+    if (expanded) return;
+    setContent('');
+    setMood('');
+    setCategory('');
+    setShowCategoryManager(false);
+    setEditingCategory(null);
+    setNewCategoryName('');
+    setShowCategoryDropdown(false);
+  }, [expanded]);
+
   const handleSave = () => {
     if (content.trim() && mood) {
       onSave({
@@ -70,7 +81,7 @@ export default function AddMoment({
       setContent('');
       setMood('');
       setCategory('');
-      setIsExpanded(false);
+      onCancel?.();
     }
   };
 
@@ -78,8 +89,7 @@ export default function AddMoment({
     setContent('');
     setMood('');
     setCategory('');
-    setIsExpanded(false);
-    onCancel();
+    onCancel?.();
   };
 
   const handleAddCategory = () => {
@@ -129,21 +139,7 @@ export default function AddMoment({
     }
   };
 
-  if (!isExpanded) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center hover:border-slate-400 dark:hover:border-slate-500 transition-colors cursor-pointer touch-manipulation"
-        onClick={() => setIsExpanded(true)}
-      >
-        <div className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400">
-          <Plus size={16} />
-          <span className="text-sm font-medium">Add a moment</span>
-        </div>
-      </motion.div>
-    );
-  }
+  if (!expanded) return null;
 
   return (
     <motion.div

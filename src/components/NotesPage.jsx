@@ -200,7 +200,7 @@ export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
               disabled={!user}
               className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
             >
-              <Plus size={14} /> <span>Note</span>
+              <Plus size={14} /> <span>New</span>
             </button>
           </div>
           <div className="mt-2 inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">

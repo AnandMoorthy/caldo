@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Plus, Sparkles } from 'lucide-react';
 import { createMomentRepository } from '../services/repositories/momentRepository';
 import { generateId } from '../utils/uid';
 import MomentCard from './MomentCard';
@@ -12,6 +12,7 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [adding, setAdding] = useState(false);
   const [error, setError] = useState(null);
 
   const momentRepoRef = useRef(null);
@@ -220,9 +221,20 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   return (
     <main className="max-w-2xl mx-auto w-full">
       <div className="sticky top-0 z-20 -mx-1 px-1 pb-2 mb-2 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
-        <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate text-slate-900 dark:text-slate-100">
-          {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <Sparkles size={18} className="shrink-0" />}
-          <span className="truncate">Moments</span>
+        <div className="flex items-center justify-between gap-2 min-w-0">
+          <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate text-slate-900 dark:text-slate-100">
+            {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <Sparkles size={18} className="shrink-0" />}
+            <span className="truncate">Moments</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            disabled={!user || loading}
+            className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
+          >
+            <Plus size={14} />
+            <span>New</span>
+          </button>
         </div>
       </div>
 
@@ -255,16 +267,20 @@ export default function MomentsPage({ user, onMomentsChanged }) {
       ) : (
         <div className="space-y-2.5 sm:space-y-3">
           <AddMoment
-            onSave={handleSaveMoment}
-            onCancel={() => {}}
+            expanded={adding}
+            onSave={(data) => {
+              handleSaveMoment(data);
+              setAdding(false);
+            }}
+            onCancel={() => setAdding(false)}
             categories={categories}
             onCategoriesChange={handleCategoriesChange}
             maxLength={280}
           />
 
-          {moments.length === 0 ? (
+          {moments.length === 0 && !adding ? (
             <div className="px-1 py-1 text-sm text-slate-500 dark:text-slate-400">
-              No moments yet. Start by adding your first moment above.
+              No moments yet. Tap New to add your first moment.
             </div>
           ) : (
             moments.map((moment) => (
