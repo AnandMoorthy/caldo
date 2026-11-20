@@ -16,6 +16,11 @@ function useScrollOverflow(ref, deps = []) {
     function update() {
       const node = ref.current;
       if (!node) return;
+      // Not laid out yet — avoid false "More" on zero-height containers
+      if (node.clientHeight < 1) {
+        setOverflow({ up: false, down: false });
+        return;
+      }
       const maxScroll = Math.max(0, node.scrollHeight - node.clientHeight);
       const top = node.scrollTop;
       // 2px slack avoids flicker from sub-pixel rounding
@@ -56,7 +61,7 @@ function useScrollOverflow(ref, deps = []) {
   return overflow;
 }
 
-function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false }) {
+function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, showDueDate = false, density = 'normal', recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false, hideActions = false, wrapTitle = false }) {
   const hasSubtasks = Array.isArray(t.subtasks) && t.subtasks.length > 0;
   const completedSubtasks = hasSubtasks ? t.subtasks.filter((st) => st.done).length : 0;
   const totalSubtasks = hasSubtasks ? t.subtasks.length : 0;
@@ -125,14 +130,18 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
   const isMinified = density === 'minified';
   const isCompact = density === 'compact';
   const cardPad = isMinified
-    ? 'px-2 py-1.5 sm:p-1.5 sm:pr-2'
+    ? hideActions
+      ? 'px-1.5 py-1 sm:px-1.5 sm:py-1'
+      : 'px-2 py-1.5 sm:p-1.5 sm:pr-2'
     : isCompact
     ? 'px-2.5 py-2 sm:p-2 sm:pr-3'
     : 'px-2.5 py-2 sm:p-3 sm:pr-4';
-  const titleCls = isMinified ? 'text-[13px]' : 'text-[14px] sm:text-[15px]';
+  const titleCls = isMinified ? 'text-[12px] sm:text-[13px]' : 'text-[14px] sm:text-[15px]';
   const showNotesPreview = !!notes && !isMinified;
   const iconSize = 15;
   const actionBtn = `inline-flex items-center justify-center h-8 w-8 rounded-md touch-manipulation active:scale-95 transition-colors`;
+  const checkHit = hideActions ? 'h-6 w-6' : 'h-8 w-8';
+  const checkBox = hideActions ? 'h-3.5 w-3.5 rounded-[4px]' : 'h-[18px] w-[18px] rounded-[5px]';
 
   return (
     <motion.div
@@ -144,17 +153,17 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
       onDragStart={(e) => !t.isRecurringInstance && onDragStartTask(e, t)}
       data-tip={`${title}${notes ? "\n" + notes : ""}${isPomodoroRunning ? `\n🍅 Pomodoro in progress - ${formatTime(pomodoroRunningState.timeLeft)}` : ""}`}
     >
-      <div className="flex items-start gap-1.5">
+      <div className={`flex items-start ${hideActions ? 'gap-1' : 'gap-1.5'}`}>
         <button
           type="button"
           onClick={() => onToggleDone(t)}
           disabled={isFutureTask}
-          className="-ml-1 mt-0.5 shrink-0 inline-flex items-center justify-center h-8 w-8 touch-manipulation"
+          className={`-ml-0.5 mt-0.5 shrink-0 inline-flex items-center justify-center ${checkHit} touch-manipulation`}
           data-tip={isDone ? "Undo" : isFutureTask ? "Cannot mark future tasks complete" : "Mark done"}
           aria-label={isDone ? "Undo" : isFutureTask ? "Cannot mark future tasks complete" : "Mark done"}
         >
           <span
-            className={`inline-flex items-center justify-center h-[18px] w-[18px] rounded-[5px] border-2 transition-colors ${
+            className={`inline-flex items-center justify-center ${checkBox} border-2 transition-colors ${
               isDone
                 ? 'bg-emerald-500 border-emerald-500 text-white'
                 : isFutureTask
@@ -162,19 +171,19 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
                 : 'border-slate-300 dark:border-slate-600 text-transparent'
             }`}
           >
-            {isDone && <Check size={11} strokeWidth={3} />}
+            {isDone && <Check size={hideActions ? 9 : 11} strokeWidth={3} />}
           </span>
         </button>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <div className={`min-w-0 flex-1 font-medium leading-snug ${titleCls} ${isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} flex items-center gap-1.5`}>
+            <div className={`min-w-0 flex-1 font-medium leading-snug ${titleCls} ${isDone ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-900 dark:text-slate-100"} flex items-start gap-1.5`}>
               {t.isRecurringInstance && (
-                <span className="inline-flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0" data-tip={`${recurrenceInfo || "Recurring Task"} - Cannot be moved`}>
+                <span className="inline-flex items-center justify-center text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" data-tip={`${recurrenceInfo || "Recurring Task"} - Cannot be moved`}>
                   {recurrenceIcon || <RefreshCcw size={12} />}
                 </span>
               )}
-              <span className="truncate">{title}</span>
+              <span className={wrapTitle ? 'break-words whitespace-normal' : 'truncate'}>{title}</span>
             </div>
             {!hidePriorityLabel && (
               <span
@@ -327,79 +336,80 @@ function TaskCard({ t, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteT
             )}
           </AnimatePresence>
 
-          {/* Single footer: meta left, equal ghost actions right */}
-          <div className="mt-1 flex items-center gap-1">
-            <div className="flex items-center gap-0.5 min-w-0 flex-1">
-              {hasSubtasks && (
-                <button
-                  type="button"
-                  onClick={() => setExpanded((v) => !v)}
-                  className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 h-8 px-1 -ml-1 rounded-md touch-manipulation"
-                  aria-expanded={expanded}
-                >
-                  {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                  <span className="tabular-nums">{completedSubtasks}/{totalSubtasks}</span>
-                </button>
-              )}
-              {!hideSubtaskButton && (
-                <button
-                  type="button"
-                  onClick={onClickAddSubtask}
-                  className="inline-flex items-center gap-0.5 text-[11px] text-indigo-600 dark:text-indigo-400 h-8 px-1 rounded-md touch-manipulation"
-                >
-                  <Plus size={12} />
-                  <span>Subtask</span>
-                </button>
-              )}
-            </div>
+          {!hideActions && (
+            <div className="mt-1 flex items-center gap-1">
+              <div className="flex items-center gap-0.5 min-w-0 flex-1">
+                {hasSubtasks && (
+                  <button
+                    type="button"
+                    onClick={() => setExpanded((v) => !v)}
+                    className="inline-flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 h-8 px-1 -ml-1 rounded-md touch-manipulation"
+                    aria-expanded={expanded}
+                  >
+                    {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                    <span className="tabular-nums">{completedSubtasks}/{totalSubtasks}</span>
+                  </button>
+                )}
+                {!hideSubtaskButton && (
+                  <button
+                    type="button"
+                    onClick={onClickAddSubtask}
+                    className="inline-flex items-center gap-0.5 text-[11px] text-indigo-600 dark:text-indigo-400 h-8 px-1 rounded-md touch-manipulation"
+                  >
+                    <Plus size={12} />
+                    <span>Subtask</span>
+                  </button>
+                )}
+              </div>
 
-            <div className="flex items-center shrink-0 -mr-1.5">
-              <button
-                type="button"
-                onClick={() => onOpenEditModal(t)}
-                className={`${actionBtn} text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30`}
-                data-tip="Edit"
-                aria-label="Edit"
-              >
-                <Pencil size={iconSize} />
-              </button>
-              {onStartPomodoro && !isDone && (
+              <div className="flex items-center shrink-0 -mr-1.5">
                 <button
                   type="button"
-                  onClick={() => onStartPomodoro(t)}
-                  disabled={isFutureTask}
-                  className={`${actionBtn} ${
-                    isFutureTask
-                      ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-50'
-                      : 'text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30'
-                  }`}
-                  data-tip={isFutureTask ? "Pomodoro only available for today's tasks" : "Start Pomodoro"}
-                  aria-label={isFutureTask ? "Pomodoro only available for today's tasks" : "Start Pomodoro"}
+                  onClick={() => onOpenEditModal(t)}
+                  className={`${actionBtn} text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30`}
+                  data-tip="Edit"
+                  aria-label="Edit"
                 >
-                  <Timer size={iconSize} />
+                  <Pencil size={iconSize} />
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => onDeleteTask(t)}
-                className={`${actionBtn} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30`}
-                data-tip="Delete"
-                aria-label="Delete"
-              >
-                <Trash size={iconSize} />
-              </button>
+                {onStartPomodoro && !isDone && (
+                  <button
+                    type="button"
+                    onClick={() => onStartPomodoro(t)}
+                    disabled={isFutureTask}
+                    className={`${actionBtn} ${
+                      isFutureTask
+                        ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-50'
+                        : 'text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-950/30'
+                    }`}
+                    data-tip={isFutureTask ? "Pomodoro only available for today's tasks" : "Start Pomodoro"}
+                    aria-label={isFutureTask ? "Pomodoro only available for today's tasks" : "Start Pomodoro"}
+                  >
+                    <Timer size={iconSize} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onDeleteTask(t)}
+                  className={`${actionBtn} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30`}
+                  data-tip="Delete"
+                  aria-label="Delete"
+                >
+                  <Trash size={iconSize} />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </motion.div>
   );
 }
 
-export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false, loading = false }) {
+export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenEditModal, onDeleteTask, onAddSubtask, onToggleSubtask, onDeleteSubtask, onStartPomodoro, fullHeight = false, showDueDate = false, density = 'normal', emptyMessage = null, recurringSeries = [], pomodoroRunningState = { isRunning: false, currentTask: null, timeLeft: null, phase: null, totalTime: null }, hidePriorityLabel = false, hideSubtaskButton = false, hideActions = false, wrapTitle = false, loading = false }) {
   const scrollRef = useRef(null);
   const taskCount = Array.isArray(tasks) ? tasks.length : 0;
-  const overflow = useScrollOverflow(scrollRef, [taskCount, density, loading, fullHeight]);
+  const overflow = useScrollOverflow(scrollRef, [taskCount, density, loading, fullHeight, hideActions, wrapTitle]);
 
   if (loading && (!tasks || tasks.length === 0)) {
     return (
@@ -411,12 +421,13 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
   }
 
   if (!tasks || tasks.length === 0) {
+    if (emptyMessage === "") return null;
     const msg = emptyMessage || 'No tasks. Double-click any day to add one quickly.';
     return <div className="text-sm text-slate-400 dark:text-slate-500">{msg}</div>;
   }
 
   const gapCls = density === 'minified'
-    ? 'space-y-1.5'
+    ? hideActions ? 'space-y-1' : 'space-y-1.5'
     : density === 'compact'
     ? 'space-y-1.5 sm:space-y-2'
     : 'space-y-2 sm:space-y-3';
@@ -451,6 +462,8 @@ export default function TaskList({ tasks, onDragStartTask, onToggleDone, onOpenE
             pomodoroRunningState={pomodoroRunningState}
             hidePriorityLabel={hidePriorityLabel}
             hideSubtaskButton={hideSubtaskButton}
+            hideActions={hideActions}
+            wrapTitle={wrapTitle}
           />
         ))}
       </div>
