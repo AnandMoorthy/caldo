@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { Loader2, Sparkles } from 'lucide-react';
 import { createMomentRepository } from '../services/repositories/momentRepository';
 import { generateId } from '../utils/uid';
 import MomentCard from './MomentCard';
@@ -236,82 +237,71 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
-        >
-          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
-          <button
-            onClick={() => setError(null)}
-            className="mt-2 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 text-sm underline"
-          >
-            Dismiss
-          </button>
-        </motion.div>
-      )}
+    <main className="grid grid-cols-1 gap-4 sm:gap-6">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
+        <div className="sticky top-0 z-20 -mx-3 px-3 sm:-mx-4 sm:px-4 -mt-3 pt-3 sm:-mt-4 sm:pt-4 pb-3 mb-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate text-slate-900 dark:text-slate-100">
+              {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <Sparkles size={18} className="shrink-0" />}
+              <span className="truncate">Moments</span>
+            </div>
+          </div>
+        </div>
 
-      <div className="sticky top-0 z-20 -mx-2 px-2 py-3 mb-5 text-center bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80 backdrop-blur-md">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-          Moments
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400">
-          Capture your thoughts and feelings throughout the day
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {/* Add new moment - always at the top */}
-        <AddMoment
-          onSave={handleSaveMoment}
-          onCancel={() => {}}
-          categories={categories}
-          onCategoriesChange={handleCategoriesChange}
-          maxLength={280}
-        />
-
-        {/* Existing moments */}
-        {moments.length === 0 ? (
+        {error && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3"
           >
-            <div className="text-4xl mb-4">📝</div>
-            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 mb-2">
-              No moments yet
-            </h3>
-            <p className="text-slate-600 dark:text-slate-400">
-              Start by adding your first moment above
-            </p>
+            <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-2 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 text-sm underline"
+            >
+              Dismiss
+            </button>
           </motion.div>
-        ) : (
-          moments.map((moment) => (
-            <MomentCard
-              key={moment.id}
-              moment={moment}
-              categories={categories}
-              isEditing={editingId === moment.id}
-              onEdit={handleEditMoment}
-              onDelete={handleDeleteMoment}
-              onSaveEdit={(updates) => handleSaveEdit(moment.id, updates)}
-              onCancelEdit={handleCancelEdit}
-            />
-          ))
         )}
+
+        <div className="space-y-4">
+          <AddMoment
+            onSave={handleSaveMoment}
+            onCancel={() => {}}
+            categories={categories}
+            onCategoriesChange={handleCategoriesChange}
+            maxLength={280}
+          />
+
+          {moments.length === 0 ? (
+            <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
+              No moments yet. Start by adding your first moment above.
+            </div>
+          ) : (
+            moments.map((moment) => (
+              <MomentCard
+                key={moment.id}
+                moment={moment}
+                categories={categories}
+                isEditing={editingId === moment.id}
+                onEdit={handleEditMoment}
+                onDelete={handleDeleteMoment}
+                onSaveEdit={(updates) => handleSaveEdit(moment.id, updates)}
+                onCancelEdit={handleCancelEdit}
+              />
+            ))
+          )}
+        </div>
       </div>
 
       {saving && (
         <div className="fixed right-4 z-[55] bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 rounded-lg shadow-lg" style={{ bottom: 'calc(var(--content-pb) + 0.5rem)' }}>
           <div className="flex items-center gap-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+            <Loader2 size={16} className="animate-spin" />
             <span className="text-sm">Saving...</span>
           </div>
         </div>
       )}
-
-    </div>
+    </main>
   );
 }
