@@ -218,76 +218,73 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   };
 
   return (
-    <main className="grid grid-cols-1 gap-4 sm:gap-6">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
-        <div className="sticky top-0 z-20 -mx-3 px-3 sm:-mx-4 sm:px-4 -mt-3 pt-3 sm:-mt-4 sm:pt-4 pb-3 mb-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate text-slate-900 dark:text-slate-100">
-              {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <Sparkles size={18} className="shrink-0" />}
-              <span className="truncate">Moments</span>
-            </div>
-          </div>
+    <main className="max-w-2xl mx-auto w-full">
+      <div className="sticky top-0 z-20 -mx-1 px-1 pb-2 mb-2 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
+        <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate text-slate-900 dark:text-slate-100">
+          {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <Sparkles size={18} className="shrink-0" />}
+          <span className="truncate">Moments</span>
         </div>
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3"
-          >
-            <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
-            <button
-              onClick={() => setError(null)}
-              className="mt-2 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 text-sm underline"
-            >
-              Dismiss
-            </button>
-          </motion.div>
-        )}
-
-        {!user ? (
-          <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
-            Sign in to view moments.
-          </div>
-        ) : loading ? (
-          <div className="p-3 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-            <Loader2 size={16} className="animate-spin" />
-            Loading moments...
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <AddMoment
-              onSave={handleSaveMoment}
-              onCancel={() => {}}
-              categories={categories}
-              onCategoriesChange={handleCategoriesChange}
-              maxLength={280}
-            />
-
-            {moments.length === 0 ? (
-              <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
-                No moments yet. Start by adding your first moment above.
-              </div>
-            ) : (
-              moments.map((moment) => (
-                <MomentCard
-                  key={moment.id}
-                  moment={moment}
-                  categories={categories}
-                  isEditing={editingId === moment.id}
-                  onEdit={handleEditMoment}
-                  onDelete={handleDeleteMoment}
-                  onSaveEdit={(updates) => handleSaveEdit(moment.id, updates)}
-                  onCancelEdit={handleCancelEdit}
-                />
-              ))
-            )}
-          </div>
-        )}
       </div>
 
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2.5"
+        >
+          <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+          <button
+            type="button"
+            onClick={() => setError(null)}
+            className="mt-1.5 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 text-sm underline"
+          >
+            Dismiss
+          </button>
+        </motion.div>
+      )}
+
+      {!user ? (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm text-slate-500 dark:text-slate-400">
+          Sign in to view moments.
+        </div>
+      ) : loading ? (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+          <Loader2 size={16} className="animate-spin" />
+          Loading moments...
+        </div>
+      ) : (
+        <div className="space-y-2.5 sm:space-y-3">
+          <AddMoment
+            onSave={handleSaveMoment}
+            onCancel={() => {}}
+            categories={categories}
+            onCategoriesChange={handleCategoriesChange}
+            maxLength={280}
+          />
+
+          {moments.length === 0 ? (
+            <div className="px-1 py-1 text-sm text-slate-500 dark:text-slate-400">
+              No moments yet. Start by adding your first moment above.
+            </div>
+          ) : (
+            moments.map((moment) => (
+              <MomentCard
+                key={moment.id}
+                moment={moment}
+                categories={categories}
+                isEditing={editingId === moment.id}
+                onEdit={handleEditMoment}
+                onDelete={handleDeleteMoment}
+                onSaveEdit={(updates) => handleSaveEdit(moment.id, updates)}
+                onCancelEdit={handleCancelEdit}
+              />
+            ))
+          )}
+        </div>
+      )}
+
       {saving && (
-        <div className="fixed right-4 z-[55] bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-4 py-2 rounded-lg shadow-lg" style={{ bottom: 'calc(var(--content-pb) + 0.5rem)' }}>
+        <div className="fixed right-3 z-[55] bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-3 py-2 rounded-lg shadow-lg" style={{ bottom: 'calc(var(--content-pb) + 0.5rem)' }}>
           <div className="flex items-center gap-2">
             <Loader2 size={16} className="animate-spin" />
             <span className="text-sm">Saving...</span>
