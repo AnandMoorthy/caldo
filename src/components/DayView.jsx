@@ -150,8 +150,9 @@ export default function DayView({
               <div className="text-xs text-slate-500 dark:text-slate-400">Tasks for</div>
               <div className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">{format(date, 'EEEE, MMM d')}</div>
             </div>
-            <button type="button" onClick={onAddTask} className="bg-indigo-600 text-white min-h-[44px] min-w-[44px] rounded-xl inline-flex items-center justify-center shadow-sm touch-manipulation" aria-label="Add task (T)" data-tip="Add task (T)">
-              <Plus size={18} />
+            <button type="button" onClick={onAddTask} className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 shadow-sm touch-manipulation" aria-label="New task (T)" data-tip="New task (T)">
+              <Plus size={14} />
+              <span>New</span>
             </button>
           </div>
           <div className="flex items-center justify-between gap-2">
@@ -295,8 +296,9 @@ export default function DayView({
             <button type="button" onClick={onOpenNotes} className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-center" aria-label="Open notes (N)" data-tip="Open notes (N)">
               <StickyNote size={16} />
             </button>
-            <button type="button" onClick={onAddTask} className="bg-indigo-600 text-white p-2 rounded-lg inline-flex items-center justify-center" aria-label="Add task (T)" data-tip="Add task (T)">
-              <Plus size={16} />
+            <button type="button" onClick={onAddTask} className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500" aria-label="New task (T)" data-tip="New task (T)">
+              <Plus size={14} />
+              <span>New</span>
             </button>
           </div>
         </div>

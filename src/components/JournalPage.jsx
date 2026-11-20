@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Bell, BookOpenText, Calendar, Flame, Loader2, PenSquare } from "lucide-react";
+import { Bell, BookOpenText, Calendar, Flame, Loader2, Plus } from "lucide-react";
 import { keyFor } from "../utils/date";
 import { formatReminderTime } from "../utils/journalReminder";
 import JournalReminderSettings from "./JournalReminderSettings.jsx";
@@ -114,8 +114,8 @@ export default function JournalPage({
                 disabled={!user}
                 className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
               >
-                <PenSquare size={14} />
-                <span>Journal</span>
+                <Plus size={14} />
+                <span>New</span>
               </button>
             </div>
           </div>
