@@ -5,7 +5,6 @@ import Logo from "./Logo.jsx";
 
 const PAGES = [
   { key: "home", label: "Home", icon: Home },
-  { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "notes", label: "Notes", icon: StickyNote },
   { key: "journal", label: "Journal", icon: BookOpenText },
@@ -129,6 +128,13 @@ export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = 
             Collapse
           </motion.span>
         </button>
+        <NavButton
+          active={activeTab === "overview"}
+          collapsed={collapsed}
+          label="Overview"
+          icon={BarChart3}
+          onClick={() => onChangeTab && onChangeTab("overview")}
+        />
         <NavButton
           active={activeTab === "settings"}
           collapsed={collapsed}
