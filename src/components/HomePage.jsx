@@ -15,6 +15,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Logo from "./Logo.jsx";
+import PeriodTaskBars from "./PeriodTaskBars.jsx";
+import { buildPeriodOverview } from "../utils/periodOverview";
 
 const PILLARS = [
   {
@@ -70,7 +72,7 @@ function openPillar(pillar, { user, onChangeTab, onSignIn }) {
   onChangeTab && onChangeTab(pillar.key);
 }
 
-/** Full-bleed color mesh used behind Home header + content. */
+/** Full-bleed color mesh used behind page chrome + content. */
 export function HomeMeshBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
@@ -318,73 +320,41 @@ function GistView({
   habitsTotal,
   habitsDone,
   journalToday,
+  weekOverview,
   onChangeTab,
   onSignIn,
-  onAddTask,
   onOpenToday,
   onOpenJournal,
+  onOpenOverview,
   onSelectTask,
 }) {
   const remaining = Math.max(0, taskTotal - taskDone);
   const progress = taskTotal > 0 ? Math.round((taskDone / taskTotal) * 100) : 0;
+  const weekTasks = weekOverview?.tasks;
 
   return (
     <div className="relative pb-10">
       <section className="relative px-1 pb-8 pt-4 sm:px-2 sm:pb-10 sm:pt-6">
-        <div className="relative z-10 mx-auto w-full max-w-6xl">
+        <div className="relative z-10 mx-auto w-full max-w-6xl space-y-6">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35 }}
           >
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{todayLabel}</p>
-            <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-2xl">
-                <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-5xl">
-                  {user?.displayName ? `Hi, ${user.displayName.split(" ")[0]}` : "Today"}
-                </h1>
-                <p className="mt-3 text-base text-slate-600 dark:text-slate-300 sm:text-lg">
-                  {taskTotal === 0
-                    ? "No tasks yet. Add one to start shaping the day."
-                    : remaining === 0
-                      ? "All tasks done. Nice work."
-                      : `${remaining} task${remaining === 1 ? "" : "s"} left · ${taskDone}/${taskTotal} done`}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => onAddTask && onAddTask()}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 touch-manipulation"
-                >
-                  <Plus size={16} />
-                  Add task
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onOpenToday && onOpenToday()}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-5 text-sm font-semibold text-slate-800 hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100 touch-manipulation"
-                >
-                  Open today
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!user) {
-                      onSignIn && onSignIn();
-                      return;
-                    }
-                    onOpenJournal && onOpenJournal();
-                  }}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-5 text-sm font-semibold text-slate-800 hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100 touch-manipulation"
-                >
-                  {user ? "Write journal" : "Sign in to journal"}
-                </button>
-              </div>
-            </div>
+            <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-5xl">
+              {user?.displayName ? `Hi, ${user.displayName.split(" ")[0]}` : "Today"}
+            </h1>
+            <p className="mt-3 max-w-2xl text-base text-slate-600 dark:text-slate-300 sm:text-lg">
+              {taskTotal === 0
+                ? "No tasks yet. Add one to start shaping the day."
+                : remaining === 0
+                  ? "All tasks done. Nice work."
+                  : `${remaining} task${remaining === 1 ? "" : "s"} left · ${taskDone}/${taskTotal} done`}
+            </p>
 
             {taskTotal > 0 && (
-              <div className="mt-6 max-w-xl">
+              <div className="mt-5 max-w-xl">
                 <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400">
                   <span>Progress</span>
                   <span>{progress}%</span>
@@ -434,73 +404,67 @@ function GistView({
               />
             </div>
           </motion.div>
-        </div>
-      </section>
 
-      <section className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 gap-6 px-1 lg:grid-cols-[1.4fr_1fr]">
-        <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Remaining today</h2>
-            {incompleteTasks.length > 0 && (
-              <button
-                type="button"
-                onClick={() => onOpenToday && onOpenToday()}
-                className="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-              >
-                View all
-              </button>
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Remaining today</h2>
+              {incompleteTasks.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onOpenToday && onOpenToday()}
+                  className="text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                >
+                  View all
+                </button>
+              )}
+            </div>
+            {incompleteTasks.length === 0 ? (
+              <p className="rounded-2xl bg-white/60 px-4 py-8 text-sm text-slate-500 ring-1 ring-slate-200/70 dark:bg-slate-900/50 dark:text-slate-400 dark:ring-slate-800">
+                {taskTotal === 0 ? "Nothing planned yet. Add a task to fill this space." : "Everything for today is checked off."}
+              </p>
+            ) : (
+              <ul className="overflow-hidden rounded-2xl bg-white/70 ring-1 ring-slate-200/70 dark:bg-slate-900/70 dark:ring-slate-800">
+                {incompleteTasks.slice(0, 8).map((task, index) => (
+                  <li key={task.id} className={index > 0 ? "border-t border-slate-100 dark:border-slate-800" : ""}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectTask && onSelectTask(task)}
+                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                    >
+                      <Circle size={16} className="shrink-0 text-slate-300 dark:text-slate-600" />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200">
+                        {task.title || "Untitled"}
+                      </span>
+                      {task.priority === "high" && (
+                        <span className="text-[10px] font-semibold uppercase text-rose-500">High</span>
+                      )}
+                      <ChevronRight size={14} className="text-slate-300 dark:text-slate-600" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
-          {incompleteTasks.length === 0 ? (
-            <p className="rounded-2xl bg-white/60 px-4 py-8 text-sm text-slate-500 ring-1 ring-slate-200/70 dark:bg-slate-900/50 dark:text-slate-400 dark:ring-slate-800">
-              {taskTotal === 0 ? "Nothing planned yet. Add a task to fill this space." : "Everything for today is checked off."}
-            </p>
-          ) : (
-            <ul className="overflow-hidden rounded-2xl bg-white/70 ring-1 ring-slate-200/70 dark:bg-slate-900/70 dark:ring-slate-800">
-              {incompleteTasks.slice(0, 8).map((task, index) => (
-                <li key={task.id} className={index > 0 ? "border-t border-slate-100 dark:border-slate-800" : ""}>
-                  <button
-                    type="button"
-                    onClick={() => onSelectTask && onSelectTask(task)}
-                    className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
-                  >
-                    <Circle size={16} className="shrink-0 text-slate-300 dark:text-slate-600" />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200">
-                      {task.title || "Untitled"}
-                    </span>
-                    {task.priority === "high" && (
-                      <span className="text-[10px] font-semibold uppercase text-rose-500">High</span>
-                    )}
-                    <ChevronRight size={14} className="text-slate-300 dark:text-slate-600" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
 
-        <div className="space-y-4">
           <div className="rounded-2xl bg-white/70 p-5 ring-1 ring-slate-200/70 dark:bg-slate-900/70 dark:ring-slate-800">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Quick jumps</h2>
-            <div className="mt-3 space-y-1">
-              {PILLARS.map((pillar) => {
-                const Icon = pillar.icon;
-                return (
-                  <button
-                    key={pillar.key}
-                    type="button"
-                    onClick={() => openPillar(pillar, { user, onChangeTab, onSignIn })}
-                    className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                  >
-                    <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-white ${pillar.tint}`}>
-                      <Icon size={14} />
-                    </span>
-                    <span className="flex-1 text-sm font-medium text-slate-800 dark:text-slate-200">{pillar.label}</span>
-                    <ChevronRight size={14} className="text-slate-300 dark:text-slate-600" />
-                  </button>
-                );
-              })}
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">This week</h2>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  {weekOverview?.label}
+                  {weekTasks?.total > 0 ? ` · ${weekTasks.done}/${weekTasks.total} done` : ""}
+                </p>
+              </div>
             </div>
+            <PeriodTaskBars byDay={weekTasks?.byDay || []} range="week" />
+            <button
+              type="button"
+              onClick={() => onOpenOverview && onOpenOverview()}
+              className="mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white touch-manipulation sm:w-auto"
+            >
+              Open overview
+              <ArrowRight size={14} />
+            </button>
           </div>
         </div>
       </section>
@@ -514,13 +478,16 @@ export default function HomePage({
   streak = null,
   habits = [],
   journalToday = null,
+  tasksMap = {},
+  journals = [],
+  moments = [],
   hasAnyData = false,
   onChangeTab,
   onSignIn,
-  onAddTask,
   onOpenToday,
   onStartToday,
   onOpenJournal,
+  onOpenOverview,
   onSelectTask,
 }) {
   const todayLabel = format(new Date(), "EEEE, MMMM d");
@@ -538,6 +505,19 @@ export default function HomePage({
     ? habits.filter((h) => !!h?.history?.[todayKey]).length
     : 0;
 
+  const weekOverview = useMemo(
+    () =>
+      buildPeriodOverview({
+        range: "week",
+        tasksMap,
+        habits,
+        journals,
+        moments,
+        streak,
+      }),
+    [tasksMap, habits, journals, moments, streak]
+  );
+
   const showGist = !!user || hasAnyData;
 
   return (
@@ -553,11 +533,12 @@ export default function HomePage({
           habitsTotal={habitsTotal}
           habitsDone={habitsDone}
           journalToday={journalToday}
+          weekOverview={weekOverview}
           onChangeTab={onChangeTab}
           onSignIn={onSignIn}
-          onAddTask={onAddTask}
           onOpenToday={onOpenToday}
           onOpenJournal={onOpenJournal}
+          onOpenOverview={onOpenOverview}
           onSelectTask={onSelectTask}
         />
       ) : (
