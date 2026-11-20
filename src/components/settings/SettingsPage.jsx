@@ -1,9 +1,9 @@
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { Database, Palette } from "lucide-react";
 import AppearanceSection from "./AppearanceSection.jsx";
 import DataSection from "./DataSection.jsx";
 import { useScrollChrome } from "../../context/ScrollChromeContext.jsx";
-import CollapsingChrome from "../CollapsingChrome.jsx";
 
 // Add a section here when a new settings group is ready.
 const SECTIONS = [
@@ -34,7 +34,18 @@ export default function SettingsPage({ onExportAllData }) {
   return (
     <div className="max-w-3xl w-full pb-6">
       <div className="sticky top-0 z-20 -mx-1 px-1 mb-4 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md">
-        <CollapsingChrome hidden={chromeHidden}>
+        <motion.div
+          initial={false}
+          animate={
+            chromeHidden
+              ? { height: 0, opacity: 0 }
+              : { height: 'auto', opacity: 1 }
+          }
+          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+          className="overflow-hidden"
+          style={{ pointerEvents: chromeHidden ? 'none' : undefined }}
+          aria-hidden={chromeHidden ? true : undefined}
+        >
           <div className="pt-3">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Settings</h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -73,7 +84,7 @@ export default function SettingsPage({ onExportAllData }) {
             </div>
             <div className="mt-3 border-b border-slate-200/70 dark:border-slate-800/70" aria-hidden="true" />
           </div>
-        </CollapsingChrome>
+        </motion.div>
       </div>
 
       <section

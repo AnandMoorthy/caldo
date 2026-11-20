@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { format, parseISO } from "date-fns";
 import { Bell, BookOpenText, Calendar, Flame, Loader2, PenSquare } from "lucide-react";
 import { keyFor } from "../utils/date";
 import { formatReminderTime } from "../utils/journalReminder";
 import JournalReminderSettings from "./JournalReminderSettings.jsx";
 import { useScrollChrome } from "../context/ScrollChromeContext.jsx";
-import CollapsingChrome from "./CollapsingChrome.jsx";
 
 function formatJournalDate(dateKey) {
   try {
@@ -114,7 +114,18 @@ export default function JournalPage({
   return (
     <div className="max-w-4xl mx-auto w-full px-1">
       <div className="sticky top-0 z-20">
-        <CollapsingChrome hidden={chromeHidden}>
+        <motion.div
+          initial={false}
+          animate={
+            chromeHidden
+              ? { height: 0, opacity: 0 }
+              : { height: 'auto', opacity: 1 }
+          }
+          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+          className="overflow-hidden"
+          style={{ pointerEvents: chromeHidden ? 'none' : undefined }}
+          aria-hidden={chromeHidden ? true : undefined}
+        >
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 shadow-sm">
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
@@ -136,7 +147,7 @@ export default function JournalPage({
               </div>
             </div>
           </div>
-        </CollapsingChrome>
+        </motion.div>
       </div>
 
       <JournalReminderSettings

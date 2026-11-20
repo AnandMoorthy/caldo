@@ -6,7 +6,6 @@ import TaskList from "./TaskList.jsx";
 import { getMotivationalMessageForCount } from "../utils/motivation.js";
 import { keyFor } from "../utils/date.js";
 import { useScrollChrome } from "../context/ScrollChromeContext.jsx";
-import CollapsingChrome from "./CollapsingChrome.jsx";
 
 export default function DayView({
   date,
@@ -147,10 +146,17 @@ export default function DayView({
     >
       <div className="sm:mb-4 shrink-0">
         {/* Mobile layout — collapses with app chrome while scrolling tasks */}
-        <CollapsingChrome
-          hidden={chromeHidden}
-          expandedMarginBottom={12}
-          className="sm:hidden"
+        <motion.div
+          initial={false}
+          animate={
+            chromeHidden
+              ? { height: 0, opacity: 0, marginBottom: 0 }
+              : { height: 'auto', opacity: 1, marginBottom: 12 }
+          }
+          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
+          className="overflow-hidden sm:hidden"
+          style={{ pointerEvents: chromeHidden ? 'none' : undefined }}
+          aria-hidden={chromeHidden ? true : undefined}
         >
           <div className="flex flex-col gap-3 pb-0.5">
             <div className="flex items-center justify-between gap-2">
@@ -239,7 +245,7 @@ export default function DayView({
               </div>
             </div>
           </div>
-        </CollapsingChrome>
+        </motion.div>
 
         {/* Desktop layout */}
         <div className="hidden sm:flex items-center justify-between">
