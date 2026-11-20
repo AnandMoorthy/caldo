@@ -10,7 +10,6 @@ import {
   Flame,
   Plus,
   ChevronRight,
-  HelpCircle,
   LogIn,
   Circle,
   ArrowRight,
@@ -71,16 +70,15 @@ function openPillar(pillar, { user, onChangeTab, onSignIn }) {
   onChangeTab && onChangeTab(pillar.key);
 }
 
-function Atmosphere() {
+/** Full-bleed color mesh used behind Home header + content. */
+export function HomeMeshBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div className="absolute -top-24 left-1/2 h-[28rem] w-[42rem] -translate-x-1/2 rounded-full bg-indigo-200/35 blur-3xl dark:bg-indigo-500/10" />
-      <div className="absolute top-40 -left-16 h-56 w-56 rounded-full bg-sky-200/40 blur-3xl dark:bg-sky-500/10" />
-      <div className="absolute top-52 -right-10 h-64 w-64 rounded-full bg-violet-200/30 blur-3xl dark:bg-violet-500/10" />
-      <span className="absolute left-[12%] top-[18%] h-2 w-2 rounded-full bg-pink-400/80" />
-      <span className="absolute right-[18%] top-[22%] h-2.5 w-2.5 rounded-full bg-sky-400/80" />
-      <span className="absolute left-[22%] top-[42%] h-1.5 w-1.5 rounded-full bg-amber-400/80" />
-      <span className="absolute right-[28%] top-[36%] h-2 w-2 rounded-full bg-emerald-400/70" />
+      <div className="absolute inset-0 bg-[#f4f6fb] dark:bg-slate-950" />
+      <div className="absolute -left-[20%] -top-[10%] h-[70%] w-[70%] rounded-full bg-indigo-300/40 blur-[100px] dark:bg-indigo-600/20" />
+      <div className="absolute -right-[15%] top-[5%] h-[55%] w-[55%] rounded-full bg-sky-300/35 blur-[110px] dark:bg-sky-600/15" />
+      <div className="absolute bottom-[-10%] left-[15%] h-[50%] w-[60%] rounded-full bg-violet-200/40 blur-[120px] dark:bg-violet-700/15" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-white/70 dark:via-slate-950/20 dark:to-slate-950/70" />
     </div>
   );
 }
@@ -151,7 +149,7 @@ function ProductPeek() {
           </div>
         </div>
       </div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white/90 to-transparent dark:from-slate-950/90" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-50/95 to-transparent dark:from-slate-950/90" />
     </div>
   );
 }
@@ -189,11 +187,10 @@ function PillarGrid({ user, onChangeTab, onSignIn }) {
   );
 }
 
-function WelcomeView({ user, onChangeTab, onSignIn, onOpenHelp, onStartToday }) {
+function WelcomeView({ user, onChangeTab, onSignIn, onStartToday }) {
   return (
     <div className="relative">
       <section className="relative flex min-h-[calc(100dvh-6.5rem)] flex-col px-1 pt-4 text-center sm:min-h-[calc(100dvh-5.5rem)] sm:pt-6">
-        <Atmosphere />
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -219,7 +216,7 @@ function WelcomeView({ user, onChangeTab, onSignIn, onOpenHelp, onStartToday }) 
             <button
               type="button"
               onClick={() => onStartToday && onStartToday()}
-              className="inline-flex h-12 items-center gap-2 rounded-full bg-indigo-600 px-6 text-sm font-semibold text-white shadow-lg shadow-indigo-600/25 transition hover:bg-indigo-500 touch-manipulation"
+              className="inline-flex h-12 items-center gap-2 rounded-xl bg-indigo-600 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 touch-manipulation"
             >
               <Plus size={16} />
               Start today
@@ -228,20 +225,12 @@ function WelcomeView({ user, onChangeTab, onSignIn, onOpenHelp, onStartToday }) 
               <button
                 type="button"
                 onClick={() => onSignIn && onSignIn()}
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-slate-100 px-6 text-sm font-semibold text-slate-800 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700 touch-manipulation"
+                className="inline-flex h-12 items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 touch-manipulation"
               >
                 <LogIn size={16} />
                 Sign in
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => onOpenHelp && onOpenHelp()}
-              className="inline-flex h-12 items-center gap-2 rounded-full px-4 text-sm font-medium text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 touch-manipulation"
-            >
-              <HelpCircle size={16} />
-              Full guide
-            </button>
           </div>
         </motion.div>
 
@@ -279,7 +268,7 @@ function WelcomeView({ user, onChangeTab, onSignIn, onOpenHelp, onStartToday }) 
             <button
               type="button"
               onClick={() => onStartToday && onStartToday()}
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-indigo-500 px-5 text-sm font-semibold text-white hover:bg-indigo-400 dark:bg-indigo-600 dark:hover:bg-indigo-500 touch-manipulation"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-indigo-500 px-5 text-sm font-semibold text-white hover:bg-indigo-400 dark:bg-indigo-600 dark:hover:bg-indigo-500 touch-manipulation"
             >
               Start today
               <ArrowRight size={16} />
@@ -288,7 +277,7 @@ function WelcomeView({ user, onChangeTab, onSignIn, onOpenHelp, onStartToday }) 
               <button
                 type="button"
                 onClick={() => onSignIn && onSignIn()}
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-white/10 px-5 text-sm font-semibold text-white hover:bg-white/15 dark:bg-slate-900/10 dark:text-slate-900 dark:hover:bg-slate-900/15 touch-manipulation"
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-white/10 px-5 text-sm font-semibold text-white hover:bg-white/15 dark:bg-slate-900/10 dark:text-slate-900 dark:hover:bg-slate-900/15 touch-manipulation"
               >
                 Sign in
               </button>
@@ -331,7 +320,6 @@ function GistView({
   journalToday,
   onChangeTab,
   onSignIn,
-  onOpenHelp,
   onAddTask,
   onOpenToday,
   onOpenJournal,
@@ -342,8 +330,7 @@ function GistView({
 
   return (
     <div className="relative pb-10">
-      <section className="relative overflow-hidden rounded-3xl px-1 pb-8 pt-4 sm:px-2 sm:pb-10 sm:pt-6">
-        <Atmosphere />
+      <section className="relative px-1 pb-8 pt-4 sm:px-2 sm:pb-10 sm:pt-6">
         <div className="relative z-10 mx-auto w-full max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -368,7 +355,7 @@ function GistView({
                 <button
                   type="button"
                   onClick={() => onAddTask && onAddTask()}
-                  className="inline-flex h-11 items-center gap-2 rounded-full bg-indigo-600 px-5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 touch-manipulation"
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 touch-manipulation"
                 >
                   <Plus size={16} />
                   Add task
@@ -376,7 +363,7 @@ function GistView({
                 <button
                   type="button"
                   onClick={() => onOpenToday && onOpenToday()}
-                  className="inline-flex h-11 items-center gap-2 rounded-full bg-white/80 px-5 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-white dark:bg-slate-900/80 dark:text-slate-100 dark:ring-slate-700 touch-manipulation"
+                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-5 text-sm font-semibold text-slate-800 hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100 touch-manipulation"
                 >
                   Open today
                 </button>
@@ -389,7 +376,7 @@ function GistView({
                     }
                     onOpenJournal && onOpenJournal();
                   }}
-                  className="inline-flex h-11 items-center gap-2 rounded-full bg-white/80 px-5 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-white dark:bg-slate-900/80 dark:text-slate-100 dark:ring-slate-700 touch-manipulation"
+                  className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white/90 px-5 text-sm font-semibold text-slate-800 hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100 touch-manipulation"
                 >
                   {user ? "Write journal" : "Sign in to journal"}
                 </button>
@@ -514,14 +501,6 @@ function GistView({
                 );
               })}
             </div>
-            <button
-              type="button"
-              onClick={() => onOpenHelp && onOpenHelp()}
-              className="mt-3 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
-            >
-              <HelpCircle size={14} />
-              Full guide
-            </button>
           </div>
         </div>
       </section>
@@ -538,7 +517,6 @@ export default function HomePage({
   hasAnyData = false,
   onChangeTab,
   onSignIn,
-  onOpenHelp,
   onAddTask,
   onOpenToday,
   onStartToday,
@@ -563,7 +541,7 @@ export default function HomePage({
   const showGist = !!user || hasAnyData;
 
   return (
-    <main className="relative w-full min-w-0">
+    <main className="relative min-h-full w-full min-w-0 px-3 sm:px-5 md:px-8">
       {showGist ? (
         <GistView
           user={user}
@@ -577,7 +555,6 @@ export default function HomePage({
           journalToday={journalToday}
           onChangeTab={onChangeTab}
           onSignIn={onSignIn}
-          onOpenHelp={onOpenHelp}
           onAddTask={onAddTask}
           onOpenToday={onOpenToday}
           onOpenJournal={onOpenJournal}
@@ -588,7 +565,6 @@ export default function HomePage({
           user={user}
           onChangeTab={onChangeTab}
           onSignIn={onSignIn}
-          onOpenHelp={onOpenHelp}
           onStartToday={onStartToday}
         />
       )}

@@ -68,12 +68,8 @@ export function loadThemePreference() {
     const stored = localStorage.getItem(THEME_KEY);
     if (stored === 'light' || stored === 'dark') return stored;
   } catch {}
-  try {
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return prefersDark ? 'dark' : 'light';
-  } catch {
-    return 'light';
-  }
+  // Default to light for first-time visitors (ignore OS dark preference).
+  return 'light';
 }
 
 export function saveThemePreference(theme) {
