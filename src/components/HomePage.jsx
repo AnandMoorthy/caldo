@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import { format } from "date-fns";
 import { motion } from "framer-motion";
 import {
@@ -15,27 +15,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import Logo from "./Logo.jsx";
-
-/** Preview backgrounds via ?homeBg=wash|mesh|paper or localStorage caldo_v2_home_bg */
-export const HOME_BG_OPTIONS = [
-  { id: "wash", label: "A · Soft wash" },
-  { id: "mesh", label: "B · Color mesh" },
-  { id: "paper", label: "C · Dot paper" },
-];
-const HOME_BG_KEY = "caldo_v2_home_bg";
-
-function readHomeBg() {
-  if (typeof window === "undefined") return "wash";
-  try {
-    const fromQuery = new URLSearchParams(window.location.search).get("homeBg");
-    if (HOME_BG_OPTIONS.some((o) => o.id === fromQuery)) return fromQuery;
-  } catch {}
-  try {
-    const stored = localStorage.getItem(HOME_BG_KEY);
-    if (HOME_BG_OPTIONS.some((o) => o.id === stored)) return stored;
-  } catch {}
-  return "wash";
-}
 
 const PILLARS = [
   {
@@ -91,41 +70,15 @@ function openPillar(pillar, { user, onChangeTab, onSignIn }) {
   onChangeTab && onChangeTab(pillar.key);
 }
 
-function HomeBackground({ variant = "wash" }) {
-  if (variant === "mesh") {
-    return (
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute inset-0 bg-[#f4f6fb] dark:bg-slate-950" />
-        <div className="absolute -left-[20%] -top-[10%] h-[70%] w-[70%] rounded-full bg-indigo-300/40 blur-[100px] dark:bg-indigo-600/20" />
-        <div className="absolute -right-[15%] top-[5%] h-[55%] w-[55%] rounded-full bg-sky-300/35 blur-[110px] dark:bg-sky-600/15" />
-        <div className="absolute bottom-[-10%] left-[15%] h-[50%] w-[60%] rounded-full bg-violet-200/40 blur-[120px] dark:bg-violet-700/15" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-white/70 dark:via-slate-950/20 dark:to-slate-950/70" />
-      </div>
-    );
-  }
-
-  if (variant === "paper") {
-    return (
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-50 via-white to-indigo-50/40 dark:from-slate-950 dark:via-slate-950 dark:to-indigo-950/30" />
-        <div
-          className="absolute inset-0 opacity-[0.45] dark:opacity-[0.25]"
-          style={{
-            backgroundImage: "radial-gradient(circle at 1px 1px, rgb(148 163 184 / 0.45) 1px, transparent 0)",
-            backgroundSize: "22px 22px",
-          }}
-        />
-        <div className="absolute inset-x-0 top-0 h-[42%] bg-gradient-to-b from-indigo-100/50 to-transparent dark:from-indigo-900/25" />
-      </div>
-    );
-  }
-
-  // wash (default): continuous soft wash across the whole page
+/** Full-bleed color mesh used behind Home header + content. */
+export function HomeMeshBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50 via-slate-50 to-sky-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.16),_transparent_55%)] dark:bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.18),_transparent_55%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_rgba(14,165,233,0.12),_transparent_50%)] dark:bg-[radial-gradient(ellipse_at_bottom_right,_rgba(14,165,233,0.1),_transparent_50%)]" />
+      <div className="absolute inset-0 bg-[#f4f6fb] dark:bg-slate-950" />
+      <div className="absolute -left-[20%] -top-[10%] h-[70%] w-[70%] rounded-full bg-indigo-300/40 blur-[100px] dark:bg-indigo-600/20" />
+      <div className="absolute -right-[15%] top-[5%] h-[55%] w-[55%] rounded-full bg-sky-300/35 blur-[110px] dark:bg-sky-600/15" />
+      <div className="absolute bottom-[-10%] left-[15%] h-[50%] w-[60%] rounded-full bg-violet-200/40 blur-[120px] dark:bg-violet-700/15" />
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/20 to-white/70 dark:via-slate-950/20 dark:to-slate-950/70" />
     </div>
   );
 }
@@ -572,13 +525,6 @@ export default function HomePage({
 }) {
   const todayLabel = format(new Date(), "EEEE, MMMM d");
   const todayKey = format(new Date(), "yyyy-MM-dd");
-  const [bgVariant, setBgVariant] = useState(readHomeBg);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(HOME_BG_KEY, bgVariant);
-    } catch {}
-  }, [bgVariant]);
 
   const taskTotal = todayTasks.length;
   const taskDone = todayTasks.filter((t) => !!t.done).length;
@@ -595,54 +541,33 @@ export default function HomePage({
   const showGist = !!user || hasAnyData;
 
   return (
-    <main className="relative min-h-full w-full min-w-0">
-      <HomeBackground variant={bgVariant} />
-      <div className="relative z-10 px-3 sm:px-5 md:px-8">
-        {showGist ? (
-          <GistView
-            user={user}
-            todayLabel={todayLabel}
-            taskTotal={taskTotal}
-            taskDone={taskDone}
-            incompleteTasks={incompleteTasks}
-            streakCurrent={streak?.current || 0}
-            habitsTotal={habitsTotal}
-            habitsDone={habitsDone}
-            journalToday={journalToday}
-            onChangeTab={onChangeTab}
-            onSignIn={onSignIn}
-            onAddTask={onAddTask}
-            onOpenToday={onOpenToday}
-            onOpenJournal={onOpenJournal}
-            onSelectTask={onSelectTask}
-          />
-        ) : (
-          <WelcomeView
-            user={user}
-            onChangeTab={onChangeTab}
-            onSignIn={onSignIn}
-            onStartToday={onStartToday}
-          />
-        )}
-      </div>
-
-      {/* Temporary chooser while reviewing background options */}
-      <div className="sticky bottom-20 z-20 mx-auto mb-4 flex w-fit max-w-full flex-wrap items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-900/95 sm:bottom-4">
-        {HOME_BG_OPTIONS.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            onClick={() => setBgVariant(option.id)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              bgVariant === option.id
-                ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
+    <main className="relative min-h-full w-full min-w-0 px-3 sm:px-5 md:px-8">
+      {showGist ? (
+        <GistView
+          user={user}
+          todayLabel={todayLabel}
+          taskTotal={taskTotal}
+          taskDone={taskDone}
+          incompleteTasks={incompleteTasks}
+          streakCurrent={streak?.current || 0}
+          habitsTotal={habitsTotal}
+          habitsDone={habitsDone}
+          journalToday={journalToday}
+          onChangeTab={onChangeTab}
+          onSignIn={onSignIn}
+          onAddTask={onAddTask}
+          onOpenToday={onOpenToday}
+          onOpenJournal={onOpenJournal}
+          onSelectTask={onSelectTask}
+        />
+      ) : (
+        <WelcomeView
+          user={user}
+          onChangeTab={onChangeTab}
+          onSignIn={onSignIn}
+          onStartToday={onStartToday}
+        />
+      )}
     </main>
   );
 }

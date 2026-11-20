@@ -32,7 +32,7 @@ import FocusedSnippetView from "./components/FocusedSnippetView.jsx";
 import FocusedDayNoteView from "./components/FocusedDayNoteView.jsx";
 import FloatingPomodoro from "./components/FloatingPomodoro.jsx";
 import SettingsPage from "./components/settings/SettingsPage.jsx";
-import HomePage from "./components/HomePage.jsx";
+import HomePage, { HomeMeshBackground } from "./components/HomePage.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference, loadSidebarCollapsed, saveSidebarCollapsed, loadSnippetsCache, saveSnippetsCache, loadHabbits, saveHabbits } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
@@ -2629,8 +2629,9 @@ export default function App() {
     <div className={`h-dvh overflow-hidden flex flex-row font-sans text-slate-800 dark:text-slate-200 ${activeTab === 'home' ? 'bg-transparent dark:bg-transparent' : 'bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900'}`}>
       <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((v) => !v)} />
       <div className={`flex-1 min-w-0 min-h-0 flex flex-col safe-pt relative ${activeTab === 'home' ? 'px-0' : 'px-4 sm:px-6 md:px-10'} ${needsIslandPad ? 'sm:pb-[var(--island-pb)]' : ''}`}>
-      <div className={`${activeTab === 'home' ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full flex-1 flex flex-col min-h-0 ${activeTab === 'home' ? 'gap-0' : 'gap-4 sm:gap-6'}`}>
-        <div className={`flex-shrink-0 w-full sticky top-0 z-40 backdrop-blur-md ${activeTab === 'home' ? 'bg-white/40 dark:bg-slate-950/40 px-3 sm:px-5 md:px-8' : 'bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80'}`}>
+      {activeTab === 'home' && <HomeMeshBackground />}
+      <div className={`relative z-10 ${activeTab === 'home' ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full flex-1 flex flex-col min-h-0 ${activeTab === 'home' ? 'gap-0' : 'gap-4 sm:gap-6'}`}>
+        <div className={`flex-shrink-0 w-full sticky top-0 z-40 ${activeTab === 'home' ? 'bg-transparent px-3 sm:px-5 md:px-8' : 'backdrop-blur-md bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80'}`}>
           <Header
             user={user}
           onSignInWithGoogle={signInWithGoogle}
