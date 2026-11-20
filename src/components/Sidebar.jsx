@@ -1,10 +1,11 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Home, CheckSquare, StickyNote, Sparkles, Target, BookOpenText, Settings, ChevronLeft } from "lucide-react";
+import { Home, CheckSquare, StickyNote, Sparkles, Target, BookOpenText, Settings, ChevronLeft, BarChart3 } from "lucide-react";
 import Logo from "./Logo.jsx";
 
 const PAGES = [
   { key: "home", label: "Home", icon: Home },
+  { key: "overview", label: "Overview", icon: BarChart3 },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "notes", label: "Notes", icon: StickyNote },
   { key: "journal", label: "Journal", icon: BookOpenText },
@@ -64,7 +65,7 @@ export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = 
       initial={false}
       animate={{ width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED }}
       transition={WIDTH_TRANSITION}
-      className="hidden sm:flex flex-col shrink-0 h-full overflow-hidden border-r border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
+      className="relative z-10 hidden sm:flex flex-col shrink-0 h-full overflow-hidden border-r border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
     >
       {/* Brand — logo fixed, copy fades/clips with the rail */}
       <div className="pt-[max(env(safe-area-inset-top),1.25rem)] pb-4 px-3">

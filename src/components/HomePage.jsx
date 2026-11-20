@@ -13,8 +13,10 @@ import {
   LogIn,
   Circle,
   ArrowRight,
+  BarChart3,
 } from "lucide-react";
 import Logo from "./Logo.jsx";
+import { buildPeriodOverview } from "../utils/periodOverview";
 
 const PILLARS = [
   {
@@ -70,7 +72,7 @@ function openPillar(pillar, { user, onChangeTab, onSignIn }) {
   onChangeTab && onChangeTab(pillar.key);
 }
 
-/** Full-bleed color mesh used behind Home header + content. */
+/** Full-bleed color mesh used behind page chrome + content. */
 export function HomeMeshBackground() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
@@ -184,6 +186,44 @@ function PillarGrid({ user, onChangeTab, onSignIn }) {
         );
       })}
     </div>
+  );
+}
+
+function PeriodTeaser({ overview, onOpenOverview }) {
+  if (!overview) return null;
+  const parts = [
+    overview.tasks.total > 0 ? `${overview.tasks.done}/${overview.tasks.total} tasks` : null,
+    overview.habits.habitCount > 0 ? `${overview.habits.rate}% habits` : null,
+    overview.journals.daysWritten > 0
+      ? `${overview.journals.daysWritten} journal day${overview.journals.daysWritten === 1 ? "" : "s"}`
+      : null,
+    overview.moments.count > 0
+      ? `${overview.moments.count} moment${overview.moments.count === 1 ? "" : "s"}`
+      : null,
+  ].filter(Boolean);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenOverview && onOpenOverview()}
+      className="group flex w-full items-center gap-4 rounded-2xl bg-white/70 px-4 py-4 text-left shadow-sm ring-1 ring-slate-200/70 backdrop-blur transition hover:-translate-y-0.5 hover:shadow-md dark:bg-slate-900/70 dark:ring-slate-700/70 touch-manipulation"
+    >
+      <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300">
+        <BarChart3 size={18} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+          This week · {overview.label}
+        </span>
+        <span className="mt-0.5 block truncate text-xs text-slate-500 dark:text-slate-400">
+          {parts.length > 0 ? parts.join(" · ") : "Open overview to reflect on the week"}
+        </span>
+      </span>
+      <ChevronRight
+        size={16}
+        className="shrink-0 text-slate-300 transition group-hover:text-slate-500 dark:text-slate-600 dark:group-hover:text-slate-400"
+      />
+    </button>
   );
 }
 
@@ -318,11 +358,13 @@ function GistView({
   habitsTotal,
   habitsDone,
   journalToday,
+  weekOverview,
   onChangeTab,
   onSignIn,
   onAddTask,
   onOpenToday,
   onOpenJournal,
+  onOpenOverview,
   onSelectTask,
 }) {
   const remaining = Math.max(0, taskTotal - taskDone);
@@ -433,6 +475,10 @@ function GistView({
                 }}
               />
             </div>
+
+            <div className="mt-5 max-w-xl">
+              <PeriodTeaser overview={weekOverview} onOpenOverview={onOpenOverview} />
+            </div>
           </motion.div>
         </div>
       </section>
@@ -514,6 +560,9 @@ export default function HomePage({
   streak = null,
   habits = [],
   journalToday = null,
+  tasksMap = {},
+  journals = [],
+  moments = [],
   hasAnyData = false,
   onChangeTab,
   onSignIn,
@@ -521,6 +570,7 @@ export default function HomePage({
   onOpenToday,
   onStartToday,
   onOpenJournal,
+  onOpenOverview,
   onSelectTask,
 }) {
   const todayLabel = format(new Date(), "EEEE, MMMM d");
@@ -538,6 +588,19 @@ export default function HomePage({
     ? habits.filter((h) => !!h?.history?.[todayKey]).length
     : 0;
 
+  const weekOverview = useMemo(
+    () =>
+      buildPeriodOverview({
+        range: "week",
+        tasksMap,
+        habits,
+        journals,
+        moments,
+        streak,
+      }),
+    [tasksMap, habits, journals, moments, streak]
+  );
+
   const showGist = !!user || hasAnyData;
 
   return (
@@ -553,11 +616,13 @@ export default function HomePage({
           habitsTotal={habitsTotal}
           habitsDone={habitsDone}
           journalToday={journalToday}
+          weekOverview={weekOverview}
           onChangeTab={onChangeTab}
           onSignIn={onSignIn}
           onAddTask={onAddTask}
           onOpenToday={onOpenToday}
           onOpenJournal={onOpenJournal}
+          onOpenOverview={onOpenOverview}
           onSelectTask={onSelectTask}
         />
       ) : (

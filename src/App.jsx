@@ -33,6 +33,7 @@ import FocusedDayNoteView from "./components/FocusedDayNoteView.jsx";
 import FloatingPomodoro from "./components/FloatingPomodoro.jsx";
 import SettingsPage from "./components/settings/SettingsPage.jsx";
 import HomePage, { HomeMeshBackground } from "./components/HomePage.jsx";
+import OverviewPage from "./components/OverviewPage.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference, loadSidebarCollapsed, saveSidebarCollapsed, loadSnippetsCache, saveSnippetsCache, loadHabbits, saveHabbits } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
@@ -64,9 +65,9 @@ export default function App() {
     if (typeof window === 'undefined') return 'home';
     try {
       const stored = localStorage.getItem('caldo_v2_active_tab') || 'home';
-      return ['home', 'tasks', 'notes', 'journal', 'moments', 'habits', 'settings'].includes(stored) ? stored : 'home';
+      return ['home', 'overview', 'tasks', 'notes', 'journal', 'moments', 'habits', 'settings'].includes(stored) ? stored : 'home';
     } catch { return 'home'; }
-  }); // 'home' | 'tasks' | 'notes' | 'journal' | 'moments' | 'habits' | 'settings'
+  }); // 'home' | 'overview' | 'tasks' | 'notes' | 'journal' | 'moments' | 'habits' | 'settings'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (typeof window === 'undefined' ? false : loadSidebarCollapsed()));
   // Phones always use Day for Tasks; desktop keeps the saved preference.
   const effectiveView = isPhone ? 'day' : currentView;
@@ -2538,7 +2539,7 @@ export default function App() {
 
   // Close drawers when switching tabs to prevent conflicts
   useEffect(() => {
-    if (activeTab === 'home') {
+    if (activeTab === 'home' || activeTab === 'overview') {
       setShowAdd(false);
       setShowEdit(false);
       setShowMissed(false);
@@ -2626,12 +2627,12 @@ export default function App() {
         <FocusedDayNoteView dateKey={focusedRoute.dateKey} />
       )
     ) : (
-    <div className={`h-dvh overflow-hidden flex flex-row font-sans text-slate-800 dark:text-slate-200 ${activeTab === 'home' ? 'bg-transparent dark:bg-transparent' : 'bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900'}`}>
+    <div className="h-dvh overflow-hidden flex flex-row bg-transparent dark:bg-transparent font-sans text-slate-800 dark:text-slate-200">
       <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((v) => !v)} />
-      <div className={`flex-1 min-w-0 min-h-0 flex flex-col safe-pt relative ${activeTab === 'home' ? 'px-0' : 'px-4 sm:px-6 md:px-10'} ${needsIslandPad ? 'sm:pb-[var(--island-pb)]' : ''}`}>
-      {activeTab === 'home' && <HomeMeshBackground />}
-      <div className={`relative z-10 ${activeTab === 'home' ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full flex-1 flex flex-col min-h-0 ${activeTab === 'home' ? 'gap-0' : 'gap-4 sm:gap-6'}`}>
-        <div className={`flex-shrink-0 w-full sticky top-0 z-40 ${activeTab === 'home' ? 'bg-transparent px-3 sm:px-5 md:px-8' : 'backdrop-blur-md bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80'}`}>
+      <div className={`flex-1 min-w-0 min-h-0 flex flex-col safe-pt relative ${activeTab === 'home' || activeTab === 'overview' ? 'px-0' : 'px-4 sm:px-6 md:px-10'} ${needsIslandPad ? 'sm:pb-[var(--island-pb)]' : ''}`}>
+      <HomeMeshBackground />
+      <div className={`relative z-10 ${activeTab === 'home' || activeTab === 'overview' ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full flex-1 flex flex-col min-h-0 ${activeTab === 'home' || activeTab === 'overview' ? 'gap-0' : 'gap-4 sm:gap-6'}`}>
+        <div className={`flex-shrink-0 w-full sticky top-0 z-40 bg-transparent ${activeTab === 'home' || activeTab === 'overview' ? 'px-3 sm:px-5 md:px-8' : ''}`}>
           <Header
             user={user}
           onSignInWithGoogle={signInWithGoogle}
@@ -2904,6 +2905,9 @@ export default function App() {
             streak={streak}
             habits={habbits}
             journalToday={(journalsCache || []).find((entry) => entry?.dateKey === keyFor(new Date())) || null}
+            tasksMap={tasksMap}
+            journals={journalsCache}
+            moments={momentsCache}
             hasAnyData={
               Object.keys(tasksMap || {}).some((dk) => {
                 const list = tasksMap[dk] || [];
@@ -2941,11 +2945,39 @@ export default function App() {
               setJournalDrawerId(existingForDate?.id || '__new__');
               setJournalDrawerOpen(true);
             }}
+            onOpenOverview={() => setActiveTab('overview')}
             onSelectTask={() => {
               const today = new Date();
               setSelectedDate(today);
               setCursor(today);
               setActiveTab('tasks');
+            }}
+          />
+        )}
+
+        {activeTab === 'overview' && (
+          <OverviewPage
+            tasksMap={tasksMap}
+            habits={habbits}
+            journals={journalsCache}
+            moments={momentsCache}
+            streak={streak}
+            onBack={() => setActiveTab('home')}
+            onChangeTab={setActiveTab}
+            onMonthChange={(date) => setCursor(date)}
+            onOpenToday={() => {
+              const today = new Date();
+              setSelectedDate(today);
+              setCursor(today);
+              setActiveTab('tasks');
+            }}
+            onOpenJournal={() => {
+              const todayKey = keyFor(new Date());
+              setActiveTab('journal');
+              setJournalInitialDateKey(todayKey);
+              const existingForDate = (journalsCache || []).find((entry) => entry?.dateKey === todayKey);
+              setJournalDrawerId(existingForDate?.id || '__new__');
+              setJournalDrawerOpen(true);
             }}
           />
         )}

@@ -8,7 +8,8 @@
     "build": "vite build",
     "postbuild": "cp dist/index.html dist/404.html || copy dist/index.html dist/404.html",
     "preview": "vite preview",
-    "test:sync": "node src/utils/syncMerge.test.js"
+    "test:sync": "node src/utils/syncMerge.test.js",
+    "test:overview": "node src/utils/periodOverview.test.js"
   },
   "dependencies": {
     "@tiptap/extension-code-block-lowlight": "^3.4.1",
