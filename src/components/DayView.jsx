@@ -5,7 +5,6 @@ import { Plus, StickyNote, List, Grip, Minimize2, ChevronLeft, ChevronRight, Cal
 import TaskList from "./TaskList.jsx";
 import { getMotivationalMessageForCount } from "../utils/motivation.js";
 import { keyFor } from "../utils/date.js";
-import { useScrollChrome } from "../context/ScrollChromeContext.jsx";
 
 export default function DayView({
   date,
@@ -119,7 +118,6 @@ export default function DayView({
 
   const isMobile = typeof window !== 'undefined' &&
     (window.innerWidth < 640 || 'ontouchstart' in window || navigator.maxTouchPoints > 0);
-  const { chromeHidden } = useScrollChrome();
 
   // Feature flag — set true to bring motivational quotes back
   const ENABLE_MOTIVATIONAL_MESSAGES = false;
@@ -144,108 +142,95 @@ export default function DayView({
       onTouchMove={isMobile ? onTouchMove : undefined}
       onTouchEnd={isMobile ? onTouchEnd : undefined}
     >
-      <div className="sm:mb-4 shrink-0">
-        {/* Mobile layout — collapses with app chrome while scrolling tasks */}
-        <motion.div
-          initial={false}
-          animate={
-            chromeHidden
-              ? { height: 0, opacity: 0, marginBottom: 0 }
-              : { height: 'auto', opacity: 1, marginBottom: 12 }
-          }
-          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-          className="overflow-hidden sm:hidden"
-          style={{ pointerEvents: chromeHidden ? 'none' : undefined }}
-          aria-hidden={chromeHidden ? true : undefined}
-        >
-          <div className="flex flex-col gap-3 pb-0.5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <div className="text-xs text-slate-500 dark:text-slate-400">Tasks for</div>
-                <div className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">{format(date, 'EEEE, MMM d')}</div>
-              </div>
-              <button type="button" onClick={onAddTask} className="bg-indigo-600 text-white min-h-[44px] min-w-[44px] rounded-xl inline-flex items-center justify-center shadow-sm touch-manipulation" aria-label="Add task (T)" data-tip="Add task (T)">
-                <Plus size={18} />
+      <div className="mb-3 sm:mb-4 shrink-0">
+        {/* Mobile layout */}
+        <div className="flex flex-col gap-3 sm:hidden">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <div className="text-xs text-slate-500 dark:text-slate-400">Tasks for</div>
+              <div className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">{format(date, 'EEEE, MMM d')}</div>
+            </div>
+            <button type="button" onClick={onAddTask} className="bg-indigo-600 text-white min-h-[44px] min-w-[44px] rounded-xl inline-flex items-center justify-center shadow-sm touch-manipulation" aria-label="Add task (T)" data-tip="Add task (T)">
+              <Plus size={18} />
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <button type="button" onClick={goPrev} className={touchBtn} aria-label="Previous day" data-tip="Previous day">
+                <ChevronLeft size={18} />
+              </button>
+              <button type="button" onClick={onToday} className={`${touchBtn} px-3 min-w-0 text-xs font-medium`} aria-label="Today" data-tip="Today">
+                Today
+              </button>
+              <button type="button" onClick={goNext} className={touchBtn} aria-label="Next day" data-tip="Next day">
+                <ChevronRight size={18} />
               </button>
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                <button type="button" onClick={goPrev} className={touchBtn} aria-label="Previous day" data-tip="Previous day">
-                  <ChevronLeft size={18} />
-                </button>
-                <button type="button" onClick={onToday} className={`${touchBtn} px-3 min-w-0 text-xs font-medium`} aria-label="Today" data-tip="Today">
-                  Today
-                </button>
-                <button type="button" onClick={goNext} className={touchBtn} aria-label="Next day" data-tip="Next day">
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {typeof onOpenMissed === 'function' && (
-                  <button
-                    type="button"
-                    onClick={onOpenMissed}
-                    className={`${touchBtn} relative`}
-                    aria-label="Missed tasks"
-                    data-tip="Missed tasks"
-                  >
-                    <ListX size={18} />
-                    {missedCount > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold inline-flex items-center justify-center">
-                        {missedCount > 99 ? '99+' : missedCount}
-                      </span>
-                    )}
-                  </button>
-                )}
-                <div className="relative" ref={densityMenuRef}>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowDensityMenu && setShowDensityMenu((v) => !v);
-                    }}
-                    onTouchStart={(e) => e.stopPropagation()}
-                    onTouchEnd={(e) => e.stopPropagation()}
-                    className={touchBtn}
-                    aria-label="Task card density"
-                    data-tip="Task card density"
-                  >
-                    {density === 'minified' ? <Minimize2 size={18} /> : density === 'compact' ? <Grip size={18} /> : <List size={18} />}
-                  </button>
-                  {showDensityMenu && (
-                    <div
-                      className="absolute right-0 z-50 mt-2 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1"
-                      onTouchStart={(e) => e.stopPropagation()}
-                      onTouchMove={(e) => e.stopPropagation()}
-                      onTouchEnd={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {['normal', 'compact', 'minified'].map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onChangeDensity && onChangeDensity(value);
-                            setShowDensityMenu && setShowDensityMenu(false);
-                          }}
-                          className={`w-full flex items-center justify-start gap-2 p-2.5 min-h-[44px] rounded ${density === value ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                          aria-label={`${value} density`}
-                        >
-                          {value === 'minified' ? <Minimize2 size={16} /> : value === 'compact' ? <Grip size={16} /> : <List size={16} />}
-                          <span className="text-sm capitalize">{value}</span>
-                        </button>
-                      ))}
-                    </div>
+            <div className="flex items-center gap-1.5">
+              {typeof onOpenMissed === 'function' && (
+                <button
+                  type="button"
+                  onClick={onOpenMissed}
+                  className={`${touchBtn} relative`}
+                  aria-label="Missed tasks"
+                  data-tip="Missed tasks"
+                >
+                  <ListX size={18} />
+                  {missedCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold inline-flex items-center justify-center">
+                      {missedCount > 99 ? '99+' : missedCount}
+                    </span>
                   )}
-                </div>
-                <button type="button" onClick={onOpenNotes} className={touchBtn} aria-label="Open notes (N)" data-tip="Open notes (N)">
-                  <StickyNote size={18} />
                 </button>
+              )}
+              <div className="relative" ref={densityMenuRef}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDensityMenu && setShowDensityMenu((v) => !v);
+                  }}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onTouchEnd={(e) => e.stopPropagation()}
+                  className={touchBtn}
+                  aria-label="Task card density"
+                  data-tip="Task card density"
+                >
+                  {density === 'minified' ? <Minimize2 size={18} /> : density === 'compact' ? <Grip size={18} /> : <List size={18} />}
+                </button>
+                {showDensityMenu && (
+                  <div
+                    className="absolute right-0 z-50 mt-2 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1"
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchMove={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {['normal', 'compact', 'minified'].map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onChangeDensity && onChangeDensity(value);
+                          setShowDensityMenu && setShowDensityMenu(false);
+                        }}
+                        className={`w-full flex items-center justify-start gap-2 p-2.5 min-h-[44px] rounded ${density === value ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        aria-label={`${value} density`}
+                      >
+                        {value === 'minified' ? <Minimize2 size={16} /> : value === 'compact' ? <Grip size={16} /> : <List size={16} />}
+                        <span className="text-sm capitalize">{value}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+              <button type="button" onClick={onOpenNotes} className={touchBtn} aria-label="Open notes (N)" data-tip="Open notes (N)">
+                <StickyNote size={18} />
+              </button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Desktop layout */}
         <div className="hidden sm:flex items-center justify-between">

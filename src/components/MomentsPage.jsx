@@ -4,7 +4,6 @@ import { createMomentRepository } from '../services/repositories/momentRepositor
 import { generateId } from '../utils/uid';
 import MomentCard from './MomentCard';
 import AddMoment from './AddMoment';
-import { useScrollChrome } from '../context/ScrollChromeContext.jsx';
 
 export default function MomentsPage({ user, onMomentsChanged }) {
   const [moments, setMoments] = useState([]);
@@ -13,7 +12,6 @@ export default function MomentsPage({ user, onMomentsChanged }) {
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState(null);
-  const { chromeHidden } = useScrollChrome();
 
   const momentRepoRef = useRef(null);
 
@@ -255,28 +253,13 @@ export default function MomentsPage({ user, onMomentsChanged }) {
         </motion.div>
       )}
 
-      <div className="sticky top-0 z-20 -mx-2 px-2 mb-5 bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80 backdrop-blur-md">
-        <motion.div
-          initial={false}
-          animate={
-            chromeHidden
-              ? { height: 0, opacity: 0 }
-              : { height: 'auto', opacity: 1 }
-          }
-          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-          className="overflow-hidden"
-          style={{ pointerEvents: chromeHidden ? 'none' : undefined }}
-          aria-hidden={chromeHidden ? true : undefined}
-        >
-          <div className="py-3 text-center">
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-              Moments
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              Capture your thoughts and feelings throughout the day
-            </p>
-          </div>
-        </motion.div>
+      <div className="sticky top-0 z-20 -mx-2 px-2 py-3 mb-5 text-center bg-gradient-to-b from-slate-50 via-slate-50/95 to-slate-50/80 dark:from-slate-950 dark:via-slate-950/95 dark:to-slate-950/80 backdrop-blur-md">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2">
+          Moments
+        </h1>
+        <p className="text-slate-600 dark:text-slate-400">
+          Capture your thoughts and feelings throughout the day
+        </p>
       </div>
 
       <div className="space-y-4">

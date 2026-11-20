@@ -1,14 +1,11 @@
 import React, { useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import { addDays, format } from "date-fns";
 import { CheckCircle2, Circle, Plus, Trash2, Target } from "lucide-react";
-import { useScrollChrome } from "../context/ScrollChromeContext.jsx";
 
 export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitForDay, onDeleteHabit }) {
   const [title, setTitle] = useState("");
   const todayKey = format(new Date(), "yyyy-MM-dd");
   const [selectedDateKey, setSelectedDateKey] = useState(todayKey);
-  const { chromeHidden } = useScrollChrome();
 
   const recentDays = useMemo(() => {
     return Array.from({ length: 7 }).map((_, index) => {
@@ -38,50 +35,35 @@ export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitFor
 
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
-      <div className="sticky top-0 z-20">
-        <motion.section
-          initial={false}
-          animate={
-            chromeHidden
-              ? { height: 0, opacity: 0 }
-              : { height: 'auto', opacity: 1 }
-          }
-          transition={{ duration: 0.22, ease: [0.32, 0.72, 0, 1] }}
-          className="overflow-hidden"
-          style={{ pointerEvents: chromeHidden ? 'none' : undefined }}
-          aria-hidden={chromeHidden ? true : undefined}
-        >
-          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow p-4 sm:p-5 border border-transparent dark:border-slate-800">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-100">Habit Tracker</h2>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Build consistency by checking off habits every day.</p>
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs font-medium">
-                <Target size={14} />
-                {completionSummary.completed}/{completionSummary.total} today
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Add a new habit (e.g. Drink water)"
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-              />
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 text-white px-4 py-2.5 text-sm font-medium min-h-[44px] active:scale-[0.98] transition-transform"
-              >
-                <Plus size={16} />
-                Add Habit
-              </button>
-            </form>
+      <section className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow p-4 sm:p-5 border border-transparent dark:border-slate-800">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-100">Habit Tracker</h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Build consistency by checking off habits every day.</p>
           </div>
-        </motion.section>
-      </div>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs font-medium">
+            <Target size={14} />
+            {completionSummary.completed}/{completionSummary.total} today
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Add a new habit (e.g. Drink water)"
+            className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 text-white px-4 py-2.5 text-sm font-medium min-h-[44px] active:scale-[0.98] transition-transform"
+          >
+            <Plus size={16} />
+            Add Habit
+          </button>
+        </form>
+      </section>
 
       <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 sm:p-5 border border-transparent dark:border-slate-800">
         <div className="mb-4">
