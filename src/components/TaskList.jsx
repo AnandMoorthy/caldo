@@ -16,6 +16,11 @@ function useScrollOverflow(ref, deps = []) {
     function update() {
       const node = ref.current;
       if (!node) return;
+      // Not laid out yet — avoid false "More" on zero-height containers
+      if (node.clientHeight < 1) {
+        setOverflow({ up: false, down: false });
+        return;
+      }
       const maxScroll = Math.max(0, node.scrollHeight - node.clientHeight);
       const top = node.scrollTop;
       // 2px slack avoids flicker from sub-pixel rounding

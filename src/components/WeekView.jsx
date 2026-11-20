@@ -131,13 +131,14 @@ export default function WeekView({
           const totalCount = tasks.length;
           const hasNote = !!(hasNoteFor && hasNoteFor(day));
           const key = format(day, 'yyyy-MM-dd');
+          // Inset so the grid's overflow-hidden does not clip top/bottom
           const ringClass =
             dragOverDayKey === key
-              ? 'ring-2 ring-indigo-400 ring-offset-1 ring-offset-white dark:ring-offset-slate-900'
+              ? 'ring-2 ring-inset ring-indigo-400'
               : isSelected
-              ? 'ring-2 ring-indigo-500'
+              ? 'ring-2 ring-inset ring-indigo-500'
               : isToday
-              ? 'ring-2 ring-indigo-300 dark:ring-indigo-600'
+              ? 'ring-2 ring-inset ring-indigo-300 dark:ring-indigo-600'
               : '';
 
           return (
@@ -184,8 +185,8 @@ export default function WeekView({
                   </button>
                 </div>
 
-                {/* Task list for this day */}
-                <div className="flex-1 min-h-0 overflow-y-auto">
+                {/* fullHeight: scroll + More badge use the day column viewport */}
+                <div className="flex-1 min-h-0">
                   <TaskList
                     tasks={tasks}
                     onDragStartTask={onDragStartTask}
@@ -197,6 +198,7 @@ export default function WeekView({
                     onDeleteSubtask={onDeleteSubtask}
                     onStartPomodoro={onStartPomodoro}
                     density="minified"
+                    fullHeight
                     emptyMessage="No tasks for this day"
                     recurringSeries={recurringSeries}
                     pomodoroRunningState={pomodoroRunningState}
