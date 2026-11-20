@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { addMonths, format, isSameDay, isSameMonth, parseISO, startOfMonth } from "date-fns";
+import { addMonths, format, isSameMonth, startOfMonth } from "date-fns";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft,
   BookOpenText,
   CheckSquare,
   ChevronLeft,
@@ -16,11 +15,12 @@ import {
   MOMENT_MOODS,
   buildPeriodOverview,
 } from "../utils/periodOverview";
+import PeriodTaskBars from "./PeriodTaskBars.jsx";
 
 function RangeToggle({ value, onChange }) {
   return (
     <div
-      className="inline-flex items-center gap-0.5 rounded-full bg-white/70 p-1 ring-1 ring-slate-200/70 dark:bg-slate-900/70 dark:ring-slate-700/70"
+      className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/90"
       role="tablist"
       aria-label="Overview range"
     >
@@ -36,10 +36,10 @@ function RangeToggle({ value, onChange }) {
             role="tab"
             aria-selected={active}
             onClick={() => onChange(option.id)}
-            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition touch-manipulation ${
+            className={`min-h-[40px] min-w-[4.5rem] rounded-xl px-3.5 text-xs font-semibold transition touch-manipulation ${
               active
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+                ? "bg-slate-900 text-white shadow-sm dark:bg-slate-100 dark:text-slate-900"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             }`}
           >
             {option.label}
@@ -53,11 +53,11 @@ function RangeToggle({ value, onChange }) {
 function MonthChooser({ monthDate, onPrev, onNext, onThisMonth }) {
   const isCurrentMonth = isSameMonth(monthDate, new Date());
   return (
-    <div className="inline-flex items-center gap-1 rounded-full bg-white/70 p-1 ring-1 ring-slate-200/70 dark:bg-slate-900/70 dark:ring-slate-700/70">
+    <div className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white/90 p-1 shadow-sm dark:border-slate-700 dark:bg-slate-900/90">
       <button
         type="button"
         onClick={onPrev}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 touch-manipulation"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 touch-manipulation"
         aria-label="Previous month"
       >
         <ChevronLeft size={16} />
@@ -68,7 +68,7 @@ function MonthChooser({ monthDate, onPrev, onNext, onThisMonth }) {
       <button
         type="button"
         onClick={onNext}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 touch-manipulation"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 touch-manipulation"
         aria-label="Next month"
       >
         <ChevronRight size={16} />
@@ -77,7 +77,7 @@ function MonthChooser({ monthDate, onPrev, onNext, onThisMonth }) {
         <button
           type="button"
           onClick={onThisMonth}
-          className="ml-0.5 rounded-full px-2.5 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:text-indigo-300 dark:hover:bg-indigo-950/40 touch-manipulation"
+          className="ml-0.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 touch-manipulation"
         >
           This month
         </button>
@@ -153,65 +153,12 @@ function MoodBars({ counts, catalog }) {
   );
 }
 
-function TaskBars({ byDay, range }) {
-  const max = byDay.reduce((n, day) => Math.max(n, day.total), 0);
-  const today = new Date();
-
-  if (max === 0) {
-    return <EmptyLine>No tasks scheduled in this period.</EmptyLine>;
-  }
-
-  return (
-    <div className="flex h-40 items-end gap-1 sm:gap-1.5">
-      {byDay.map((day) => {
-        const date = parseISO(day.key);
-        const height = day.total > 0 ? Math.max(10, Math.round((day.total / max) * 100)) : 4;
-        const doneHeight = day.total > 0 ? Math.round((day.done / day.total) * height) : 0;
-        const isToday = isSameDay(date, today);
-        return (
-          <div key={day.key} className="flex min-w-0 flex-1 flex-col items-center gap-1.5">
-            <div
-              className="relative flex w-full max-w-[1.75rem] items-end justify-center"
-              style={{ height: "7.5rem" }}
-              title={`${format(date, "MMM d")}: ${day.done}/${day.total} done`}
-            >
-              <div
-                className={`relative w-full overflow-hidden rounded-t-md ${
-                  day.total === 0
-                    ? "bg-slate-200/60 dark:bg-slate-800/60"
-                    : "bg-slate-200 dark:bg-slate-800"
-                }`}
-                style={{ height: `${height}%` }}
-              >
-                <div
-                  className="absolute inset-x-0 bottom-0 bg-emerald-500/80 dark:bg-emerald-400/70"
-                  style={{ height: `${doneHeight}%` }}
-                />
-              </div>
-            </div>
-            <span
-              className={`text-[10px] font-medium ${
-                isToday
-                  ? "text-indigo-600 dark:text-indigo-400"
-                  : "text-slate-400 dark:text-slate-500"
-              }`}
-            >
-              {range === "month" ? format(date, "d") : format(date, "EEEEE")}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 export default function OverviewPage({
   tasksMap = {},
   habits = [],
   journals = [],
   moments = [],
   streak = null,
-  onBack,
   onChangeTab,
   onOpenToday,
   onOpenJournal,
@@ -253,14 +200,6 @@ export default function OverviewPage({
       >
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <button
-              type="button"
-              onClick={() => onBack && onBack()}
-              className="mb-3 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 sm:hidden touch-manipulation"
-            >
-              <ArrowLeft size={14} />
-              Back to home
-            </button>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{overview.label}</p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-50 sm:text-4xl">
               Overview
@@ -269,7 +208,7 @@ export default function OverviewPage({
               How this {range} is going across tasks, habits, journal, and moments.
             </p>
           </div>
-          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+          <div className="flex flex-wrap items-center gap-2">
             <RangeToggle value={range} onChange={setRange} />
             {range === "month" && (
               <MonthChooser
@@ -331,7 +270,7 @@ export default function OverviewPage({
                 </span>
               }
             >
-              <TaskBars byDay={overview.tasks.byDay} range={range} />
+              <PeriodTaskBars byDay={overview.tasks.byDay} range={range} heightClass="h-40" />
             </Panel>
           </div>
 

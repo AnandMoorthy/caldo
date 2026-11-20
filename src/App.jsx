@@ -2917,13 +2917,6 @@ export default function App() {
             }
             onChangeTab={setActiveTab}
             onSignIn={signInWithGoogle}
-            onAddTask={() => {
-              const today = new Date();
-              setSelectedDate(today);
-              setCursor(today);
-              setActiveTab('tasks');
-              setShowAdd(true);
-            }}
             onOpenToday={() => {
               const today = new Date();
               setSelectedDate(today);
@@ -2962,7 +2955,6 @@ export default function App() {
             journals={journalsCache}
             moments={momentsCache}
             streak={streak}
-            onBack={() => setActiveTab('home')}
             onChangeTab={setActiveTab}
             onMonthChange={(date) => setCursor(date)}
             onOpenToday={() => {
