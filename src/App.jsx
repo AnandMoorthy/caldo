@@ -2627,11 +2627,11 @@ export default function App() {
         <FocusedDayNoteView dateKey={focusedRoute.dateKey} />
       )
     ) : (
-    <div className="h-dvh overflow-hidden flex flex-row bg-transparent dark:bg-transparent font-sans text-slate-800 dark:text-slate-200">
-      <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((v) => !v)} />
-      <div className={`flex-1 min-w-0 min-h-0 flex flex-col safe-pt relative ${activeTab === 'home' || activeTab === 'overview' ? 'px-0' : 'px-4 sm:px-6 md:px-10'} ${needsIslandPad ? 'sm:pb-[var(--island-pb)]' : ''}`}>
+    <div className="relative h-dvh overflow-hidden flex flex-row bg-transparent dark:bg-transparent font-sans text-slate-800 dark:text-slate-200">
       <HomeMeshBackground />
-      <div className={`relative z-10 ${activeTab === 'home' || activeTab === 'overview' ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full flex-1 flex flex-col min-h-0 ${activeTab === 'home' || activeTab === 'overview' ? 'gap-0' : 'gap-4 sm:gap-6'}`}>
+      <Sidebar activeTab={activeTab} onChangeTab={setActiveTab} collapsed={sidebarCollapsed} onToggleCollapse={() => setSidebarCollapsed((v) => !v)} />
+      <div className={`relative z-10 flex-1 min-w-0 min-h-0 flex flex-col safe-pt ${activeTab === 'home' || activeTab === 'overview' ? 'px-0' : 'px-4 sm:px-6 md:px-10'} ${needsIslandPad ? 'sm:pb-[var(--island-pb)]' : ''}`}>
+      <div className={`${activeTab === 'home' || activeTab === 'overview' ? 'max-w-none' : 'max-w-7xl'} mx-auto w-full flex-1 flex flex-col min-h-0 ${activeTab === 'home' || activeTab === 'overview' ? 'gap-0' : 'gap-4 sm:gap-6'}`}>
         <div className={`flex-shrink-0 w-full sticky top-0 z-40 bg-transparent ${activeTab === 'home' || activeTab === 'overview' ? 'px-3 sm:px-5 md:px-8' : ''}`}>
           <Header
             user={user}
