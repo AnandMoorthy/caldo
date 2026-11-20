@@ -4,6 +4,7 @@ import Masonry from "react-masonry-css";
 import { StickyNote, Pin, PinOff, Plus, Loader2, SquareArrowOutUpRight } from "lucide-react";
 import { format } from "date-fns";
 import StyledSnippetPreview from "./StyledSnippetPreview";
+import PageSectionHeader from "./PageSectionHeader.jsx";
 
 export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
   const [items, setItems] = useState([]);
@@ -187,23 +188,23 @@ export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
 
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
-        <div className="sticky top-0 z-20 -mx-3 px-3 sm:-mx-4 sm:px-4 -mt-3 pt-3 sm:-mt-4 sm:pt-4 pb-3 mb-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate">
-              {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <StickyNote size={18} className="shrink-0" />}
-              <span className="truncate">Notes</span>
-            </div>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+        <PageSectionHeader
+          eyebrow={filterMode === "pinned" ? "Pinned" : "All notes"}
+          title="Notes"
+          actions={
             <button
               type="button"
               onClick={() => onOpenSnippetEditor && onOpenSnippetEditor("__new__")}
               disabled={!user}
               className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
             >
-              <Plus size={14} /> <span>New</span>
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              <span>New</span>
             </button>
-          </div>
-          <div className="mt-2 inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+          }
+        >
+          <div className="mt-3 inline-flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
             <button
               type="button"
               onClick={() => setFilterMode("all")}
@@ -219,7 +220,7 @@ export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
               Pinned
             </button>
           </div>
-        </div>
+        </PageSectionHeader>
         {items.length === 0 && !loading && (
           <div className="p-3 text-sm text-slate-500">No notes yet.</div>
         )}

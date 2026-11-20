@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Loader2, Plus, Sparkles } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
+import PageSectionHeader from './PageSectionHeader.jsx';
 import { createMomentRepository } from '../services/repositories/momentRepository';
 import { generateId } from '../utils/uid';
 import MomentCard from './MomentCard';
@@ -218,31 +219,36 @@ export default function MomentsPage({ user, onMomentsChanged }) {
     }
   };
 
+  const momentCountLabel = loading
+    ? "Loading"
+    : moments.length === 1
+      ? "1 moment"
+      : `${moments.length} moments`;
+
   return (
-    <main className="max-w-2xl mx-auto w-full">
-      <div className="sticky top-0 z-20 -mx-1 px-1 pb-2 mb-2 bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center justify-between gap-2 min-w-0">
-          <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate text-slate-900 dark:text-slate-100">
-            {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <Sparkles size={18} className="shrink-0" />}
-            <span className="truncate">Moments</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setAdding(true)}
-            disabled={!user || loading}
-            className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
-          >
-            <Plus size={14} />
-            <span>New</span>
-          </button>
-        </div>
-      </div>
+    <main className="grid grid-cols-1 gap-4 sm:gap-6">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+        <PageSectionHeader
+          eyebrow={momentCountLabel}
+          title="Moments"
+          actions={
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              disabled={!user || loading}
+              className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
+            >
+              {loading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              <span>New</span>
+            </button>
+          }
+        />
 
       {error && (
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-2.5 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2.5"
+          className="mb-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3"
         >
           <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
           <button
@@ -256,16 +262,16 @@ export default function MomentsPage({ user, onMomentsChanged }) {
       )}
 
       {!user ? (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm text-slate-500 dark:text-slate-400">
+        <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
           Sign in to view moments.
         </div>
       ) : loading ? (
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+        <div className="p-3 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           <Loader2 size={16} className="animate-spin" />
           Loading moments...
         </div>
       ) : (
-        <div className="space-y-2.5 sm:space-y-3">
+        <div className="space-y-3">
           <AddMoment
             expanded={adding}
             onSave={(data) => {
@@ -279,7 +285,7 @@ export default function MomentsPage({ user, onMomentsChanged }) {
           />
 
           {moments.length === 0 && !adding ? (
-            <div className="px-1 py-1 text-sm text-slate-500 dark:text-slate-400">
+            <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
               No moments yet. Tap New to add your first moment.
             </div>
           ) : (
@@ -298,6 +304,7 @@ export default function MomentsPage({ user, onMomentsChanged }) {
           )}
         </div>
       )}
+      </div>
 
       {saving && (
         <div className="fixed right-3 z-[55] bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-3 py-2 rounded-lg shadow-lg" style={{ bottom: 'calc(var(--content-pb) + 0.5rem)' }}>

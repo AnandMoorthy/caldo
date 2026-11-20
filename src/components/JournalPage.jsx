@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { format, parseISO } from "date-fns";
-import { Bell, BookOpenText, Calendar, Flame, Loader2, Plus } from "lucide-react";
+import { Bell, Calendar, Flame, Loader2, Plus } from "lucide-react";
+import PageSectionHeader from "./PageSectionHeader.jsx";
 import { keyFor } from "../utils/date";
 import { formatReminderTime } from "../utils/journalReminder";
 import JournalReminderSettings from "./JournalReminderSettings.jsx";
@@ -82,14 +83,12 @@ export default function JournalPage({
 
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
-        <div className="sticky top-0 z-20 -mx-3 px-3 sm:-mx-4 sm:px-4 -mt-3 pt-3 sm:-mt-4 sm:pt-4 pb-3 mb-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate text-slate-900 dark:text-slate-100">
-              {loading ? <Loader2 size={18} className="animate-spin shrink-0" /> : <BookOpenText size={18} className="shrink-0" />}
-              <span className="truncate">Journal</span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+        <PageSectionHeader
+          eyebrow={items.length === 1 ? "1 entry" : `${items.length} entries`}
+          title="Journal"
+          actions={
+            <>
               <button
                 type="button"
                 onClick={() => setReminderOpen(true)}
@@ -114,12 +113,12 @@ export default function JournalPage({
                 disabled={!user}
                 className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
               >
-                <Plus size={14} />
+                {loading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                 <span>New</span>
               </button>
-            </div>
-          </div>
-        </div>
+            </>
+          }
+        />
 
         <JournalReminderSettings
           open={reminderOpen}

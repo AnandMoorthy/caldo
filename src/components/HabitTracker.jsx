@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { addDays, format } from "date-fns";
-import { CheckCircle2, Circle, Plus, Trash2, Target } from "lucide-react";
+import { CheckCircle2, Circle, Plus, Trash2 } from "lucide-react";
+import PageSectionHeader from "./PageSectionHeader.jsx";
 
 const NEW_BUTTON_CLASS =
   "shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation";
@@ -67,16 +68,11 @@ export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitFor
 
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
-        <div className="sticky top-0 z-20 -mx-3 px-3 sm:-mx-4 sm:px-4 -mt-3 pt-3 sm:-mt-4 sm:pt-4 pb-3 mb-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate text-slate-900 dark:text-slate-100">
-              <Target size={18} className="shrink-0" />
-              <span className="truncate">Habits</span>
-              <span className="hidden sm:inline-flex items-center gap-1 ml-1 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs font-medium">
-                {completionSummary.completed}/{completionSummary.total} today
-              </span>
-            </div>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 border border-transparent dark:border-slate-800">
+        <PageSectionHeader
+          eyebrow={`${completionSummary.completed}/${completionSummary.total} today`}
+          title="Habits"
+          actions={
             <button
               type="button"
               onClick={() => setAdding(true)}
@@ -85,7 +81,8 @@ export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitFor
               <Plus size={14} />
               <span>New</span>
             </button>
-          </div>
+          }
+        >
 
           {adding && (
             <form onSubmit={handleSubmit} className="mt-2 flex items-center gap-2">
@@ -113,15 +110,10 @@ export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitFor
               </button>
             </form>
           )}
-        </div>
+        </PageSectionHeader>
 
         <div className="mb-4">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="text-xs text-slate-500 dark:text-slate-400">History (last 7 days)</div>
-            <span className="sm:hidden text-xs text-indigo-700 dark:text-indigo-300 font-medium">
-              {completionSummary.completed}/{completionSummary.total} today
-            </span>
-          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">History (last 7 days)</div>
           <div ref={dayScrollerRef} className="flex items-center gap-2 overflow-x-auto pb-1 scroll-smooth">
             {recentDays.map((day) => {
               const active = selectedDateKey === day.key;

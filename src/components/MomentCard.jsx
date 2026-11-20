@@ -124,7 +124,7 @@ export default function MomentCard({
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-3.5 shadow-sm"
+        className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 sm:p-4 shadow-sm"
       >
         <div className="space-y-2.5">
           <div>
@@ -242,7 +242,7 @@ export default function MomentCard({
       id={`moment-${moment.id}`}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`group rounded-xl border p-2.5 sm:p-3.5 shadow-sm transition-all duration-300 ${MOMENT_CARD_STYLE}`}
+      className={`group rounded-xl border p-3 sm:p-4 shadow-sm transition-all duration-300 ${MOMENT_CARD_STYLE}`}
     >
       <div className="mb-2">
         <div className="text-slate-800 dark:text-slate-200 whitespace-pre-wrap text-sm sm:text-base leading-snug">
