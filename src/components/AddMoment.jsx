@@ -132,36 +132,35 @@ export default function AddMoment({
   if (!isExpanded) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white dark:bg-slate-900 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 p-6 text-center hover:border-slate-400 dark:hover:border-slate-500 transition-colors cursor-pointer"
+        className="bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 px-3 py-2.5 text-center hover:border-slate-400 dark:hover:border-slate-500 transition-colors cursor-pointer touch-manipulation"
         onClick={() => setIsExpanded(true)}
       >
-        <div className="flex items-center justify-center gap-2 text-slate-500 dark:text-slate-400">
-          <Plus size={20} />
+        <div className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400">
+          <Plus size={16} />
           <span className="text-sm font-medium">Add a moment</span>
         </div>
-        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-          Share what's on your mind
-        </p>
       </motion.div>
     );
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm"
+      className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-2.5 sm:p-3.5 shadow-sm"
     >
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
             What's on your mind?
           </h3>
           <button
+            type="button"
             onClick={handleCancel}
-            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            className="h-8 w-8 inline-flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors touch-manipulation"
+            aria-label="Close"
           >
             <X size={16} />
           </button>
@@ -173,130 +172,140 @@ export default function AddMoment({
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Share your moment..."
-            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-slate-100 resize-none"
+            className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-slate-800 dark:text-slate-100 resize-none"
             rows={3}
             maxLength={maxLength}
             autoFocus
           />
-          <div className="flex justify-between items-center mt-1">
+          <div className="flex justify-between items-center gap-2 mt-1">
             <div className="text-xs text-slate-500 dark:text-slate-400">
               {content.length}/{maxLength}
             </div>
-            <div className="text-xs text-slate-400 dark:text-slate-500">
+            <div className="hidden sm:block text-xs text-slate-400 dark:text-slate-500">
               Cmd+Enter to save, Esc to cancel
             </div>
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-2.5">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
               How are you feeling? *
             </label>
-            <div className="grid grid-cols-5 gap-1 sm:gap-2">
+            <div className="grid w-full grid-cols-5 gap-1.5">
               {Object.entries(MOOD_EMOJIS).map(([moodKey, emoji]) => (
                 <button
                   key={moodKey}
+                  type="button"
                   onClick={() => setMood(moodKey)}
-                  className={`p-1.5 sm:p-2 rounded-lg border-2 transition-colors ${
+                  aria-label={MOOD_NAMES[moodKey]}
+                  aria-pressed={mood === moodKey}
+                  className={`h-9 w-full inline-flex items-center justify-center rounded-lg border transition-colors touch-manipulation ${
                     mood === moodKey
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30'
                       : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500'
                   }`}
                   data-tip={MOOD_NAMES[moodKey]}
                   data-tip-pos="top"
                 >
-                  <span className="text-lg">{emoji}</span>
+                  <span className="text-lg leading-none select-none" style={{ lineHeight: 1 }}>{emoji}</span>
                 </button>
               ))}
             </div>
             {mood && (
-              <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">
+              <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">
                 {MOOD_EMOJIS[mood]} {MOOD_NAMES[mood]}
               </div>
             )}
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between gap-2 mb-1">
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                 Category
               </label>
               <button
                 type="button"
                 onClick={() => setShowCategoryManager(!showCategoryManager)}
-                className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300"
               >
-                {showCategoryManager ? 'Hide' : 'Manage'} Categories
+                {showCategoryManager ? 'Hide' : 'Manage'}
               </button>
             </div>
             
             {showCategoryManager ? (
-              <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
-                {/* Add new category */}
+              <div className="space-y-2.5 p-2.5 sm:p-3 bg-slate-50 dark:bg-slate-800/80 rounded-lg">
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     placeholder="New category name"
-                    className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-600 dark:text-slate-100"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-slate-700 dark:text-slate-100"
                     onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
                   />
                   <button
+                    type="button"
                     onClick={handleAddCategory}
-                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                    className="shrink-0 h-9 px-3 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 touch-manipulation"
                   >
                     Add
                   </button>
                 </div>
-                
-                {/* Existing categories */}
-                <div className="space-y-2 max-h-32 overflow-y-auto">
+
+                <div className="space-y-1.5 max-h-32 overflow-y-auto">
                   {categories.map((cat) => (
-                    <div key={cat.id} className="flex items-center gap-2">
+                    <div key={cat.id} className="flex items-center gap-1.5">
                       {editingCategory?.id === cat.id ? (
-                        <div className="flex-1 flex gap-2">
+                        <div className="flex-1 flex gap-1.5 min-w-0">
                           <input
                             type="text"
                             value={editingCategory.name}
                             onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                            className="flex-1 px-2 py-1 text-sm border border-slate-300 dark:border-slate-600 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-600 dark:text-slate-100"
+                            className="flex-1 min-w-0 px-2.5 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-slate-700 dark:text-slate-100"
                             onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
                           />
                           <button
+                            type="button"
                             onClick={handleSaveEdit}
-                            className="p-1 text-green-600 hover:text-green-700"
+                            className="h-8 w-8 inline-flex items-center justify-center text-green-600 hover:text-green-700"
                             data-tip="Save"
                             data-tip-pos="top"
+                            aria-label="Save category"
                           >
                             <Save size={14} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => setEditingCategory(null)}
-                            className="p-1 text-slate-400 hover:text-slate-600"
+                            className="h-8 w-8 inline-flex items-center justify-center text-slate-400 hover:text-slate-600"
                             data-tip="Cancel"
                             data-tip-pos="top"
+                            aria-label="Cancel edit"
                           >
                             <X size={14} />
                           </button>
                         </div>
                       ) : (
                         <>
-                          <span className="flex-1 text-sm text-slate-900 dark:text-slate-100">{cat.name}</span>
+                          <span className="flex-1 min-w-0 truncate text-sm text-slate-900 dark:text-slate-100">{cat.name}</span>
                           <button
+                            type="button"
                             onClick={() => handleEditCategory(cat.id)}
-                            className="p-1 text-slate-400 hover:text-slate-600"
+                            className="h-8 w-8 inline-flex items-center justify-center text-slate-400 hover:text-slate-600"
                             data-tip="Edit"
                             data-tip-pos="top"
+                            aria-label={`Edit ${cat.name}`}
                           >
                             <Edit2 size={14} />
                           </button>
                           <button
+                            type="button"
                             onClick={() => handleDeleteCategory(cat.id)}
-                            className="p-1 text-red-400 hover:text-red-600"
+                            className="h-8 w-8 inline-flex items-center justify-center text-red-400 hover:text-red-600"
                             data-tip="Delete"
                             data-tip-pos="top"
+                            aria-label={`Delete ${cat.name}`}
                           >
                             <Trash2 size={14} />
                           </button>
@@ -311,20 +320,20 @@ export default function AddMoment({
                 <button
                   type="button"
                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                  className="w-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 p-2 rounded-lg inline-flex items-center justify-between"
+                  className="w-full bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-lg inline-flex items-center justify-between"
                   aria-label="Select category"
                 >
-                  <span className="text-sm">
-                    {category ? categories.find(cat => cat.id === category)?.name || 'Select category' : 'No category'}
+                  <span className="text-sm truncate">
+                    {category ? categories.find((cat) => cat.id === category)?.name || 'Select category' : 'No category'}
                   </span>
-                  <ChevronDown size={16} className={`transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={16} className={`shrink-0 transition-transform ${showCategoryDropdown ? 'rotate-180' : ''}`} />
                 </button>
                 {showCategoryDropdown && (
-                  <div className="absolute right-0 z-10 mt-2 w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1">
+                  <div className="absolute left-0 right-0 z-10 mt-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-1 max-h-48 overflow-y-auto">
                     <button
                       type="button"
                       onClick={() => { setCategory(''); setShowCategoryDropdown(false); }}
-                      className={`w-full flex items-center justify-start gap-2 p-2 rounded ${!category ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                      className={`w-full flex items-center justify-start gap-2 px-2.5 py-2 rounded ${!category ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                       aria-label="No category"
                     >
                       <span className="text-sm">No category</span>
@@ -334,7 +343,7 @@ export default function AddMoment({
                         key={cat.id}
                         type="button"
                         onClick={() => { setCategory(cat.id); setShowCategoryDropdown(false); }}
-                        className={`w-full flex items-center justify-start gap-2 p-2 rounded ${category === cat.id ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        className={`w-full flex items-center justify-start gap-2 px-2.5 py-2 rounded ${category === cat.id ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                         aria-label={cat.name}
                       >
                         <span className="text-sm">{cat.name}</span>
@@ -347,19 +356,21 @@ export default function AddMoment({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-1">
           <button
+            type="button"
             onClick={handleCancel}
-            className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+            className="h-9 px-3 text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 rounded-lg touch-manipulation"
           >
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
             disabled={!content.trim() || !mood}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-600 rounded-lg transition-colors"
+            className="h-9 px-3 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-300 dark:disabled:bg-slate-600 rounded-lg transition-colors touch-manipulation"
           >
-            Save Moment
+            Save
           </button>
         </div>
       </div>
