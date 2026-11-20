@@ -35,37 +35,36 @@ export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitFor
 
   return (
     <main className="grid grid-cols-1 gap-4 sm:gap-6">
-      <section className="sticky top-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow p-4 sm:p-5 border border-transparent dark:border-slate-800">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-slate-100">Habit Tracker</h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Build consistency by checking off habits every day.</p>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow p-3 sm:p-4 border border-transparent dark:border-slate-800">
+        <div className="sticky top-0 z-20 -mx-3 px-3 sm:-mx-4 sm:px-4 -mt-3 pt-3 sm:-mt-4 sm:pt-4 pb-3 mb-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <div className="font-semibold flex items-center gap-2 text-base sm:text-lg min-w-0 truncate text-slate-900 dark:text-slate-100">
+              <Target size={18} className="shrink-0" />
+              <span className="truncate">Habits</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs font-medium">
+              <Target size={14} />
+              {completionSummary.completed}/{completionSummary.total} today
+            </div>
           </div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 text-xs font-medium">
-            <Target size={14} />
-            {completionSummary.completed}/{completionSummary.total} today
-          </div>
+          <form onSubmit={handleSubmit} className="mt-2 flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Add a new habit (e.g. Drink water)"
+              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            <button
+              type="submit"
+              className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 touch-manipulation"
+            >
+              <Plus size={14} />
+              <span>Habit</span>
+            </button>
+          </form>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Add a new habit (e.g. Drink water)"
-            className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-400"
-          />
-          <button
-            type="submit"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 text-white px-4 py-2.5 text-sm font-medium min-h-[44px] active:scale-[0.98] transition-transform"
-          >
-            <Plus size={16} />
-            Add Habit
-          </button>
-        </form>
-      </section>
-
-      <section className="bg-white dark:bg-slate-900 rounded-2xl shadow p-4 sm:p-5 border border-transparent dark:border-slate-800">
         <div className="mb-4">
           <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">History (last 7 days)</div>
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
@@ -150,7 +149,7 @@ export default function HabitTracker({ habits = [], onAddHabit, onToggleHabitFor
             })}
           </ul>
         )}
-      </section>
+      </div>
     </main>
   );
 }
