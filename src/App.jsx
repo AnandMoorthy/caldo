@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState, useRef, useCallback } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO, isAfter, startOfDay, isToday } from "date-fns";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { Plus, Check, StickyNote, List, Grip, Minimize2, CheckSquare, Sparkles, Target, BookOpenText, Loader2, Home } from "lucide-react";
 import usePullToRefresh from "./hooks/usePullToRefresh";
 import { useJournalReminder } from "./hooks/useJournalReminder";
@@ -50,6 +50,19 @@ import { materializeSeries } from "./utils/recurrence";
 import { exportAllCaldoData } from "./utils/exportData";
 import { sortTasksForDay, withCompletionStamp } from "./utils/taskSort";
 import { mergeTasksMaps, mergeHabbits } from "./utils/syncMerge";
+
+// Keep a page mounted after its first visit so switching sidebar tabs
+// does not remount it, replay entrance motion, or flash a loading state.
+function LazyTab({ show, className, children }) {
+  const mountedRef = useRef(false);
+  if (show) mountedRef.current = true;
+  if (!mountedRef.current) return null;
+  return (
+    <div className={show ? className : "hidden"} aria-hidden={show ? undefined : true}>
+      {children}
+    </div>
+  );
+}
 
 
 // Single-file Caldo app
@@ -2583,6 +2596,12 @@ export default function App() {
     }
   }, [activeTab]);
 
+  // Shared scroller: drop the previous page's scroll offset before paint.
+  useLayoutEffect(() => {
+    const el = contentScrollRef.current;
+    if (el) el.scrollTop = 0;
+  }, [activeTab]);
+
   // Reset icon animation after it completes
   useEffect(() => {
     if (iconAnimation.tab) {
@@ -2671,16 +2690,8 @@ export default function App() {
             </div>
           </div>
         )}
-        <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={activeTab === 'tasks' ? `tasks-${effectiveView}` : activeTab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-          className={activeTab === 'tasks' ? 'flex-1 flex flex-col min-h-0' : 'w-full flex flex-col'}
-        >
-        {activeTab === 'tasks' && effectiveView === 'month' ? (
+        <div className={activeTab === 'tasks' ? 'flex-1 flex flex-col min-h-0' : 'hidden'} aria-hidden={activeTab === 'tasks' ? undefined : true}>
+        {effectiveView === 'month' ? (
           <main className={`grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 ${pinAboveIsland ? 'max-md:shrink-0 md:h-full md:min-h-0 md:grid-rows-1' : ''}`}>
             <Calendar
               monthStart={monthStart}
@@ -2897,8 +2908,9 @@ export default function App() {
             />
           </main>
         ) : null}
+        </div>
 
-        {activeTab === 'home' && (
+        <LazyTab show={activeTab === 'home'} className="w-full flex flex-col">
           <HomePage
             user={user}
             todayTasks={tasksFor(new Date())}
@@ -2945,10 +2957,11 @@ export default function App() {
               setCursor(today);
               setActiveTab('tasks');
             }}
+            onToggleDone={toggleDone}
           />
-        )}
+        </LazyTab>
 
-        {activeTab === 'overview' && (
+        <LazyTab show={activeTab === 'overview'} className="w-full flex flex-col">
           <OverviewPage
             tasksMap={tasksMap}
             habits={habbits}
@@ -2972,9 +2985,9 @@ export default function App() {
               setJournalDrawerOpen(true);
             }}
           />
-        )}
+        </LazyTab>
 
-        {activeTab === 'notes' && (
+        <LazyTab show={activeTab === 'notes'} className="w-full flex flex-col">
           <NotesPage
             user={user}
             snippetRepo={snippetRepoRef.current}
@@ -2988,9 +3001,9 @@ export default function App() {
               setSnippetsDrawerOpen(true); 
             }}
           />
-        )}
+        </LazyTab>
 
-        {activeTab === 'journal' && (
+        <LazyTab show={activeTab === 'journal'} className="w-full flex flex-col">
           <JournalPage
             repo={journalRepoRef.current}
             user={user}
@@ -3015,29 +3028,28 @@ export default function App() {
               setJournalDrawerOpen(true);
             }}
           />
-        )}
+        </LazyTab>
 
-        {activeTab === 'moments' && (
+        <LazyTab show={activeTab === 'moments'} className="w-full flex flex-col">
           <MomentsPage 
             user={user} 
+            initialMoments={momentsCache}
             onMomentsChanged={(moments) => setMomentsCache(moments)}
           />
-        )}
+        </LazyTab>
 
-        {activeTab === 'habits' && (
+        <LazyTab show={activeTab === 'habits'} className="w-full flex flex-col">
           <HabitTracker
             habits={habbits}
             onAddHabit={addHabit}
             onToggleHabitForDay={toggleHabitForDay}
             onDeleteHabit={deleteHabit}
           />
-        )}
+        </LazyTab>
 
-        {activeTab === 'settings' && (
+        <LazyTab show={activeTab === 'settings'} className="w-full flex flex-col">
           <SettingsPage onExportAllData={exportAllData} />
-        )}
-        </motion.div>
-        </AnimatePresence>
+        </LazyTab>
         </div>
 
         {(snippetsDrawerOpen || showNotes || journalDrawerOpen || showAdd || showEdit || showMissed) && (

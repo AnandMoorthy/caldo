@@ -63,7 +63,7 @@ export default function JournalPage({
     if (!repo || !user) return;
     let mounted = true;
     async function loadJournals() {
-      setLoading(true);
+      if (items.length === 0) setLoading(true);
       try {
         const fetched = await repo.listJournals({ limit: 300 });
         if (!mounted) return;
@@ -113,7 +113,7 @@ export default function JournalPage({
                 disabled={!user}
                 className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
               >
-                {loading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                {loading && items.length === 0 ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                 <span>New</span>
               </button>
             </>
@@ -133,7 +133,7 @@ export default function JournalPage({
           <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
             Sign in to create and view journals.
           </div>
-        ) : loading ? (
+        ) : loading && items.length === 0 ? (
           <div className="p-3 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Loader2 size={16} className="animate-spin" />
             Loading journals...

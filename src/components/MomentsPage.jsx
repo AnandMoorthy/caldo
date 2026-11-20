@@ -7,10 +7,11 @@ import { generateId } from '../utils/uid';
 import MomentCard from './MomentCard';
 import AddMoment from './AddMoment';
 
-export default function MomentsPage({ user, onMomentsChanged }) {
-  const [moments, setMoments] = useState([]);
+export default function MomentsPage({ user, onMomentsChanged, initialMoments = [] }) {
+  const seeded = Array.isArray(initialMoments) ? initialMoments : [];
+  const [moments, setMoments] = useState(seeded);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(seeded.length === 0);
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [adding, setAdding] = useState(false);
@@ -35,7 +36,7 @@ export default function MomentsPage({ user, onMomentsChanged }) {
     console.log('Loading moments data for user:', user.uid);
     
     try {
-      setLoading(true);
+      if (moments.length === 0) setLoading(true);
       setError(null);
       
       // Load moments first (main data)
@@ -238,7 +239,7 @@ export default function MomentsPage({ user, onMomentsChanged }) {
               disabled={!user || loading}
               className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
             >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              {loading && moments.length === 0 ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
               <span>New</span>
             </button>
           }
@@ -265,7 +266,7 @@ export default function MomentsPage({ user, onMomentsChanged }) {
         <div className="p-3 text-sm text-slate-500 dark:text-slate-400">
           Sign in to view moments.
         </div>
-      ) : loading ? (
+      ) : loading && moments.length === 0 ? (
         <div className="p-3 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
           <Loader2 size={16} className="animate-spin" />
           Loading moments...

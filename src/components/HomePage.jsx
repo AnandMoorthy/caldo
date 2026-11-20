@@ -11,7 +11,6 @@ import {
   Plus,
   ChevronRight,
   LogIn,
-  Circle,
   ArrowRight,
 } from "lucide-react";
 import Logo from "./Logo.jsx";
@@ -327,6 +326,7 @@ function GistView({
   onOpenJournal,
   onOpenOverview,
   onSelectTask,
+  onToggleDone,
 }) {
   const remaining = Math.max(0, taskTotal - taskDone);
   const progress = taskTotal > 0 ? Math.round((taskDone / taskTotal) * 100) : 0;
@@ -425,13 +425,20 @@ function GistView({
             ) : (
               <ul className="overflow-hidden rounded-2xl bg-white/70 ring-1 ring-slate-200/70 dark:bg-slate-900/70 dark:ring-slate-800">
                 {incompleteTasks.slice(0, 8).map((task, index) => (
-                  <li key={task.id} className={index > 0 ? "border-t border-slate-100 dark:border-slate-800" : ""}>
+                  <li key={task.id} className={`flex items-center ${index > 0 ? "border-t border-slate-100 dark:border-slate-800" : ""}`}>
+                    <button
+                      type="button"
+                      onClick={() => onToggleDone && onToggleDone(task)}
+                      className="ml-1.5 inline-flex h-11 w-11 shrink-0 items-center justify-center touch-manipulation"
+                      aria-label={`Mark "${task.title || "Untitled"}" done`}
+                    >
+                      <span className="inline-flex h-[18px] w-[18px] rounded-[5px] border-2 border-slate-300 transition-colors hover:border-emerald-500 dark:border-slate-600" />
+                    </button>
                     <button
                       type="button"
                       onClick={() => onSelectTask && onSelectTask(task)}
-                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                      className="flex min-w-0 flex-1 items-center gap-3 py-3.5 pr-4 text-left transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
                     >
-                      <Circle size={16} className="shrink-0 text-slate-300 dark:text-slate-600" />
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-800 dark:text-slate-200">
                         {task.title || "Untitled"}
                       </span>
@@ -489,6 +496,7 @@ export default function HomePage({
   onOpenJournal,
   onOpenOverview,
   onSelectTask,
+  onToggleDone,
 }) {
   const todayLabel = format(new Date(), "EEEE, MMMM d");
   const todayKey = format(new Date(), "yyyy-MM-dd");
@@ -540,6 +548,7 @@ export default function HomePage({
           onOpenJournal={onOpenJournal}
           onOpenOverview={onOpenOverview}
           onSelectTask={onSelectTask}
+          onToggleDone={onToggleDone}
         />
       ) : (
         <WelcomeView

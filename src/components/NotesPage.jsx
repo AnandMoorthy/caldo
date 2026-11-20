@@ -6,15 +6,48 @@ import { format } from "date-fns";
 import StyledSnippetPreview from "./StyledSnippetPreview";
 import PageSectionHeader from "./PageSectionHeader.jsx";
 
+function readCachedNotes() {
+  try {
+    return sortNotes(normalizeCachedNotes(loadNotesFeedCache()));
+  } catch {
+    return [];
+  }
+}
+
+function normalizeCachedNotes(cached) {
+  if (!Array.isArray(cached)) return [];
+  // Drop legacy day-note feed entries; keep freeform notes (former snippets)
+  return cached
+    .map((it) => {
+      if (it && it.type === "snippet" && it.data) return it.data;
+      if (it && it.type === "note") return null;
+      if (it && it.id && (it.title != null || it.content != null) && !it.dateKey) return it;
+      return null;
+    })
+    .filter(Boolean);
+}
+
+function sortNotes(list) {
+  if (!Array.isArray(list)) return [];
+  return [...list].sort((a, b) => {
+    const ap = a?.pinned ? 1 : 0;
+    const bp = b?.pinned ? 1 : 0;
+    if (bp !== ap) return bp - ap;
+    const am = new Date(a?.updatedAt?.toDate?.() || a?.updatedAt || 0).getTime() || 0;
+    const bm = new Date(b?.updatedAt?.toDate?.() || b?.updatedAt || 0).getTime() || 0;
+    return bm - am;
+  });
+}
+
 export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState(readCachedNotes);
   const [loading, setLoading] = useState(false);
   const sentinelRef = useRef(null);
   const loadingRef = useRef(false);
   const triggeredWhileVisibleRef = useRef(false);
   const [filterMode, setFilterMode] = useState("all"); // 'all' | 'pinned'
 
-  const itemsRef = useRef([]);
+  const itemsRef = useRef(items);
   const pinnedCursorRef = useRef(null);
   const unpinnedCursorRef = useRef(null);
   const filterModeRef = useRef(filterMode);
@@ -30,28 +63,11 @@ export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
   }
 
   function sortItems(list) {
-    if (!Array.isArray(list)) return [];
-    return [...list].sort((a, b) => {
-      const ap = a?.pinned ? 1 : 0;
-      const bp = b?.pinned ? 1 : 0;
-      if (bp !== ap) return bp - ap;
-      const am = new Date(a?.updatedAt?.toDate?.() || a?.updatedAt || 0).getTime() || 0;
-      const bm = new Date(b?.updatedAt?.toDate?.() || b?.updatedAt || 0).getTime() || 0;
-      return bm - am;
-    });
+    return sortNotes(list);
   }
 
   function normalizeCached(cached) {
-    if (!Array.isArray(cached)) return [];
-    // Drop legacy day-note feed entries; keep freeform notes (former snippets)
-    return cached
-      .map((it) => {
-        if (it && it.type === "snippet" && it.data) return it.data;
-        if (it && it.type === "note") return null;
-        if (it && it.id && (it.title != null || it.content != null) && !it.dateKey) return it;
-        return null;
-      })
-      .filter(Boolean);
+    return normalizeCachedNotes(cached);
   }
 
   useEffect(() => {
@@ -87,7 +103,7 @@ export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
     let mounted = true;
     (async () => {
       try {
-        setLoading(true);
+        if (itemsRef.current.length === 0) setLoading(true);
         const page = await snippetRepo.listSnippetsPage({ limit: 20 });
         if (!mounted) return;
         const list = page?.items || [];
@@ -199,7 +215,7 @@ export default function NotesPage({ user, snippetRepo, onOpenSnippetEditor }) {
               disabled={!user}
               className="shrink-0 inline-flex items-center justify-center gap-1 h-9 px-3 text-xs rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-60 touch-manipulation"
             >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              {loading && items.length === 0 ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
               <span>New</span>
             </button>
           }

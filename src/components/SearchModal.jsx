@@ -142,21 +142,6 @@ export default function SearchModal({
             )}
           </motion.div>
         )}
-
-        {/* Keyboard Shortcuts Help */}
-        <div className="mt-3 text-center text-xs text-slate-700 dark:text-slate-400">
-          <span className="inline-flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-slate-300 dark:bg-slate-700 rounded text-xs text-slate-800 dark:text-slate-300 font-medium">↑↓</kbd> Navigate
-          </span>
-          <span className="mx-2">•</span>
-          <span className="inline-flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-slate-300 dark:bg-slate-700 rounded text-xs text-slate-800 dark:text-slate-300 font-medium">Enter</kbd> Select
-          </span>
-          <span className="mx-2">•</span>
-          <span className="inline-flex items-center gap-1">
-            <kbd className="px-2 py-1 bg-slate-300 dark:bg-slate-700 rounded text-xs text-slate-800 dark:text-slate-300 font-medium">Esc</kbd> Close
-          </span>
-        </div>
       </motion.div>
     </motion.div>
       )}
