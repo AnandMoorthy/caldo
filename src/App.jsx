@@ -48,6 +48,7 @@ import { createHabitRepository } from "./services/repositories/habitRepository";
 import { materializeSeries } from "./utils/recurrence";
 import { exportAllCaldoData } from "./utils/exportData";
 import { sortTasksForDay, withCompletionStamp } from "./utils/taskSort";
+import { mergeTasksMaps, mergeHabbits } from "./utils/syncMerge";
 
 
 // Single-file Caldo app
@@ -103,6 +104,11 @@ export default function App() {
   const journalRepoRef = useRef(null);
   const habitRepoRef = useRef(null);
   const habitsSyncReadyRef = useRef(false);
+  // Task ids created/updated locally that have not yet reached Firestore.
+  // Kept across cloud merges so offline creates are not pruned as "deleted".
+  const pendingLocalTaskIdsRef = useRef(new Set());
+  // Skip one habits cloud write after applying a cloud fetch (avoids re-uploading deleted habits).
+  const skipHabitsCloudSaveRef = useRef(false);
   const [snippetsCache, setSnippetsCache] = useState(() => loadSnippetsCache());
   const [notesCache, setNotesCache] = useState(new Map()); // Cache for day notes
   const [momentsCache, setMomentsCache] = useState([]); // Cache for moments
@@ -288,12 +294,16 @@ export default function App() {
 
   useEffect(() => {
     try { saveHabbits(habbits); } catch {}
+    if (skipHabitsCloudSaveRef.current) {
+      skipHabitsCloudSaveRef.current = false;
+      return;
+    }
     if (user && habitRepoRef.current && habitsSyncReadyRef.current) {
       habitRepoRef.current.saveHabbits(habbits).catch((err) => {
         console.error('Failed to sync habits to cloud', err);
       });
     }
-  }, [habbits]);
+  }, [habbits, user]);
 
   // Notify other views (e.g., NotesPage) when snippets cache changes
   useEffect(() => {
@@ -561,24 +571,28 @@ export default function App() {
         // Also update notesCache
         setNotesCache(prev => new Map(prev).set(dk, n));
       });
-      setTasksMap((prev) => mergeTasksMaps(prev, byDate));
+      setTasksMap((prev) =>
+        mergeTasksMaps(prev, byDate, {
+          authoritativeMonthKeys: new Set([monthKey]),
+          pendingLocalIds: pendingLocalTaskIdsRef.current,
+        })
+      );
     } catch (e) {
       console.error('Failed to load month from cloud', e);
     }
   }
 
-  function mergeTaskListsById(localList, cloudList) {
-    const byId = new Map();
-    for (const t of localList || []) byId.set(t.id, t);
-    for (const t of cloudList || []) {
-      if (!byId.has(t.id)) byId.set(t.id, t);
-      else {
-        const existing = byId.get(t.id);
-        // Prefer cloud (t) over local (existing) on conflicts
-        byId.set(t.id, { ...existing, ...t });
-      }
-    }
-    return Array.from(byId.values());
+  function persistTaskToCloud(dateKey, task) {
+    if (!user || !taskRepoRef.current || !task?.id) return;
+    pendingLocalTaskIdsRef.current.add(task.id);
+    taskRepoRef.current
+      .saveTask(dateKey, task)
+      .then(() => {
+        pendingLocalTaskIdsRef.current.delete(task.id);
+      })
+      .catch((err) => {
+        console.error('Cloud saveTask failed', err);
+      });
   }
 
   async function refreshDayFromCloud(userId, dateKey) {
@@ -587,24 +601,22 @@ export default function App() {
       const tasks = await taskRepoRef.current.fetchTasksForDate(dateKey);
       const tasksWithDue = (tasks || []).map(t => ({ ...t, due: dateKey }));
       const note = await noteRepoRef.current.getDayNote(dateKey);
-      // Merge with existing local tasks for that day by id, preserving note item
-      setTasksMap((prev) => {
-        const prevList = prev[dateKey] || [];
-        const { taskList: localTasks, noteItem: localNote } = splitDayList(prevList);
-        const byId = new Map(localTasks.map((t) => [t.id, t]));
-        for (const t of tasksWithDue) {
-          const existing = byId.get(t.id);
-          byId.set(t.id, existing ? { ...existing, ...t } : t);
-        }
-        const mergedTasks = sortTasksForDay(Array.from(byId.values()));
-        const dayNoteItem = note?.content
-          ? { id: 'day_note', due: dateKey, dayNote: note.content, createdAt: note.updatedAt || localNote?.createdAt || new Date().toISOString() }
-          : localNote || null;
-        const fullList = mergeDayList(mergedTasks, dayNoteItem);
-        const next = { ...prev };
-        if (fullList.length) next[dateKey] = fullList; else delete next[dateKey];
-        return next;
-      });
+      const cloudList = [...tasksWithDue];
+      if (note?.content) {
+        cloudList.push({
+          id: 'day_note',
+          due: dateKey,
+          dayNote: note.content,
+          createdAt: note.updatedAt || new Date().toISOString(),
+        });
+      }
+      // Cloud is source of truth for this day so deletes propagate across devices.
+      setTasksMap((prev) =>
+        mergeTasksMaps(prev, { [dateKey]: cloudList }, {
+          authoritativeMonthKeys: new Set([monthKeyFromDateKey(dateKey)]),
+          pendingLocalIds: pendingLocalTaskIdsRef.current,
+        })
+      );
       // Also update notesCache
       if (note) {
         setNotesCache(prev => new Map(prev).set(dateKey, note));
@@ -677,17 +689,24 @@ export default function App() {
       if (!months.size) months.add(monthKeyFromDate(new Date()));
 
       const combined = {};
+      const fetchedMonths = new Set();
       for (const mk of months) {
         try {
           const byDate = await fetchMonthByDate(mk);
           Object.assign(combined, byDate);
           loadedMonthsRef.current.add(mk);
+          fetchedMonths.add(mk);
         } catch (err) {
           console.error('Failed to refresh month from cloud', mk, err);
         }
       }
-      if (Object.keys(combined).length) {
-        setTasksMap((prev) => mergeTasksMaps(prev, combined));
+      if (fetchedMonths.size) {
+        setTasksMap((prev) =>
+          mergeTasksMaps(prev, combined, {
+            authoritativeMonthKeys: fetchedMonths,
+            pendingLocalIds: pendingLocalTaskIdsRef.current,
+          })
+        );
       }
 
       const jobs = [];
@@ -720,8 +739,9 @@ export default function App() {
           habitRepoRef.current
             .loadHabbits()
             .then((cloudHabbits) => {
+              skipHabitsCloudSaveRef.current = true;
               setHabbits((prev) => {
-                const merged = mergeHabbits(prev, cloudHabbits);
+                const merged = mergeHabbits(prev, cloudHabbits, { cloudAuthoritative: true });
                 try { saveHabbits(merged); } catch {}
                 return merged;
               });
@@ -818,11 +838,12 @@ export default function App() {
           journalRepoRef.current.listJournals({ limit: 500 }).then((items) => setJournalsCache(items)).catch(() => {});
         } catch {}
 
-        // Load habits cache and merge with local
+        // Load habits from cloud (authoritative) without pushing local deletes back up
         try {
           const cloudHabbits = await habitRepoRef.current.loadHabbits();
+          skipHabitsCloudSaveRef.current = true;
           setHabbits((prev) => {
-            const merged = mergeHabbits(prev, cloudHabbits);
+            const merged = mergeHabbits(prev, cloudHabbits, { cloudAuthoritative: true });
             try { saveHabbits(merged); } catch {}
             return merged;
           });
@@ -832,7 +853,7 @@ export default function App() {
           habitsSyncReadyRef.current = true;
         }
         
-                // Load current month from Firestore and merge with local
+                // Load current month from Firestore; cloud membership wins for this month
         try {
           const currentMonthKey = monthKeyFromDate(new Date());
           let monthMap = {};
@@ -860,22 +881,12 @@ export default function App() {
           
           hasLoadedCloud.current = true;
           loadedMonthsRef.current.add(currentMonthKey);
-          setTasksMap((prev) => {
-            const merged = mergeTasksMaps(prev, monthMap);
-            // TODO: Convert existing local data to new schema format
-            // For now, we'll keep the old sync logic but mark it for removal
-            try {
-              const months = new Set(Object.keys(merged).map((k) => monthKeyFromDateKey(k)));
-              months.forEach((m) => {
-                const mMap = getMonthMapFor(merged, m);
-                // TODO: Convert to new schema and save using firebaseService
-                // saveMonthToCloud(u.uid, m, mMap).catch((err) => console.error('Cloud month sync failed', err));
-              });
-            } catch (err) {
-              console.error('Bulk month sync failed', err);
-            }
-            return merged;
-          });
+          setTasksMap((prev) =>
+            mergeTasksMaps(prev, monthMap, {
+              authoritativeMonthKeys: new Set([currentMonthKey]),
+              pendingLocalIds: pendingLocalTaskIdsRef.current,
+            })
+          );
 
           // Feature flag: recurring tasks (default enabled). Stored at
           // /users/{uid}/meta/featureFlag { recurringTasks: boolean }
@@ -974,6 +985,8 @@ export default function App() {
         setDeleteAllTasksEnabled(false);
         setStreak((s) => ensureStreakUpToDate(s));
         setTasksLoading(false);
+        pendingLocalTaskIdsRef.current = new Set();
+        skipHabitsCloudSaveRef.current = false;
         
         // Clear recurring tasks when user is not logged in
         setRecurringSeries([]);
@@ -992,27 +1005,6 @@ export default function App() {
   }, [user, monthStart]);
 
   // No effect-based triggers; we trigger celebration directly from user actions when a day becomes fully complete.
-
-  function mergeTasksMaps(localMap, cloudMap) {
-    const result = { ...localMap };
-    for (const dateKey of Object.keys(cloudMap || {})) {
-      const localList = result[dateKey] || [];
-      const cloudList = cloudMap[dateKey] || [];
-      const byId = new Map();
-      for (const t of localList) byId.set(t.id, t);
-      for (const t of cloudList) {
-        if (!byId.has(t.id)) byId.set(t.id, t);
-        else {
-          const existing = byId.get(t.id);
-          // Prefer cloud task over local task on conflicts
-          byId.set(t.id, { ...existing, ...t });
-        }
-      }
-      const mergedList = Array.from(byId.values());
-      if (mergedList.length) result[dateKey] = mergedList; else delete result[dateKey];
-    }
-    return result;
-  }
 
   async function signInWithGoogle() {
     try {
@@ -1290,33 +1282,6 @@ export default function App() {
     setHabbits((prev) => prev.filter((habit) => habit.id !== habitId));
   }
 
-  function mergeHabbits(localItems, cloudItems) {
-    const localList = Array.isArray(localItems) ? localItems : [];
-    const cloudList = Array.isArray(cloudItems) ? cloudItems : [];
-    const byId = new Map();
-    for (const item of localList) {
-      if (!item?.id) continue;
-      byId.set(item.id, item);
-    }
-    for (const item of cloudList) {
-      if (!item?.id) continue;
-      const existing = byId.get(item.id);
-      if (!existing) {
-        byId.set(item.id, item);
-        continue;
-      }
-      byId.set(item.id, {
-        ...existing,
-        ...item,
-        history: {
-          ...(existing?.history && typeof existing.history === 'object' ? existing.history : {}),
-          ...(item?.history && typeof item.history === 'object' ? item.history : {}),
-        },
-      });
-    }
-    return Array.from(byId.values());
-  }
-
   // Navigate to search result item
   function navigateToSearchResult(result) {
     try {
@@ -1509,7 +1474,7 @@ export default function App() {
       const fullList = mergeDayList(updatedTasks, noteItem);
       const updated = { ...prev, [key]: fullList };
       if (user && taskRepoRef.current) {
-        taskRepoRef.current.saveTask(key, newTask).catch((err) => console.error('Cloud addTask failed', err));
+        persistTaskToCloud(key, newTask);
       }
       return updated;
     });
@@ -1652,7 +1617,7 @@ export default function App() {
           const safeTask = updatedTask.isRecurringInstance
             ? { ...safeTaskBase, seriesId: updatedTask.seriesId || null }
             : { ...safeTaskBase };
-          taskRepoRef.current.saveTask(editTask.due, safeTask).catch((err) => console.error('Cloud saveEdit failed', err));
+          persistTaskToCloud(editTask.due, safeTask);
         }
       }
       return updated;
@@ -1748,7 +1713,7 @@ export default function App() {
           const safeTask = updatedTask.isRecurringInstance
             ? { ...safeTaskBase, seriesId: updatedTask.seriesId || null }
             : { ...safeTaskBase };
-          taskRepoRef.current.saveTask(task.due, safeTask).catch((err) => console.error('Cloud toggleDone failed', err));
+          persistTaskToCloud(task.due, safeTask);
         }
       }
       return updated;
@@ -1799,6 +1764,7 @@ export default function App() {
       const fullList = mergeDayList(sortedTasks, noteItem);
       if (fullList.length) copy[task.due] = fullList;
       else delete copy[task.due];
+      if (task?.id) pendingLocalTaskIdsRef.current.delete(task.id);
       if (user && taskRepoRef.current) {
         (async () => {
           try {
@@ -2004,7 +1970,7 @@ export default function App() {
       const updated = { ...prev, [dueKey]: fullList };
       if (user && taskRepoRef.current) {
         const updatedTask = list.find(t => t.id === parentTask.id);
-        if (updatedTask) taskRepoRef.current.saveTask(dueKey, updatedTask).catch((err) => console.error('Cloud addSubtask failed', err));
+        if (updatedTask) persistTaskToCloud(dueKey, updatedTask);
       }
       return updated;
     });
@@ -2114,7 +2080,7 @@ export default function App() {
       const updated = { ...prev, [dueKey]: fullList };
       if (user && taskRepoRef.current) {
         const updatedTask = list.find(t => t.id === parentTask.id);
-        if (updatedTask) taskRepoRef.current.saveTask(dueKey, updatedTask).catch((err) => console.error('Cloud toggleSubtask failed', err));
+        if (updatedTask) persistTaskToCloud(dueKey, updatedTask);
       }
       return updated;
     });
@@ -2192,7 +2158,7 @@ export default function App() {
       const updated = { ...prev, [dueKey]: fullList };
       if (user && taskRepoRef.current) {
         const updatedTask = list.find(t => t.id === parentTask.id);
-        if (updatedTask) taskRepoRef.current.saveTask(dueKey, updatedTask).catch((err) => console.error('Cloud deleteSubtask failed', err));
+        if (updatedTask) persistTaskToCloud(dueKey, updatedTask);
       }
       return updated;
     });
@@ -2411,7 +2377,7 @@ export default function App() {
               Object.entries(monthMap).forEach(([dateKey, dayList]) => {
                 if (Array.isArray(dayList)) {
                   const { taskList, noteItem } = splitDayList(dayList);
-                  taskList.forEach(t => taskRepoRef.current.saveTask(dateKey, t).catch(() => {}));
+                  taskList.forEach((t) => persistTaskToCloud(dateKey, t));
                   if (noteItem?.dayNote) noteRepoRef.current.saveDayNote(dateKey, noteItem.dayNote).catch(() => {});
                 }
               });
