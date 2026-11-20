@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, parseISO, isAfter, startOfDay, isToday } from "date-fns";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, Check, StickyNote, List, Grip, Minimize2, CheckSquare, Sparkles, Target, BookOpenText, Loader2 } from "lucide-react";
+import { Plus, Check, StickyNote, List, Grip, Minimize2, CheckSquare, Sparkles, Target, BookOpenText, Loader2, Home } from "lucide-react";
 import usePullToRefresh from "./hooks/usePullToRefresh";
 import { useJournalReminder } from "./hooks/useJournalReminder";
 import { auth, db, googleProvider, firebase } from "./firebase";
@@ -32,6 +32,7 @@ import FocusedSnippetView from "./components/FocusedSnippetView.jsx";
 import FocusedDayNoteView from "./components/FocusedDayNoteView.jsx";
 import FloatingPomodoro from "./components/FloatingPomodoro.jsx";
 import SettingsPage from "./components/settings/SettingsPage.jsx";
+import HomePage from "./components/HomePage.jsx";
 import { loadTasks, saveTasks, loadStreak, saveStreak, loadDensityPreference, saveDensityPreference, loadRecurringSeries, saveRecurringSeries, loadViewPreference, saveViewPreference, loadSidebarCollapsed, saveSidebarCollapsed, loadSnippetsCache, saveSnippetsCache, loadHabbits, saveHabbits } from "./utils/storage";
 import { generateId } from "./utils/uid";
 import { keyFor, monthKeyFromDate, monthKeyFromDateKey, getMonthMapFor } from "./utils/date";
@@ -59,12 +60,12 @@ export default function App() {
   const [isPhone, setIsPhone] = useState(() => (typeof window === 'undefined' ? true : window.matchMedia('(max-width: 639px)').matches));
   const contentScrollRef = useRef(null);
   const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window === 'undefined') return 'tasks';
+    if (typeof window === 'undefined') return 'home';
     try {
-      const stored = localStorage.getItem('caldo_v2_active_tab') || 'tasks';
-      return ['tasks', 'notes', 'journal', 'moments', 'habits', 'settings'].includes(stored) ? stored : 'tasks';
-    } catch { return 'tasks'; }
-  }); // 'tasks' | 'notes' | 'journal' | 'moments' | 'habits' | 'settings'
+      const stored = localStorage.getItem('caldo_v2_active_tab') || 'home';
+      return ['home', 'tasks', 'notes', 'journal', 'moments', 'habits', 'settings'].includes(stored) ? stored : 'home';
+    } catch { return 'home'; }
+  }); // 'home' | 'tasks' | 'notes' | 'journal' | 'moments' | 'habits' | 'settings'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => (typeof window === 'undefined' ? false : loadSidebarCollapsed()));
   // Phones always use Day for Tasks; desktop keeps the saved preference.
   const effectiveView = isPhone ? 'day' : currentView;
@@ -2571,7 +2572,14 @@ export default function App() {
 
   // Close drawers when switching tabs to prevent conflicts
   useEffect(() => {
-    if (activeTab === 'tasks') {
+    if (activeTab === 'home') {
+      setShowAdd(false);
+      setShowEdit(false);
+      setShowMissed(false);
+      setSnippetsDrawerOpen(false);
+      setJournalDrawerOpen(false);
+      setShowNotes(false);
+    } else if (activeTab === 'tasks') {
       setSnippetsDrawerOpen(false);
       setJournalDrawerOpen(false);
     } else if (activeTab === 'notes') {
@@ -2922,6 +2930,60 @@ export default function App() {
           </main>
         ) : null}
 
+        {activeTab === 'home' && (
+          <HomePage
+            user={user}
+            todayTasks={tasksFor(new Date())}
+            streak={streak}
+            habits={habbits}
+            journalToday={(journalsCache || []).find((entry) => entry?.dateKey === keyFor(new Date())) || null}
+            hasAnyData={
+              Object.keys(tasksMap || {}).some((dk) => {
+                const list = tasksMap[dk] || [];
+                return list.some((item) => item && item.id !== 'day_note');
+              }) ||
+              (Array.isArray(habbits) && habbits.length > 0)
+            }
+            onChangeTab={setActiveTab}
+            onSignIn={signInWithGoogle}
+            onOpenHelp={() => setShowHelp(true)}
+            onAddTask={() => {
+              const today = new Date();
+              setSelectedDate(today);
+              setCursor(today);
+              setActiveTab('tasks');
+              setShowAdd(true);
+            }}
+            onOpenToday={() => {
+              const today = new Date();
+              setSelectedDate(today);
+              setCursor(today);
+              setActiveTab('tasks');
+            }}
+            onStartToday={() => {
+              const today = new Date();
+              setSelectedDate(today);
+              setCursor(today);
+              setActiveTab('tasks');
+              setShowAdd(true);
+            }}
+            onOpenJournal={() => {
+              const todayKey = keyFor(new Date());
+              setActiveTab('journal');
+              setJournalInitialDateKey(todayKey);
+              const existingForDate = (journalsCache || []).find((entry) => entry?.dateKey === todayKey);
+              setJournalDrawerId(existingForDate?.id || '__new__');
+              setJournalDrawerOpen(true);
+            }}
+            onSelectTask={() => {
+              const today = new Date();
+              setSelectedDate(today);
+              setCursor(today);
+              setActiveTab('tasks');
+            }}
+          />
+        )}
+
         {activeTab === 'notes' && (
           <NotesPage
             user={user}
@@ -3211,6 +3273,7 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-2 py-2" style={{ backgroundColor: 'var(--chrome-bg, #ffffff)' }}>
           <div className="flex items-center justify-around gap-1">
             {[
+              { id: 'home', label: 'Home', Icon: Home },
               { id: 'tasks', label: 'Tasks', Icon: CheckSquare },
               { id: 'notes', label: 'Notes', Icon: StickyNote },
               { id: 'journal', label: 'Journal', Icon: BookOpenText },

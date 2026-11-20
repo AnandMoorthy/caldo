@@ -1,9 +1,10 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { CheckSquare, StickyNote, Sparkles, Target, BookOpenText, Settings, ChevronLeft } from "lucide-react";
+import { Home, CheckSquare, StickyNote, Sparkles, Target, BookOpenText, Settings, ChevronLeft } from "lucide-react";
 import Logo from "./Logo.jsx";
 
 const PAGES = [
+  { key: "home", label: "Home", icon: Home },
   { key: "tasks", label: "Tasks", icon: CheckSquare },
   { key: "notes", label: "Notes", icon: StickyNote },
   { key: "journal", label: "Journal", icon: BookOpenText },
