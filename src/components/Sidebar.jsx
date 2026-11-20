@@ -64,7 +64,7 @@ export default function Sidebar({ activeTab = "tasks", onChangeTab, collapsed = 
       initial={false}
       animate={{ width: collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED }}
       transition={WIDTH_TRANSITION}
-      className="relative z-10 hidden sm:flex flex-col shrink-0 h-full overflow-hidden border-r border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md"
+      className="relative z-10 hidden sm:flex flex-col shrink-0 h-full overflow-hidden border-r border-white/50 dark:border-slate-700/40 bg-white/20 dark:bg-slate-950/25 backdrop-blur-md"
     >
       {/* Brand — logo fixed, copy fades/clips with the rail */}
       <div className="pt-[max(env(safe-area-inset-top),1.25rem)] pb-4 px-3">
