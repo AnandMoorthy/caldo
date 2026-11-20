@@ -4,8 +4,6 @@ import { Bell, BookOpenText, Calendar, Flame, Loader2, PenSquare } from "lucide-
 import { keyFor } from "../utils/date";
 import { formatReminderTime } from "../utils/journalReminder";
 import JournalReminderSettings from "./JournalReminderSettings.jsx";
-import { useScrollChrome } from "../context/ScrollChromeContext.jsx";
-import CollapsingChrome from "./CollapsingChrome.jsx";
 
 function formatJournalDate(dateKey) {
   try {
@@ -55,7 +53,6 @@ export default function JournalPage({
   const [items, setItems] = useState(Array.isArray(journals) ? journals : []);
   const [loading, setLoading] = useState(false);
   const [reminderOpen, setReminderOpen] = useState(false);
-  const { chromeHidden } = useScrollChrome();
 
   useEffect(() => {
     setItems(Array.isArray(journals) ? journals : []);
@@ -113,30 +110,26 @@ export default function JournalPage({
 
   return (
     <div className="max-w-4xl mx-auto w-full px-1">
-      <div className="sticky top-0 z-20">
-        <CollapsingChrome hidden={chromeHidden}>
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div>
-                <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">Journal</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                  One entry per day with mood, energy, and notes.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                {reminderButton}
-                <button
-                  type="button"
-                  onClick={() => onOpenJournalEditor && onOpenJournalEditor("__new__", keyFor(new Date()))}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
-                >
-                  <PenSquare size={16} />
-                  New journal
-                </button>
-              </div>
-            </div>
+      <div className="sticky top-0 z-20 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-4 sm:p-6 shadow-sm">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold text-slate-900 dark:text-slate-100">Journal</h1>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+              One entry per day with mood, energy, and notes.
+            </p>
           </div>
-        </CollapsingChrome>
+          <div className="flex items-center gap-2 flex-wrap">
+            {reminderButton}
+            <button
+              type="button"
+              onClick={() => onOpenJournalEditor && onOpenJournalEditor("__new__", keyFor(new Date()))}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"
+            >
+              <PenSquare size={16} />
+              New journal
+            </button>
+          </div>
+        </div>
       </div>
 
       <JournalReminderSettings
