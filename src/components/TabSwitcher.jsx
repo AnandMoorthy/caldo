@@ -1,9 +1,15 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { CheckSquare, StickyNote, Sparkles, Target, BookOpenText } from "lucide-react";
+import { Home, CheckSquare, StickyNote, Sparkles, Target, BookOpenText } from "lucide-react";
 
 export default function TabSwitcher({ activeTab, onChangeTab }) {
   const tabs = [
+    {
+      key: 'home',
+      label: 'Home',
+      icon: Home,
+      shortLabel: 'Home'
+    },
     {
       key: 'tasks',
       label: 'Tasks',
