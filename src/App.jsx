@@ -5,6 +5,7 @@ import { Plus, Check, StickyNote, List, Grip, Minimize2, CheckSquare, Sparkles, 
 import usePullToRefresh from "./hooks/usePullToRefresh";
 import { useJournalReminder } from "./hooks/useJournalReminder";
 import { auth, db, googleProvider, firebase } from "./firebase";
+import { clearExtensionGoogleToken, isChromeExtensionPage, signInWithGoogleInExtension } from "./utils/extensionAuth";
 import Header from "./components/Header.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 import Calendar from "./components/Calendar.jsx";
@@ -1021,6 +1022,20 @@ export default function App() {
   // No effect-based triggers; we trigger celebration directly from user actions when a day becomes fully complete.
 
   async function signInWithGoogle() {
+    if (isChromeExtensionPage()) {
+      try {
+        await signInWithGoogleInExtension();
+      } catch (e) {
+        console.error(e);
+        const message = e?.message || "Sign-in failed";
+        if (/oauth2|client id|bad client/i.test(message)) {
+          alert("Google sign-in needs a Chrome OAuth client. Set VITE_CHROME_OAUTH_CLIENT_ID and rebuild the extension.");
+        } else {
+          alert(message);
+        }
+      }
+      return;
+    }
     try {
       await auth.signInWithPopup(googleProvider);
     } catch (e) {
@@ -1038,6 +1053,7 @@ export default function App() {
   async function signOut() {
     try {
       await auth.signOut();
+      clearExtensionGoogleToken();
     } catch (e) {
       console.error(e);
     }

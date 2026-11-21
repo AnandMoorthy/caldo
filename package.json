@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:extension": "vite build --config vite.config.extension.mjs",
+    "dev:extension": "vite build --config vite.config.extension.mjs --watch",
     "postbuild": "cp dist/index.html dist/404.html || copy dist/index.html dist/404.html",
     "preview": "vite preview",
     "test:sync": "node src/utils/syncMerge.test.js",

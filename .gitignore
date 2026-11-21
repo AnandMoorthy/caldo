@@ -1,2 +1,6 @@
 node_modules
 dist
+dist-extension
+extension/.key.pem
+extension/.public-key.txt
+extension/.extension-id.txt

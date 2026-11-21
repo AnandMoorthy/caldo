@@ -14,6 +14,35 @@ npm run dev
 
 3. Open the URL shown by Vite (typically http://localhost:5173)
 
+## Chrome extension (new tab)
+
+The extension build opens CalDo as the Chrome new tab page.
+
+```bash
+npm run build:extension
+```
+
+1. Open `chrome://extensions`.
+2. Turn on Developer mode.
+3. Choose Load unpacked and select the `dist-extension` folder.
+4. Open a new tab. CalDo replaces the new tab page.
+
+`npm run dev:extension` rebuilds `dist-extension` when files change. Click the reload button on `chrome://extensions` after each rebuild.
+
+Unpacked loads use a stable extension id of `kbcncpiopmdlgmlbdokgkhnabacefojh` (from the public `key` in `extension/manifest.json`). Local data lives in that extension origin, separate from the website. Sign in to sync through Firebase.
+
+Google sign-in inside the extension needs a Chrome extension OAuth client in the same Google Cloud project as Firebase (`caldo-ae155`):
+
+1. In Google Cloud → APIs & Services → Credentials, create an OAuth client ID of type Chrome extension.
+2. Use the extension id above.
+3. Rebuild with the client id:
+
+```bash
+VITE_CHROME_OAUTH_CLIENT_ID="your-id.apps.googleusercontent.com" npm run build:extension
+```
+
+The website keeps using the normal Google popup. Journal reminders and the Pomodoro timer can notify while a CalDo tab is open.
+
 ## Notes
 - This is a frontend-first app with optional cloud sync via Firebase Auth + Firestore.
 - Local data is stored in `localStorage` and merged with cloud data on sign-in.

@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "CalDo",
+  "version": "1.0.0",
+  "description": "Minimalist calendar and todo app.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzlglobkGyO0JIe5mgANwUl7WeWhXwz/YyXRmaVIdrJKsjwVGaXpojfVmdIEEIoiUbj8qmt5DlYquoH+arkfq8kuo6t/OIrq5TdMMZOtlODqRE0A5rLAZDl/79yKKXk/hME0It8dEu7QtJTSiULP4j50TXvQ3KS4fCIMnqCKIgHcQW/m6xYIOKCQpBRYJz6or93bYv0weNcLKznn+o3rERueO9GwQw9cnl8kEjP5c86P2W9S1M20tun593YGpwagsmM773UU6LMjzqVDsGpO6UCPzIl0oNU95WG8HLT+wczDeln7hR6q689JAfPdkEJriIXUt7DNgTKACPWm3OYSFrwIDAQAB",
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "action": {
+    "default_title": "Open CalDo",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": ["identity", "notifications"],
+  "host_permissions": [
+    "https://*.googleapis.com/*",
+    "https://*.firebaseio.com/*",
+    "https://*.firebasestorage.app/*",
+    "https://*.firebaseapp.com/*",
+    "https://*.google.com/*",
+    "https://*.gstatic.com/*"
+  ]
+}
