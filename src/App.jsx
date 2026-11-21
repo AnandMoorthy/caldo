@@ -2914,7 +2914,6 @@ export default function App() {
           <HomePage
             user={user}
             todayTasks={tasksFor(new Date())}
-            streak={streak}
             habits={habbits}
             journalToday={(journalsCache || []).find((entry) => entry?.dateKey === keyFor(new Date())) || null}
             tasksMap={tasksMap}
