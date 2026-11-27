@@ -7,7 +7,6 @@ import {
   BookOpenText,
   Sparkles,
   Target,
-  Flame,
   Plus,
   ChevronRight,
   LogIn,
@@ -315,7 +314,6 @@ function GistView({
   taskTotal,
   taskDone,
   incompleteTasks,
-  streakCurrent,
   habitsTotal,
   habitsDone,
   journalToday,
@@ -375,12 +373,6 @@ function GistView({
                 label="Tasks"
                 accent="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
                 onClick={() => onOpenToday && onOpenToday()}
-              />
-              <StatChip
-                icon={Flame}
-                value={streakCurrent || 0}
-                label="Streak"
-                accent="bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"
               />
               <StatChip
                 icon={Target}
@@ -482,7 +474,6 @@ function GistView({
 export default function HomePage({
   user = null,
   todayTasks = [],
-  streak = null,
   habits = [],
   journalToday = null,
   tasksMap = {},
@@ -521,9 +512,8 @@ export default function HomePage({
         habits,
         journals,
         moments,
-        streak,
       }),
-    [tasksMap, habits, journals, moments, streak]
+    [tasksMap, habits, journals, moments]
   );
 
   const showGist = !!user || hasAnyData;
@@ -537,7 +527,6 @@ export default function HomePage({
           taskTotal={taskTotal}
           taskDone={taskDone}
           incompleteTasks={incompleteTasks}
-          streakCurrent={streak?.current || 0}
           habitsTotal={habitsTotal}
           habitsDone={habitsDone}
           journalToday={journalToday}
