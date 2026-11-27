@@ -122,3 +122,24 @@ button, a, [role="button"], input, select, textarea { touch-action: manipulation
     transform: scale(1);
   }
 }
+
+/* Week view: keep day-column morphs soft and avoid layout thrash */
+.week-day-grid {
+  will-change: grid-template-columns;
+}
+
+.week-day-cell {
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .week-day-grid {
+    transition: none !important;
+    will-change: auto;
+  }
+
+  .week-day-grid * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
