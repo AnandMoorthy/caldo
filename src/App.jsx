@@ -104,6 +104,7 @@ export default function App() {
   const userRef = useRef(null);
   const hasLoadedCloud = useRef(false);
   const loadedMonthsRef = useRef(new Set());
+  const monthFetchInflightRef = useRef(new Map());
   const refreshInFlightRef = useRef(false);
   const refreshCloudDataRef = useRef(async () => {});
   const [recurringSeries, setRecurringSeries] = useState(() => loadRecurringSeries());
@@ -559,44 +560,38 @@ export default function App() {
     return data.todos || data.tasksMap || data.dates || {};
   }
 
-  async function ensureMonthLoaded(userId, monthKey) {
-    if (loadedMonthsRef.current.has(monthKey)) return;
-    loadedMonthsRef.current.add(monthKey);
-    try {
-      // New schema: read tasks and notes for month via repositories
-      if (!taskRepoRef.current || !noteRepoRef.current) {
-        loadedMonthsRef.current.delete(monthKey);
-        return;
-      }
-      const tasks = await taskRepoRef.current.fetchTasksForMonth(monthKey);
-      const notes = await noteRepoRef.current.fetchMonthNotes(monthKey);
-      const byDate = {};
-      tasks.forEach(t => {
-        const dk = t.dateKey;
-        if (!dk) return;
-        if (!byDate[dk]) byDate[dk] = [];
-        // Ensure UI expects 'due' to be present
-        byDate[dk].push({ ...t, due: dk });
-      });
-      notes.forEach(n => {
-        const dk = n.dateKey;
-        const existing = byDate[dk] || [];
-        const list = existing.slice();
-        if (n.content) list.push({ id: 'day_note', due: dk, dayNote: n.content, createdAt: n.updatedAt || new Date().toISOString() });
-        byDate[dk] = list;
-        // Also update notesCache
-        setNotesCache(prev => new Map(prev).set(dk, n));
-      });
-      setTasksMap((prev) =>
-        mergeTasksMaps(prev, byDate, {
-          authoritativeMonthKeys: new Set([monthKey]),
-          pendingLocalIds: pendingLocalTaskIdsRef.current,
-        })
-      );
-    } catch (e) {
-      loadedMonthsRef.current.delete(monthKey);
-      console.error('Failed to load month from cloud', e);
+  async function refreshMonthFromCloud(monthKey, { force = false } = {}) {
+    if (!monthKey) return;
+    if (!force && loadedMonthsRef.current.has(monthKey)) return;
+    if (monthFetchInflightRef.current.has(monthKey)) {
+      return monthFetchInflightRef.current.get(monthKey);
     }
+
+    const pending = (async () => {
+      try {
+        if (!taskRepoRef.current || !noteRepoRef.current) return;
+        const byDate = await fetchMonthByDate(monthKey);
+        loadedMonthsRef.current.add(monthKey);
+        setTasksMap((prev) =>
+          mergeTasksMaps(prev, byDate, {
+            authoritativeMonthKeys: new Set([monthKey]),
+            pendingLocalIds: pendingLocalTaskIdsRef.current,
+          })
+        );
+      } catch (e) {
+        loadedMonthsRef.current.delete(monthKey);
+        console.error('Failed to load month from cloud', e);
+      } finally {
+        monthFetchInflightRef.current.delete(monthKey);
+      }
+    })();
+
+    monthFetchInflightRef.current.set(monthKey, pending);
+    return pending;
+  }
+
+  async function ensureMonthLoaded(_userId, monthKey) {
+    return refreshMonthFromCloud(monthKey, { force: false });
   }
 
   function persistTaskToCloud(dateKey, task) {
@@ -627,10 +622,11 @@ export default function App() {
           createdAt: note.updatedAt || new Date().toISOString(),
         });
       }
-      // Cloud is source of truth for this day so deletes propagate across devices.
+      // Cloud is source of truth for THIS day only. Never mark the whole month
+      // authoritative here — that wiped sibling days' calendar dots on click.
       setTasksMap((prev) =>
         mergeTasksMaps(prev, { [dateKey]: cloudList }, {
-          authoritativeMonthKeys: new Set([monthKeyFromDateKey(dateKey)]),
+          authoritativeDateKeys: new Set([dateKey]),
           pendingLocalIds: pendingLocalTaskIdsRef.current,
         })
       );
@@ -654,7 +650,7 @@ export default function App() {
     const tasks = await taskRepoRef.current.fetchTasksForMonth(monthKey);
     const notes = await noteRepoRef.current.fetchMonthNotes(monthKey);
     const byDate = {};
-    const noteUpdates = [];
+    const noteByDate = new Map();
     tasks.forEach((t) => {
       const dk = t.dateKey;
       if (!dk) return;
@@ -663,6 +659,7 @@ export default function App() {
     });
     notes.forEach((n) => {
       const dk = n.dateKey;
+      if (!dk) return;
       const existing = byDate[dk] || [];
       const list = existing.slice();
       if (n.content) {
@@ -674,15 +671,17 @@ export default function App() {
         });
       }
       byDate[dk] = list;
-      noteUpdates.push(n);
+      noteByDate.set(dk, n);
     });
-    if (noteUpdates.length) {
-      setNotesCache((prev) => {
-        const next = new Map(prev);
-        noteUpdates.forEach((n) => next.set(n.dateKey, n));
-        return next;
-      });
-    }
+    // Replace this month's note cache entries so deleted notes do not leave phantom dots.
+    setNotesCache((prev) => {
+      const next = new Map(prev);
+      for (const key of next.keys()) {
+        if (monthKeyFromDateKey(key) === monthKey) next.delete(key);
+      }
+      noteByDate.forEach((n, dk) => next.set(dk, n));
+      return next;
+    });
     return byDate;
   }
 
@@ -1053,6 +1052,8 @@ export default function App() {
 
   // header avatar moved to Header
 
+  const visibleMonthKey = monthKeyFromDate(monthStart);
+
   const monthDays = useMemo(() => {
     const start = startOfWeek(monthStart, { weekStartsOn: 1 }); // Monday
     const end = endOfWeek(monthEnd, { weekStartsOn: 1 });
@@ -1063,21 +1064,26 @@ export default function App() {
       day = addDays(day, 1);
     }
     return days;
-  }, [cursor]);
+  }, [visibleMonthKey]);
 
-  // Lazy-load every month visible in the calendar grid (current + adjacent padding days)
+  // Load / refresh every month visible in the calendar grid (current + adjacent padding days).
+  // Force-refresh when the visible month changes so navigating away and back restores dots
+  // even if a prior single-day refresh had wiped sibling days.
   useEffect(() => {
     if (!user) return;
-    const monthsToLoad = new Set([monthKeyFromDate(monthStart)]);
-    for (const day of monthDays) {
+    const start = startOfWeek(monthStart, { weekStartsOn: 1 });
+    const end = endOfWeek(monthEnd, { weekStartsOn: 1 });
+    const monthsToLoad = new Set();
+    let day = start;
+    while (day <= end) {
       monthsToLoad.add(monthKeyFromDate(day));
+      day = addDays(day, 1);
     }
     monthsToLoad.forEach((mk) => {
-      if (!loadedMonthsRef.current.has(mk)) {
-        ensureMonthLoaded(user.uid, mk);
-      }
+      const force = mk === visibleMonthKey;
+      refreshMonthFromCloud(mk, { force });
     });
-  }, [user, monthStart, monthDays]);
+  }, [user, visibleMonthKey]);
 
   function nextMonth() {
     setCursor((prev) => addMonths(prev, 1));
