@@ -564,15 +564,16 @@ export default function App() {
     loadedMonthsRef.current.add(monthKey);
     try {
       // New schema: read tasks and notes for month via repositories
-      if (!taskRepoRef.current || !noteRepoRef.current) return;
-      const [y, m] = monthKey.split('-');
-      const start = new Date(Number(y), Number(m) - 1, 1);
-      const end = new Date(Number(y), Number(m), 1);
-      const tasks = await taskRepoRef.current.fetchTasksInRange(start, end);
+      if (!taskRepoRef.current || !noteRepoRef.current) {
+        loadedMonthsRef.current.delete(monthKey);
+        return;
+      }
+      const tasks = await taskRepoRef.current.fetchTasksForMonth(monthKey);
       const notes = await noteRepoRef.current.fetchMonthNotes(monthKey);
       const byDate = {};
       tasks.forEach(t => {
         const dk = t.dateKey;
+        if (!dk) return;
         if (!byDate[dk]) byDate[dk] = [];
         // Ensure UI expects 'due' to be present
         byDate[dk].push({ ...t, due: dk });
@@ -593,6 +594,7 @@ export default function App() {
         })
       );
     } catch (e) {
+      loadedMonthsRef.current.delete(monthKey);
       console.error('Failed to load month from cloud', e);
     }
   }
@@ -649,15 +651,13 @@ export default function App() {
 
   async function fetchMonthByDate(monthKey) {
     if (!taskRepoRef.current || !noteRepoRef.current) return {};
-    const [y, m] = monthKey.split('-');
-    const start = new Date(Number(y), Number(m) - 1, 1);
-    const end = new Date(Number(y), Number(m), 1);
-    const tasks = await taskRepoRef.current.fetchTasksInRange(start, end);
+    const tasks = await taskRepoRef.current.fetchTasksForMonth(monthKey);
     const notes = await noteRepoRef.current.fetchMonthNotes(monthKey);
     const byDate = {};
     const noteUpdates = [];
     tasks.forEach((t) => {
       const dk = t.dateKey;
+      if (!dk) return;
       if (!byDate[dk]) byDate[dk] = [];
       byDate[dk].push({ ...t, due: dk });
     });
@@ -868,19 +868,19 @@ export default function App() {
           habitsSyncReadyRef.current = true;
         }
         
-                // Load current month from Firestore; cloud membership wins for this month
+                // Load current month from Firestore; cloud membership wins for this month.
+        // Use monthKey equality (not local dueDate bounds) so early-month days are not
+        // dropped for users west of UTC, where local midnight ≠ stored UTC dueDate.
         try {
           const currentMonthKey = monthKeyFromDate(new Date());
           let monthMap = {};
           if (taskRepoRef.current && noteRepoRef.current) {
-            const [y, m] = currentMonthKey.split('-');
-            const start = new Date(Number(y), Number(m) - 1, 1);
-            const end = new Date(Number(y), Number(m), 1);
-            const tasks = await taskRepoRef.current.fetchTasksInRange(start, end);
+            const tasks = await taskRepoRef.current.fetchTasksForMonth(currentMonthKey);
             const notes = await noteRepoRef.current.fetchMonthNotes(currentMonthKey);
             const byDate = {};
             tasks.forEach(t => {
               const dk = t.dateKey;
+              if (!dk) return;
               if (!byDate[dk]) byDate[dk] = [];
               byDate[dk].push({ ...t, due: dk });
             });
@@ -1011,14 +1011,6 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // Lazy-load month data when user navigates months
-  useEffect(() => {
-    if (!user) return;
-    const mk = monthKeyFromDate(monthStart);
-    if (loadedMonthsRef.current.has(mk)) return;
-    ensureMonthLoaded(user.uid, mk);
-  }, [user, monthStart]);
-
   // No effect-based triggers; we trigger celebration directly from user actions when a day becomes fully complete.
 
   async function signInWithGoogle() {
@@ -1072,6 +1064,20 @@ export default function App() {
     }
     return days;
   }, [cursor]);
+
+  // Lazy-load every month visible in the calendar grid (current + adjacent padding days)
+  useEffect(() => {
+    if (!user) return;
+    const monthsToLoad = new Set([monthKeyFromDate(monthStart)]);
+    for (const day of monthDays) {
+      monthsToLoad.add(monthKeyFromDate(day));
+    }
+    monthsToLoad.forEach((mk) => {
+      if (!loadedMonthsRef.current.has(mk)) {
+        ensureMonthLoaded(user.uid, mk);
+      }
+    });
+  }, [user, monthStart, monthDays]);
 
   function nextMonth() {
     setCursor((prev) => addMonths(prev, 1));

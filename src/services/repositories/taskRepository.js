@@ -1,5 +1,6 @@
 import { db, firebase } from '../../firebase';
 import { format, parseISO } from 'date-fns';
+import { dateKeyRangeForMonth } from '../../utils/date';
 
 function toMonthKey(date) {
   return format(date, 'yyyy-MM');
@@ -63,7 +64,9 @@ export class TaskRepository {
     await this.tasksRef().doc(taskId).delete();
   }
 
-  // Fetch tasks in [start, end)
+  // Fetch tasks in [start, end). Callers must pass UTC-aligned bounds that match
+  // how dueDate is written (parseISO dateKey → UTC midnight). Local midnights
+  // drop early-range days for users west of UTC — prefer fetchTasksForMonth.
   async fetchTasksInRange(start, end) {
     const snap = await this.tasksRef()
       .where('ownerUid', '==', this.userId)
@@ -73,9 +76,20 @@ export class TaskRepository {
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
+  // Month fetch via dateKey string range — timezone-safe (unlike local dueDate
+  // bounds vs UTC-midnight timestamps) and covers legacy docs missing monthKey.
+  async fetchTasksForMonth(monthKey) {
+    const { startKey, endKey } = dateKeyRangeForMonth(monthKey);
+    const snap = await this.tasksRef()
+      .where('dateKey', '>=', startKey)
+      .where('dateKey', '<', endKey)
+      .get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
   async fetchTasksForDate(dateKey) {
-    // Use equality on dateKey to avoid constructing day range repeatedly
-    const snap = await this.tasksRef().where('ownerUid', '==', this.userId).where('dateKey', '==', dateKey).get();
+    // Equality on dateKey within the user subcollection (no composite index needed)
+    const snap = await this.tasksRef().where('dateKey', '==', dateKey).get();
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
