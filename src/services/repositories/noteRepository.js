@@ -1,5 +1,6 @@
 import { db, firebase } from '../../firebase';
 import { parseISO } from 'date-fns';
+import { dateKeyRangeForMonth } from '../../utils/date';
 
 export class DayNoteRepository {
   constructor(userId) {
@@ -29,15 +30,14 @@ export class DayNoteRepository {
     return doc.exists ? doc.data() : null;
   }
 
-  // Fetch notes within a month via range on dateKey string
+  // Fetch notes within a month via dateKey range on the user subcollection.
+  // Avoid ownerUid+dateKey composites; the collection path is already per-user.
   async fetchMonthNotes(monthKey) {
-    const start = `${monthKey}-01`;
-    // naive month end increment; caller will typically use task repo range instead
-    const [y, m] = monthKey.split('-');
-    const next = new Date(Number(y), Number(m), 1);
-    const nextMonthKey = `${String(next.getFullYear()).padStart(4,'0')}-${String(next.getMonth()+1).padStart(2,'0')}`;
-    const end = `${nextMonthKey}-01`;
-    const snap = await this.notesRef().where('ownerUid', '==', this.userId).where('dateKey', '>=', start).where('dateKey', '<', end).get();
+    const { startKey, endKey } = dateKeyRangeForMonth(monthKey);
+    const snap = await this.notesRef()
+      .where('dateKey', '>=', startKey)
+      .where('dateKey', '<', endKey)
+      .get();
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 

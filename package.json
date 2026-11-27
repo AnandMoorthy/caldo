@@ -11,6 +11,9 @@
     "postbuild": "cp dist/index.html dist/404.html || copy dist/index.html dist/404.html",
     "preview": "vite preview",
     "test:sync": "node src/utils/syncMerge.test.js",
+    "test:markers": "node src/utils/calendarMarkers.test.js",
+    "test:month-query": "node src/utils/monthQuery.test.js",
+    "test:month": "npm run test:sync && npm run test:markers && npm run test:month-query",
     "test:overview": "node src/utils/periodOverview.test.js"
   },
   "dependencies": {

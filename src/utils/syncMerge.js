@@ -6,6 +6,9 @@
  * survive every refresh, and eventually get written back to the cloud.
  *
  * For months we successfully fetched, cloud is authoritative for membership.
+ * For single-day refreshes, only that dateKey may be authoritative — never the
+ * whole month — or other days' calendar dots get wiped.
+ *
  * Local-only rows are kept only when:
  * - they are materialized recurring instances (not always stored in Firestore), or
  * - their id is in `pendingLocalIds` (create/update that has not reached the cloud yet).
@@ -15,6 +18,11 @@ const DAY_NOTE_ID = "day_note";
 
 function monthKeyFromDateKey(dateKey) {
   return String(dateKey || "").slice(0, 7);
+}
+
+function toKeySet(value) {
+  if (!value) return null;
+  return value instanceof Set ? value : new Set(value);
 }
 
 function isKeepLocalOnlyTask(task, pendingLocalIds) {
@@ -77,14 +85,24 @@ export function mergeDayTasksFromCloud(localList, cloudList, { cloudAuthoritativ
  *
  * @param {Record<string, any[]>} localMap
  * @param {Record<string, any[]>} cloudMap - days returned by the fetch (may omit empty days)
- * @param {{ authoritativeMonthKeys?: Iterable<string>|Set<string>|null, pendingLocalIds?: Set<string>|null }} [options]
+ * @param {{
+ *   authoritativeMonthKeys?: Iterable<string>|Set<string>|null,
+ *   authoritativeDateKeys?: Iterable<string>|Set<string>|null,
+ *   pendingLocalIds?: Set<string>|null
+ * }} [options]
+ *
+ * - `authoritativeMonthKeys`: full month fetch. Every local day in those months is
+ *   reconciled against cloud (missing cloud days clear local tasks).
+ * - `authoritativeDateKeys`: single-day (or sparse) fetch. Only those dates are
+ *   reconciled; sibling days in the same month are left untouched.
  */
-export function mergeTasksMaps(localMap, cloudMap, { authoritativeMonthKeys = null, pendingLocalIds = null } = {}) {
-  const authMonths = authoritativeMonthKeys
-    ? authoritativeMonthKeys instanceof Set
-      ? authoritativeMonthKeys
-      : new Set(authoritativeMonthKeys)
-    : null;
+export function mergeTasksMaps(
+  localMap,
+  cloudMap,
+  { authoritativeMonthKeys = null, authoritativeDateKeys = null, pendingLocalIds = null } = {}
+) {
+  const authMonths = toKeySet(authoritativeMonthKeys);
+  const authDates = toKeySet(authoritativeDateKeys);
 
   const result = { ...(localMap || {}) };
   const cloud = cloudMap || {};
@@ -95,9 +113,14 @@ export function mergeTasksMaps(localMap, cloudMap, { authoritativeMonthKeys = nu
       if (authMonths.has(monthKeyFromDateKey(dateKey))) touchedDates.add(dateKey);
     }
   }
+  if (authDates && authDates.size) {
+    for (const dateKey of authDates) touchedDates.add(dateKey);
+  }
 
   for (const dateKey of touchedDates) {
-    const cloudAuthoritative = !!(authMonths && authMonths.has(monthKeyFromDateKey(dateKey)));
+    const cloudAuthoritative =
+      !!(authDates && authDates.has(dateKey)) ||
+      !!(authMonths && authMonths.has(monthKeyFromDateKey(dateKey)));
     const mergedList = mergeDayTasksFromCloud(result[dateKey] || [], cloud[dateKey] || [], {
       cloudAuthoritative,
       pendingLocalIds,

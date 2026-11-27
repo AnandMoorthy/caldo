@@ -7,6 +7,11 @@ import {
   mergeTasksMaps,
   mergeHabbits,
 } from "./syncMerge.js";
+import {
+  dayHasCalendarMarkers,
+  countMarkedDaysInMonth,
+  tasksForMarkers,
+} from "./calendarMarkers.js";
 
 let passed = 0;
 let failed = 0;
@@ -114,7 +119,6 @@ function sameIds(list, expected) {
 
 // --- Multi-device delete scenario (user report) ---
 {
-  // Device A deleted task "x" from cloud. Device B still has it locally.
   const deviceBLocal = {
     "2026-03-15": [
       { id: "x", title: "Deleted on phone" },
@@ -132,7 +136,6 @@ function sameIds(list, expected) {
     "device B refresh drops task deleted on device A"
   );
 
-  // Habits: old union+reupload path would resurrect h-del; authoritative merge does not.
   const habitsLocal = [
     { id: "h-keep", title: "Keep", history: {} },
     { id: "h-del", title: "Deleted elsewhere", history: {} },
@@ -140,6 +143,107 @@ function sameIds(list, expected) {
   const habitsCloud = [{ id: "h-keep", title: "Keep", history: {} }];
   const habitsMerged = mergeHabbits(habitsLocal, habitsCloud, { cloudAuthoritative: true });
   assert(sameIds(habitsMerged, ["h-keep"]), "habits refresh does not resurrect cloud deletes");
+}
+
+// =============================================================================
+// Regression: single-day refresh must NOT wipe sibling month calendar dots
+// =============================================================================
+{
+  const monthMap = {
+    "2026-11-01": [{ id: "t1", title: "Early month task", due: "2026-11-01" }],
+    "2026-11-10": [
+      { id: "t2", title: "Mid task", due: "2026-11-10" },
+      { id: "day_note", due: "2026-11-10", dayNote: "Note here" },
+    ],
+    "2026-11-27": [{ id: "t3", title: "Today task", due: "2026-11-27" }],
+  };
+
+  // BUG reproduction: treating a single-day cloud payload as month-authoritative
+  const buggy = mergeTasksMaps(monthMap, {
+    "2026-11-27": [{ id: "t3", title: "Today task", due: "2026-11-27", done: false }],
+  }, {
+    authoritativeMonthKeys: new Set(["2026-11"]),
+  });
+  assert(!buggy["2026-11-01"], "BUG repro: month-authoritative day refresh wipes Nov 1");
+  assert(!buggy["2026-11-10"], "BUG repro: month-authoritative day refresh wipes Nov 10 note/tasks");
+  assert(sameIds(buggy["2026-11-27"], ["t3"]), "BUG repro: clicked day remains");
+
+  // Fix: day-authoritative refresh only reconciles that date
+  const fixed = mergeTasksMaps(monthMap, {
+    "2026-11-27": [{ id: "t3", title: "Today task", due: "2026-11-27", done: true }],
+  }, {
+    authoritativeDateKeys: new Set(["2026-11-27"]),
+  });
+  assert(sameIds(fixed["2026-11-01"], ["t1"]), "day refresh keeps Nov 1 tasks");
+  assert(
+    sameIds(fixed["2026-11-10"], ["t2", "day_note"]),
+    "day refresh keeps Nov 10 tasks + note"
+  );
+  assert(fixed["2026-11-27"][0].done === true, "day refresh updates clicked day from cloud");
+  assert(
+    countMarkedDaysInMonth(Object.keys(fixed), fixed, new Map(), "2026-11") === 3,
+    "all three marked days stay visible after day refresh"
+  );
+}
+
+// --- Day-authoritative empty cloud clears only that day ---
+{
+  const local = {
+    "2026-11-05": [{ id: "keep-other", title: "Other day" }],
+    "2026-11-06": [{ id: "gone-here", title: "Deleted on this day" }],
+  };
+  const merged = mergeTasksMaps(local, { "2026-11-06": [] }, {
+    authoritativeDateKeys: new Set(["2026-11-06"]),
+  });
+  assert(sameIds(merged["2026-11-05"], ["keep-other"]), "sibling day untouched");
+  assert(!merged["2026-11-06"], "authoritative empty day clears only that date");
+}
+
+// --- Calendar marker helpers ---
+{
+  assert(tasksForMarkers([{ id: "a", title: "T" }, { id: "day_note", dayNote: "n" }]).length === 1, "tasksForMarkers skips day_note");
+  assert(dayHasCalendarMarkers([{ id: "a", title: "T" }], null) === true, "task-only day has markers");
+  assert(dayHasCalendarMarkers([], { content: "hello" }) === true, "note-cache-only day has markers");
+  assert(dayHasCalendarMarkers([{ id: "day_note", dayNote: "  " }], null) === false, "blank note is not a marker");
+  assert(dayHasCalendarMarkers([], null) === false, "empty day has no markers");
+}
+
+// --- Full month load then day click then navigate-back simulation ---
+{
+  // 1) Month load populates several past days
+  let state = {};
+  const cloudMonth = {
+    "2026-11-02": [{ id: "a", title: "Mon" }],
+    "2026-11-03": [{ id: "b", title: "Tue" }, { id: "day_note", dayNote: "Tue note" }],
+    "2026-11-27": [{ id: "c", title: "Fri" }],
+  };
+  state = mergeTasksMaps(state, cloudMonth, {
+    authoritativeMonthKeys: new Set(["2026-11"]),
+  });
+  assert(
+    countMarkedDaysInMonth(Object.keys(state), state, new Map(), "2026-11") === 3,
+    "month load shows markers on all task/note days"
+  );
+
+  // 2) Click today — must not erase previous dates
+  state = mergeTasksMaps(state, {
+    "2026-11-27": [{ id: "c", title: "Fri", done: true }],
+  }, {
+    authoritativeDateKeys: new Set(["2026-11-27"]),
+  });
+  assert(
+    countMarkedDaysInMonth(Object.keys(state), state, new Map(), "2026-11") === 3,
+    "after click, previous-date markers remain"
+  );
+
+  // 3) Simulate navigating away (no wipe) then force month refresh restores/keeps dots
+  state = mergeTasksMaps(state, cloudMonth, {
+    authoritativeMonthKeys: new Set(["2026-11"]),
+  });
+  assert(
+    countMarkedDaysInMonth(Object.keys(state), state, new Map(), "2026-11") === 3,
+    "returning to month keeps/restores all markers"
+  );
 }
 
 console.log(`syncMerge tests: ${passed} passed, ${failed} failed`);
